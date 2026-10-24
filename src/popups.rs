@@ -1,7 +1,7 @@
 use crate::shortcuts::{SHORTCUTS, TEXT_SHORTCUTS};
 use gtk::prelude::*;
 use leditor::i18n::I18n;
-pub const RELEASE_DATE: &str = "10/23/2026";
+pub const RELEASE_DATE: &str = "10/24/2026";
 
 fn window(parent: &gtk::ApplicationWindow, title: &str, width: i32, height: i32) -> gtk::Window {
     let window = gtk::Window::builder()
@@ -42,7 +42,6 @@ pub fn about(parent: &gtk::ApplicationWindow, strings: &I18n) -> gtk::Window {
     for (row, (label, value)) in [
         ("version", env!("CARGO_PKG_VERSION")),
         ("release-date", RELEASE_DATE),
-        ("repository", ""),
     ]
     .iter()
     .enumerate()
@@ -56,6 +55,10 @@ pub fn about(parent: &gtk::ApplicationWindow, strings: &I18n) -> gtk::Window {
         grid.attach(&value, 1, row as i32, 1, 1);
     }
     content.append(&grid);
+    content.append(&gtk::LinkButton::with_label(
+        "https://github.com/Bartzin55/Leditor",
+        "GitHub — Bartzin55/Leditor",
+    ));
     let ok = close_button(&window, &strings.text("ok"));
     content.append(&ok);
     window.set_default_widget(Some(&ok));

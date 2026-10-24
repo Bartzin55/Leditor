@@ -53,3 +53,17 @@ copy-path = Copy Path
 delete-confirm = Delete this item permanently?
 delete-detail = This action cannot be undone. Open documents will remain available as unsaved tabs.
 delete-dirty-detail = This includes unsaved documents. Their text will be kept in unsaved tabs. The files on disk will be permanently deleted.
+
+enable-autosave = Enable autosave
+restore-session = Restore session
+convert-tabs = Convert Tabs to Spaces
+number-spaces = Number of spaces
+zoom = Zoom (%)
+zoom-in = Zoom in
+zoom-out = Zoom out
+zoom-reset = Reset zoom
+zoom-scroll = Zoom text (snap at 100%)
+indent = Indent
+outdent = Outdent
+
+background-save-error = Automatic save/recovery failed: { $reason }. Your text remains open. Use Save or Save As to retry.

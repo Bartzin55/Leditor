@@ -1,6 +1,7 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 mod editor_view;
 mod popups;
+mod session;
 mod shortcuts;
 mod tab;
 mod ui;

@@ -7,6 +7,24 @@ pub struct Shortcut {
 }
 pub const SHORTCUTS: &[Shortcut] = &[
     Shortcut {
+        action: "zoom-in",
+        label: "zoom-in",
+        accelerators: &["<Primary>plus", "<Primary>KP_Add"],
+        display: "Ctrl++",
+    },
+    Shortcut {
+        action: "zoom-out",
+        label: "zoom-out",
+        accelerators: &["<Primary>minus", "<Primary>KP_Subtract"],
+        display: "Ctrl+-",
+    },
+    Shortcut {
+        action: "zoom-reset",
+        label: "zoom-reset",
+        accelerators: &["<Primary>equal"],
+        display: "Ctrl+=",
+    },
+    Shortcut {
         action: "show-explorer",
         label: "show-explorer",
         accelerators: &["<Primary>b"],
@@ -56,6 +74,9 @@ pub const SHORTCUTS: &[Shortcut] = &[
     },
 ];
 pub const TEXT_SHORTCUTS: &[(&str, &str)] = &[
+    ("Tab", "indent"),
+    ("Shift+Tab", "outdent"),
+    ("Ctrl+Scroll", "zoom-scroll"),
     ("Ctrl+C", "copy"),
     ("Ctrl+V", "paste"),
     ("Ctrl+X", "cut"),

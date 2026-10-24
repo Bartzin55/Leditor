@@ -35,7 +35,7 @@ impl std::error::Error for OpenError {
 }
 
 /// A single UTF-8 document. `saved_text` is the last successfully persisted snapshot.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Document {
     pub path: Option<PathBuf>,
     pub text: String,
@@ -45,6 +45,65 @@ pub struct Document {
 }
 
 impl Document {
+    pub fn autosave(&mut self) -> io::Result<()> {
+        let path = self
+            .path
+            .clone()
+            .ok_or_else(|| io::Error::other("Untitled document"))?;
+        let disk = Self::open(&path).map_err(|e| io::Error::other(e.to_string()))?;
+        if disk.saved_text != self.saved_text || disk.bom != self.bom || disk.crlf != self.crlf {
+            return Err(io::Error::other(format!(
+                "{} changed outside Leditor; use Save or Save As after review",
+                path.display()
+            )));
+        }
+        self.save_to(&path)
+    }
+    pub fn accept_saved_snapshot(&mut self, saved: &Self) {
+        self.saved_text.clone_from(&saved.saved_text);
+    }
+    pub fn saved_content(&self) -> &str {
+        &self.saved_text
+    }
+    pub fn write_recovery(&self, key: &gtk::glib::KeyFile, group: &str) {
+        use gtk::prelude::*;
+        if let Some(path) = &self.path {
+            key.set_string(group, "path", &gtk::gio::File::for_path(path).uri());
+        }
+        key.set_string(group, "text", &self.text);
+        // A detached empty document uses a sentinel which KeyFile cannot store.
+        key.set_string(
+            group,
+            "saved",
+            if self.saved_text == "\0" {
+                ""
+            } else {
+                &self.saved_text
+            },
+        );
+        key.set_boolean(group, "dirty", self.is_dirty());
+        key.set_boolean(group, "bom", self.bom);
+        key.set_boolean(group, "crlf", self.crlf);
+    }
+    pub fn from_recovery(key: &gtk::glib::KeyFile, group: &str) -> Result<Self, gtk::glib::Error> {
+        use gtk::prelude::*;
+        let text = key.string(group, "text")?.to_string();
+        let mut saved_text = key.string(group, "saved")?.to_string();
+        if key.boolean(group, "dirty")? && text == saved_text {
+            saved_text.push('\0');
+        }
+        Ok(Self {
+            path: key
+                .string(group, "path")
+                .ok()
+                .and_then(|s| gtk::gio::File::for_uri(&s).path()),
+            text,
+            saved_text,
+            bom: key.boolean(group, "bom")?,
+            crlf: key.boolean(group, "crlf")?,
+        })
+    }
+
     pub fn open(path: &Path) -> Result<Self, OpenError> {
         let bytes = fs::read(path)?;
         let bom = bytes.starts_with(&[0xef, 0xbb, 0xbf]);

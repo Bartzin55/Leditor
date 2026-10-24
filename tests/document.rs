@@ -150,3 +150,45 @@ fn file_identity_resolves_relative_segments_and_symlinks() {
         assert!(same_path(&first, &alias));
     }
 }
+
+#[test]
+fn autosave_detects_conflicts_and_keeps_dirty_content() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("autosave.txt");
+    std::fs::write(&path, "original").unwrap();
+    let mut doc = leditor::document::Document::open(&path).unwrap();
+    doc.text = "edit".into();
+    doc.autosave().unwrap();
+    assert!(!doc.is_dirty());
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "edit");
+    std::fs::write(&path, "external").unwrap();
+    doc.text = "my text".into();
+    assert!(doc.autosave().is_err());
+    assert!(doc.is_dirty());
+    assert_eq!(doc.text, "my text");
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "external");
+    std::fs::remove_file(&path).unwrap();
+    assert!(doc.autosave().is_err());
+    assert!(!path.exists());
+}
+
+#[test]
+fn in_flight_save_keeps_new_edits_dirty_and_recovery_preserves_format() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("bom-crlf.txt");
+    std::fs::write(&path, b"\xef\xbb\xbffirst\r\n").unwrap();
+    let mut doc = leditor::document::Document::open(&path).unwrap();
+    doc.text.push_str("second\n");
+    let key = gtk::glib::KeyFile::new();
+    doc.write_recovery(&key, "doc");
+    let mut restored = leditor::document::Document::from_recovery(&key, "doc").unwrap();
+    restored.autosave().unwrap();
+    doc.text.push_str("third\n");
+    doc.accept_saved_snapshot(&restored);
+    assert!(doc.is_dirty());
+    assert!(doc.text.ends_with("third\n"));
+    assert_eq!(
+        std::fs::read(path).unwrap(),
+        b"\xef\xbb\xbffirst\r\nsecond\r\n"
+    );
+}

@@ -285,7 +285,7 @@ fn tabs_history_layout_dialogs_and_file_safety() {
     // Popups share the package version and shortcut definitions with the app.
     let about = popups::about(&editor.window, &editor.strings);
     let contents = labels(about.upcast_ref());
-    assert!(contents.contains(&"1.0.0".to_owned()));
+    assert!(contents.contains(&env!("CARGO_PKG_VERSION").to_owned()));
     assert!(contents.contains(&popups::RELEASE_DATE.to_owned()));
     assert!(!contents.iter().any(|s| s.contains("github.com")));
     click("OK");
@@ -357,6 +357,7 @@ fn tabs_history_layout_dialogs_and_file_safety() {
     assert!(!editor.window.is_visible());
     assert_eq!(std::fs::read_to_string(quit_path).unwrap(), "quit save");
     assert!(editor.file_choices.borrow().is_empty());
+    version_one_one_features(&application, test_home.path());
 }
 
 fn version_one_features(editor: &Rc<Editor>, root: &std::path::Path) {
@@ -597,4 +598,82 @@ fn explorer_row(editor: &Editor, path: &std::path::Path) -> gtk::Widget {
         child = row.next_sibling();
     }
     panic!("Missing explorer row: {}", path.display());
+}
+
+fn version_one_one_features(application: &gtk::Application, root: &std::path::Path) {
+    let editor = create(application);
+    assert!(!editor.autosave.get());
+    assert!(!editor.actions["restore-session"].is_enabled());
+    let tab = editor.current().unwrap();
+    let buffer = tab.view.buffer();
+    buffer.set_text("    alpha\n\tbeta\n  gamma\nend");
+    buffer.select_range(&buffer.start_iter(), &buffer.iter_at_line(3).unwrap());
+    tab.view.indent(true);
+    assert_eq!(tab.document.borrow().text, "alpha\nbeta\ngamma\nend");
+    buffer.undo();
+    assert_eq!(
+        tab.document.borrow().text,
+        "    alpha\n\tbeta\n  gamma\nend"
+    );
+    buffer.redo();
+    toggle(&editor, "convert-tabs");
+    editor.spaces_input.set_value(2.0);
+    buffer.place_cursor(&buffer.end_iter());
+    tab.view.indent(false);
+    assert!(tab.document.borrow().text.ends_with("end  "));
+    buffer.undo();
+    assert!(tab.document.borrow().text.ends_with("end"));
+    editor.set_zoom(800.0);
+    assert_eq!(editor.zoom_input.value(), 800.0);
+    toggle(&editor, "zoom-in");
+    assert_eq!(editor.zoom.get(), 800.0);
+    editor.set_zoom(5.0);
+    toggle(&editor, "zoom-out");
+    assert_eq!(editor.zoom.get(), 5.0);
+    editor.set_zoom(98.0);
+    editor.scroll_zoom(-1.0);
+    assert_eq!(editor.zoom.get(), 100.0);
+    editor.scroll_zoom(-1.0);
+    assert_eq!(editor.zoom.get(), 100.0);
+    editor.set_zoom(150.0);
+    drain();
+    capture(&editor, "v110-zoom-highlight.png");
+    toggle(&editor, "zoom-reset");
+    assert_eq!(editor.zoom.get(), 100.0);
+    let path = root.join("autosave.txt");
+    std::fs::write(&path, "before").unwrap();
+    let id = editor.add_tab(Document::open(&path).unwrap());
+    let named = editor.tab(id).unwrap();
+    toggle(&editor, "enable-autosave");
+    assert!(editor.actions["restore-session"].is_enabled());
+    append(&named, " after");
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "before");
+    pump_until(|| !named.document.borrow().is_dirty() && !editor.busy.get());
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "before after");
+    assert!(tab.document.borrow().path.is_none());
+    assert!(tab.document.borrow().is_dirty());
+    std::fs::write(&path, "external edit").unwrap();
+    append(&named, " local edit");
+    pump_until(|| editor.autosave_failed.borrow().contains(&id));
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "external edit");
+    assert!(named.document.borrow().is_dirty());
+    assert!(editor.notice.is_visible());
+    toggle(&editor, "restore-session");
+    editor.load_folder(root.to_owned());
+    editor.select(tab.id);
+    let expected = tab.document.borrow().text.clone();
+    run(&editor, Intent::Quit);
+    let restored = create(application);
+    assert!(restored.restore.get());
+    assert_eq!(restored.tabs.borrow().len(), 2);
+    assert_eq!(restored.current().unwrap().document.borrow().text, expected);
+    assert_eq!(restored.explorer.root.borrow().as_deref(), Some(root));
+    let recovered = restored.tabs.borrow()[1].clone();
+    assert!(recovered.document.borrow().path.is_none());
+    assert!(recovered.document.borrow().text.ends_with("local edit"));
+    toggle(&restored, "enable-autosave");
+    assert!(!restored.restore.get());
+    assert!(!restored.actions["restore-session"].is_enabled());
+    restored.window.destroy();
+    let _ = std::fs::remove_dir_all(crate::session::directory());
 }

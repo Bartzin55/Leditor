@@ -2,7 +2,7 @@
 
 ### A modern text editor for Linux and Windows.
 
-**Version:** 1.0.0  
+**Version:** 1.1.0  
 **Release date:** October 24, 2026
 
 Leditor brings text editing and file organization together in a clean, minimalist workspace. Write, edit, and browse your files with independent tabs, an integrated file explorer, and a distraction-free dark interface.
@@ -18,10 +18,21 @@ Built with **Rust and GTK4**, Leditor works entirely offline and is growing step
 - **Integrated file explorer:** browse expandable folder trees, create files and folders, and open documents directly from the sidebar.
 - **File organization:** copy, move, rename, and delete files and folders, with drag-and-drop support and contextual actions.
 
+### Pick up where you left off
+
+- **Optional autosave:** save changes to named files after a short pause in typing.
+- **Session restoration:** reopen your folder and tabs, including recovered untitled documents.
+- **Recovery without filenames:** keep unsaved drafts without choosing a destination or creating files in your project.
+
+Autosave and session restoration start disabled. Enable them in **Other**; restoration requires autosave. Disabling autosave also disables restoration.
+
 ### Comfortable text editing
 
 - **UTF-8 editing:** open, create, edit, and save text files, with support for UTF-8 BOMs and preservation of uniform Windows line endings.
 - **Word wrap and line numbers:** adjust how text is displayed without changing the document's contents.
+- **Flexible indentation:** insert literal tabs or 1–8 spaces, adjust tab width, and outdent with `Shift+Tab`.
+- **Text zoom:** choose 5–800% magnification for the editor and line numbers, with keyboard and Ctrl+scroll controls.
+- **Current-line highlighting:** follow the caret with a subtle gray highlight and a yellow line number.
 - **Undo and redo:** keep an independent editing history for every document.
 - **Convenient clipboard actions:** cut or copy selected text—or the current logical line when nothing is selected.
 - **Keyboard shortcuts:** access common actions quickly and consult the built-in shortcuts reference.
@@ -49,7 +60,13 @@ Leditor's roadmap focuses on richer editing, broader file support, and a more cu
 - **Additional interface languages** and localization.
 - **Support for more text encodings.**
 
-These features are planned for future releases and are not included in version 1.0.0.
+These features are planned for future releases and are not included in version 1.1.0.
+
+## Get Started
+
+See [BUILD.md](BUILD.md) for Linux and Windows build instructions, [DEVELOPMENT.md](DEVELOPMENT.md) for technical notes, and [VALIDATION.md](VALIDATION.md) for test results and current limitations.
+
+[Visit Leditor on GitHub](https://github.com/Bartzin55/Leditor)
 
 ## License
 

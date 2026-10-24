@@ -10,6 +10,7 @@ use std::path::PathBuf;
 #[path = "ui/explorer.rs"]
 mod explorer;
 use explorer::{Explorer, Operation};
+mod preferences;
 #[path = "ui/tab_actions.rs"]
 mod tab_actions;
 use std::{
@@ -41,13 +42,28 @@ struct Editor {
     busy: Cell<bool>,
     wrap: Cell<bool>,
     line_numbers: Cell<bool>,
+    autosave: Cell<bool>,
+    restore: Cell<bool>,
+    convert: Cell<bool>,
+    spaces: Cell<u32>,
+    zoom: Cell<f64>,
+    zoom_snap: Cell<Option<std::time::Instant>>,
+    pending: Cell<Option<std::time::Instant>>,
+    autosave_failed: RefCell<std::collections::BTreeSet<u64>>,
+    notice: gtk::Label,
+    zoom_input: gtk::SpinButton,
+    spaces_input: gtk::SpinButton,
     strings: I18n,
     actions: BTreeMap<&'static str, gio::SimpleAction>,
     #[cfg(test)]
     file_choices: RefCell<std::collections::VecDeque<(bool, Option<PathBuf>)>>,
 }
 pub fn build(application: &gtk::Application) {
-    create(application);
+    if let Some(window) = application.active_window() {
+        window.present();
+    } else {
+        create(application);
+    }
 }
 fn create(application: &gtk::Application) -> Rc<Editor> {
     if let Some(settings) = gtk::Settings::default() {
@@ -102,6 +118,8 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
                 ("cut", "cut"),
                 ("copy", "copy"),
                 ("paste", "paste"),
+                ("convert-tabs", "convert-tabs"),
+                ("number-spaces", "number-spaces"),
             ],
         ),
         (
@@ -110,17 +128,28 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
                 ("word-wrap", "word-wrap"),
                 ("line-numbers", "line-counter"),
                 ("show-explorer", "show-explorer"),
+                ("zoom", "zoom"),
+                ("zoom-in", "zoom-in"),
+                ("zoom-out", "zoom-out"),
+                ("zoom-reset", "zoom-reset"),
             ],
         ),
         (
             "other",
-            vec![("keyboard", "keyboard-shortcuts"), ("about", "about")],
+            vec![
+                ("enable-autosave", "enable-autosave"),
+                ("restore-session", "restore-session"),
+                ("keyboard", "keyboard-shortcuts"),
+                ("about", "about"),
+            ],
         ),
     ] {
         let submenu = gio::Menu::new();
         for (name, label) in entries {
             let action = match name {
-                "word-wrap" => gio::SimpleAction::new_stateful(name, None, &false.to_variant()),
+                "word-wrap" | "convert-tabs" | "enable-autosave" | "restore-session" => {
+                    gio::SimpleAction::new_stateful(name, None, &false.to_variant())
+                }
                 "line-numbers" | "show-explorer" => {
                     gio::SimpleAction::new_stateful(name, None, &true.to_variant())
                 }
@@ -128,7 +157,13 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
             };
             window.add_action(&action);
             actions.insert(name, action);
-            submenu.append(Some(&strings.text(label)), Some(&format!("win.{name}")));
+            if name == "zoom" || name == "number-spaces" {
+                let item = gio::MenuItem::new(None, None);
+                item.set_attribute_value("custom", Some(&name.to_variant()));
+                submenu.append_item(&item);
+            } else {
+                submenu.append(Some(&strings.text(label)), Some(&format!("win.{name}")));
+            }
         }
         model.append_submenu(Some(&strings.text(menu_name)), &submenu);
     }
@@ -136,7 +171,22 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         application
             .set_accels_for_action(&format!("win.{}", shortcut.action), shortcut.accelerators);
     }
-    root.append(&gtk::PopoverMenuBar::from_model(Some(&model)));
+    let menubar = gtk::PopoverMenuBar::from_model(Some(&model));
+    let zoom_input = gtk::SpinButton::with_range(5.0, 800.0, 5.0);
+    zoom_input.set_value(100.0);
+    let spaces_input = gtk::SpinButton::with_range(1.0, 8.0, 1.0);
+    spaces_input.set_value(4.0);
+    for (name, input) in [("zoom", &zoom_input), ("number-spaces", &spaces_input)] {
+        input.set_numeric(true);
+        input.set_update_policy(gtk::SpinButtonUpdatePolicy::IfValid);
+        let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+        row.set_margin_start(12);
+        row.set_margin_end(12);
+        row.append(&gtk::Label::new(Some(&strings.text(name))));
+        row.append(input);
+        menubar.add_child(&row, name);
+    }
+    root.append(&menubar);
     let explorer = Explorer::new();
     let editor_area = gtk::Box::new(gtk::Orientation::Vertical, 0);
     let tab_bar = gtk::Box::new(gtk::Orientation::Horizontal, 0);
@@ -165,6 +215,11 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
     paned.set_shrink_start_child(false);
     paned.set_position(250);
     root.append(&paned);
+    let notice = gtk::Label::new(None);
+    notice.set_wrap(true);
+    notice.set_visible(false);
+    notice.set_selectable(true);
+    root.append(&notice);
     window.set_child(Some(&root));
     let editor = Rc::new(Editor {
         window,
@@ -179,6 +234,17 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         busy: Cell::new(false),
         wrap: Cell::new(false),
         line_numbers: Cell::new(true),
+        autosave: Cell::new(false),
+        restore: Cell::new(false),
+        convert: Cell::new(false),
+        spaces: Cell::new(4),
+        zoom: Cell::new(100.0),
+        zoom_snap: Cell::new(None),
+        pending: Cell::new(None),
+        autosave_failed: RefCell::new(std::collections::BTreeSet::new()),
+        notice,
+        zoom_input,
+        spaces_input,
         strings,
         actions,
         #[cfg(test)]
@@ -211,7 +277,12 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         }
     });
     editor.setup_explorer();
-    editor.add_tab(Document::default());
+    editor.setup_preferences();
+    editor.restore_startup();
+    if editor.tabs.borrow().is_empty() {
+        editor.add_tab(Document::default());
+    }
+    editor.refresh();
     editor.window.present();
     editor
 }
@@ -227,6 +298,31 @@ impl Editor {
             return;
         }
         match name {
+            "enable-autosave" => {
+                self.autosave.set(!self.autosave.get());
+                self.autosave_failed.borrow_mut().clear();
+                action.set_state(&self.autosave.get().to_variant());
+                if !self.autosave.get() {
+                    self.restore.set(false);
+                    self.actions["restore-session"].set_state(&false.to_variant());
+                }
+                self.save_settings();
+                self.refresh();
+            }
+            "restore-session" => {
+                self.restore.set(self.autosave.get() && !self.restore.get());
+                action.set_state(&self.restore.get().to_variant());
+                self.save_settings();
+                self.refresh();
+            }
+            "convert-tabs" => {
+                self.convert.set(!self.convert.get());
+                action.set_state(&self.convert.get().to_variant());
+                self.apply_text_options();
+            }
+            "zoom-in" => self.set_zoom(self.zoom.get() + 5.0),
+            "zoom-out" => self.set_zoom(self.zoom.get() - 5.0),
+            "zoom-reset" => self.set_zoom(100.0),
             "open-folder" => self.operation(Operation::OpenFolder),
             "close-folder" => self.operation(Operation::CloseFolder),
             "new-folder" => self.operation(Operation::NewRootFolder),
@@ -299,6 +395,24 @@ impl Editor {
         let id = self.next_id.get();
         self.next_id.set(id + 1);
         let tab = Tab::new(id, document, &self.strings);
+        tab.view
+            .configure(self.spaces.get(), self.convert.get(), self.zoom.get());
+        let scroll = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::VERTICAL);
+        scroll.set_propagation_phase(gtk::PropagationPhase::Capture);
+        let weak = Rc::downgrade(self);
+        scroll.connect_scroll(move |controller, _, dy| {
+            if controller
+                .current_event_state()
+                .contains(gtk::gdk::ModifierType::CONTROL_MASK)
+            {
+                if let Some(e) = weak.upgrade() {
+                    e.scroll_zoom(dy);
+                }
+                return glib::Propagation::Stop;
+            }
+            glib::Propagation::Proceed
+        });
+        tab.view.add_controller(scroll);
         tab.set_wrap(self.wrap.get());
         tab.view.set_line_numbers(self.line_numbers.get());
         let weak = Rc::downgrade(self);
@@ -362,6 +476,7 @@ impl Editor {
         self.refresh();
     }
     fn refresh(&self) {
+        self.pending.set(Some(std::time::Instant::now()));
         let current = self.current();
         let title = current
             .as_ref()
@@ -380,6 +495,7 @@ impl Editor {
         self.window.set_title(Some(&title));
         for (&name, action) in &self.actions {
             let enabled = match name {
+                "restore-session" => self.autosave.get(),
                 "close" => current.is_some(),
                 "cut" | "copy" | "paste" if self.explorer.focused.get() => {
                     self.explorer.selected.borrow().is_some()
@@ -460,6 +576,46 @@ impl Editor {
                 }
             }
             Intent::Quit => {
+                if self.restore.get() {
+                    // Flush pending named-file edits before saving the final session.
+                    // Untitled documents and write failures remain in recovery data.
+                    if let Err(error) = self.save_recovery() {
+                        self.error(&error.to_string()).await;
+                        return;
+                    }
+                    let tabs = self.tabs.borrow().clone();
+                    for tab in tabs {
+                        let mut doc = tab.document.borrow().clone();
+                        if doc.path.is_some()
+                            && doc.is_dirty()
+                            && !tab.unsupported.get()
+                            && !self.autosave_failed.borrow().contains(&tab.id)
+                        {
+                            match gio::spawn_blocking(move || {
+                                doc.autosave()?;
+                                Ok::<_, std::io::Error>(doc)
+                            })
+                            .await
+                            {
+                                Ok(Ok(saved)) => {
+                                    tab.document.borrow_mut().accept_saved_snapshot(&saved)
+                                }
+                                Ok(Err(error)) => self.show_background_error(&error.to_string()),
+                                Err(_) => self.show_background_error("Autosave worker failed"),
+                            }
+                        }
+                    }
+                    match self.save_recovery() {
+                        Ok(()) => {
+                            self.window.destroy();
+                            return;
+                        }
+                        Err(error) => {
+                            self.error(&error.to_string()).await;
+                            return;
+                        }
+                    }
+                }
                 // Do not remove any tabs until every warning has been accepted.
                 // A later Cancel therefore keeps even earlier discarded tabs open.
                 let tabs = self.tabs.borrow().clone();
@@ -544,6 +700,10 @@ impl Editor {
         let result = tab.document.borrow_mut().save_to(&path);
         match result {
             Ok(()) => {
+                self.autosave_failed.borrow_mut().remove(&tab.id);
+                if self.autosave_failed.borrow().is_empty() {
+                    self.notice.set_visible(false);
+                }
                 self.refresh_explorer();
                 self.refresh();
                 true

@@ -66,11 +66,9 @@ These features are planned for future releases and are not included in version 1
 
 See [BUILD.md](BUILD.md) for Linux and Windows build instructions, [DEVELOPMENT.md](DEVELOPMENT.md) for technical notes, and [VALIDATION.md](VALIDATION.md) for test results and current limitations.
 
-[Visit Leditor on GitHub](https://github.com/Bartzin55/Leditor)
-
 ## License
 
-MIT License.
+[LICENSE](LICENSE)
 
 ## Development Transparency
 

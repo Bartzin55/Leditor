@@ -1,0 +1,32 @@
+/* Keep native GTK controls; match the mockups' near-black editing surface. */
+.editor-surface,
+textview.editor-surface text {
+    background-color: #111111;
+    color: #eeeeee;
+}
+textview.editor-surface { font-family: monospace; font-size: 14px; }
+.line-numbers { background-color: #161616; border-right: 1px solid #454545; }
+.tab-bar { background-color: #242424; min-height: 34px; }
+.document-tab { border: 1px solid #484848; background-color: #202020; }
+.document-tab.active { background-color: #363636; border-bottom-color: #969696; }
+.document-tab button { padding: 4px 8px; border-radius: 0; }
+.dirty-dot { color: #f4d750; font-size: 10px; }
+.tab-close { opacity: 0; }
+.document-tab:hover .tab-close, .document-tab:focus-within .tab-close { opacity: 1; }
+.app-name { font-size: 32px; font-weight: 500; }
+.shortcut-table { border-top: 1px solid #666; border-left: 1px solid #666; }
+.shortcut-cell { border-bottom: 1px solid #666; border-right: 1px solid #666; padding: 9px 12px; }
+.heading { font-weight: bold; }
+
+window.popup-surface { background-color: #111111; color: #eeeeee; }
+.explorer { background: #303030; border-right: 1px solid #494949; }
+.explorer-row { padding: 3px 4px; border-radius: 0; }
+.explorer-row:hover, .explorer-row:focus, .explorer-row.selected { background: #454545; }
+.cut-entry { opacity: 0.5; }
+.drop-target { background: #315a78; outline: 2px solid #67b7ee; }
+.drop-before { box-shadow: inset 3px 0 #67b7ee; }
+.drop-after { box-shadow: inset -3px 0 #67b7ee; }
+.dragging { opacity: 0.45; }
+.unsupported-title { color: #ff5959; }
+
+.unsupported-icon { color: #bdb047; }

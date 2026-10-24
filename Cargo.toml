@@ -1,0 +1,16 @@
+[package]
+name = "leditor"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.85"
+description = "A minimal, offline GTK text editor"
+
+[dependencies]
+gtk = { package = "gtk4", version = "0.10", features = ["v4_10"] }
+fluent-bundle = "0.16"
+unic-langid = { version = "0.9", features = ["macros"] }
+tempfile = "3"
+
+[profile.release]
+lto = "thin"
+strip = true

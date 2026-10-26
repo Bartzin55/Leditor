@@ -34,3 +34,38 @@ mod tests {
         assert_eq!(convert("Straße", "case-upper"), "STRASSE");
     }
 }
+
+/// Preserve literal tabs/spaces, stopping at the first non-indentation character.
+pub fn leading_indent(text: &str) -> &str {
+    &text[..text
+        .bytes()
+        .take_while(|b| *b == b' ' || *b == b'\t')
+        .count()]
+}
+pub fn indent_columns(text: &str, width: usize) -> usize {
+    let width = width.max(1);
+    leading_indent(text).bytes().fold(0, |col, byte| {
+        if byte == b'\t' {
+            col + width - col % width
+        } else {
+            col + 1
+        }
+    })
+}
+#[cfg(test)]
+mod indentation_tests {
+    use super::*;
+    #[test]
+    fn preserves_mixed_indent_and_unicode() {
+        assert_eq!(leading_indent(" \t  ação"), " \t  ");
+        assert_eq!(leading_indent("rust"), "");
+        assert_eq!(leading_indent("    "), "    ");
+        assert_eq!(leading_indent("\n"), "");
+    }
+    #[test]
+    fn tab_stops_respect_width() {
+        assert_eq!(indent_columns(" \t x", 4), 5);
+        assert_eq!(indent_columns("\t\t", 2), 4);
+        assert_eq!(indent_columns("   x", 8), 3);
+    }
+}

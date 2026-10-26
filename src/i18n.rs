@@ -5,11 +5,7 @@ use unic_langid::langid;
 pub struct I18n(FluentBundle<FluentResource>, String);
 impl Default for I18n {
     fn default() -> Self {
-        let key = gtk::glib::KeyFile::new();
-        let _ = key.load_from_file(
-            gtk::glib::user_data_dir().join("leditor/settings.ini"),
-            gtk::glib::KeyFileFlags::NONE,
-        );
+        let key = crate::config::load().unwrap_or_default();
         Self::new(
             &key.string("settings", "language")
                 .unwrap_or_else(|_| "en-US".into()),

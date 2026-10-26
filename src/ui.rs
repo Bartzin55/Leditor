@@ -59,7 +59,9 @@ struct Editor {
     footer_pending: gtk::Label,
     footer_spinner: gtk::Spinner,
     saving: RefCell<std::collections::BTreeSet<u64>>,
-    light: Cell<bool>,
+    theme: RefCell<String>,
+    auto_indent: Cell<bool>,
+    indent_guides: Cell<bool>,
     language: RefCell<String>,
     theme_css: gtk::CssProvider,
     paned: gtk::Paned,
@@ -130,6 +132,7 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
                 ("paste", "paste"),
                 ("convert-tabs", "convert-tabs"),
                 ("number-spaces", "number-spaces"),
+                ("auto-indent", "auto-indent"),
                 ("insert-above", "insert-above"),
                 ("insert-below", "insert-below"),
                 ("case-first", "case-first"),
@@ -143,8 +146,9 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
             vec![
                 ("word-wrap", "word-wrap"),
                 ("line-numbers", "line-counter"),
+                ("indent-guides", "indent-guides"),
                 ("show-explorer", "show-explorer"),
-                ("light-theme", "light-theme"),
+                ("theme", "theme"),
                 ("zoom", "zoom"),
                 ("zoom-in", "zoom-in"),
                 ("zoom-out", "zoom-out"),
@@ -166,18 +170,36 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         let cases = gio::Menu::new();
         for (name, label) in entries {
             let action = match name {
-                "light-theme" | "word-wrap" | "convert-tabs" | "enable-autosave"
+                "theme" => gio::SimpleAction::new_stateful(
+                    name,
+                    Some(glib::VariantTy::STRING),
+                    &"system".to_variant(),
+                ),
+                "indent-guides" | "word-wrap" | "convert-tabs" | "enable-autosave"
                 | "restore-session" => {
                     gio::SimpleAction::new_stateful(name, None, &false.to_variant())
                 }
-                "line-numbers" | "show-explorer" => {
+                "auto-indent" | "line-numbers" | "show-explorer" => {
                     gio::SimpleAction::new_stateful(name, None, &true.to_variant())
                 }
                 _ => gio::SimpleAction::new(name, None),
             };
             window.add_action(&action);
             actions.insert(name, action);
-            if name == "zoom" || name == "number-spaces" {
+            if name == "theme" {
+                let themes = gio::Menu::new();
+                for (value, label) in [
+                    ("system", "system-theme"),
+                    ("light", "light-theme"),
+                    ("dark", "dark-theme"),
+                ] {
+                    themes.append(
+                        Some(&strings.text(label)),
+                        Some(&format!("win.theme::{value}")),
+                    );
+                }
+                submenu.append_submenu(Some(&strings.text("theme")), &themes);
+            } else if name == "zoom" || name == "number-spaces" {
                 let item = gio::MenuItem::new(None, None);
                 item.set_attribute_value("custom", Some(&name.to_variant()));
                 submenu.append_item(&item);
@@ -267,7 +289,9 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         footer_pending,
         footer_spinner,
         saving: RefCell::new(std::collections::BTreeSet::new()),
-        light: Cell::new(false),
+        theme: RefCell::new("system".into()),
+        auto_indent: Cell::new(true),
+        indent_guides: Cell::new(false),
         language: RefCell::new(strings.language().to_owned()),
         theme_css: gtk::CssProvider::new(),
         paned,
@@ -301,8 +325,19 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
     });
     for (&name, action) in &editor.actions {
         let weak = Rc::downgrade(&editor);
-        action.connect_activate(move |action, _| {
+        action.connect_activate(move |action, value| {
             if let Some(editor) = weak.upgrade() {
+                if name == "theme" {
+                    if let Some(value) = value
+                        .and_then(|v| v.str())
+                        .filter(|v| ["system", "light", "dark"].contains(v))
+                    {
+                        editor.theme.replace(value.into());
+                        editor.apply_theme();
+                        editor.save_settings();
+                    }
+                    return;
+                }
                 editor.activate(name, action);
             }
         });
@@ -353,9 +388,15 @@ impl Editor {
             return;
         }
         match name {
-            "light-theme" => {
-                self.light.set(!self.light.get());
-                self.apply_theme();
+            "auto-indent" | "indent-guides" => {
+                let setting = if name == "auto-indent" {
+                    &self.auto_indent
+                } else {
+                    &self.indent_guides
+                };
+                setting.set(!setting.get());
+                action.set_state(&setting.get().to_variant());
+                self.apply_text_options();
                 self.save_settings();
             }
             "language" => self.language_dialog(),
@@ -460,6 +501,8 @@ impl Editor {
         let tab = Tab::new(id, document, &self.strings);
         tab.view
             .configure(self.spaces.get(), self.convert.get(), self.zoom.get());
+        tab.view
+            .set_indentation_options(self.auto_indent.get(), self.indent_guides.get());
         let scroll = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::VERTICAL);
         scroll.set_propagation_phase(gtk::PropagationPhase::Capture);
         let weak = Rc::downgrade(self);

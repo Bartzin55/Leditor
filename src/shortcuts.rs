@@ -80,6 +80,7 @@ pub const SHORTCUTS: &[Shortcut] = &[
     },
 ];
 pub const TEXT_SHORTCUTS: &[(&str, &str)] = &[
+    ("Enter", "insert-below"),
     ("Tab", "indent"),
     ("Shift+Tab", "outdent"),
     ("Ctrl+Scroll", "zoom-scroll"),

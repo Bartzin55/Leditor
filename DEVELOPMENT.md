@@ -1,4 +1,4 @@
-# Development Notes — 1.2.0
+# Development Notes — 1.3.0
 
 This release updates the existing 1.0.0 Rust/GTK4 project. No dependency was added.
 
@@ -18,7 +18,7 @@ This release updates the existing 1.0.0 Rust/GTK4 project. No dependency was add
 
 Both switches default to off; their choices persist. A 600 ms debounce (checked every 100 ms) follows edits and workspace changes. Named-file writes run on a worker; operations that could change paths are serialized with saving. Failed tabs stop automatic retry until a successful manual save or an autosave toggle. Errors appear in a visible message without discarding the buffer.
 
-Recovery snapshots are written before named-file autosave and after it completes. They contain tab text, saved baselines, names, paths, BOM/newline flags, caret positions, tab order, active tab, and the explorer root. Temporary files are flushed and replaced atomically. Snapshots are not encrypted. They reside under GLib's per-user data directory in `leditor/settings.ini` and `leditor/session.ini` (typically `~/.local/share/leditor` on Linux and the local application-data directory on Windows).
+Recovery snapshots are written before named-file autosave and after it completes. They contain tab text, saved baselines, names, paths, BOM/newline flags, caret positions, tab order, active tab, and the explorer root. Temporary files are flushed and replaced atomically. Snapshots are not encrypted. Recovery resides under GLib's per-user data directory in `leditor/session.ini`; preferences now use the user config directory in `leditor/settings.ini` (typically `~/.local/share/leditor` on Linux and the local application-data directory on Windows).
 
 With restoration enabled, quitting first preserves a snapshot, flushes eligible pending named-file writes, and records the final session. Untitled drafts and failed saves remain recoverable without a Save As dialog. Explicitly closing an individual dirty tab retains the existing Save/Don't Save/Cancel behavior. With restoration disabled, quitting retains the existing unsaved-change prompts.
 
@@ -48,3 +48,16 @@ Case conversion preserves unrelated text and forms one undo operation. First-let
 All exposed preferences are stored atomically in settings.ini: language, light/dark theme, wrapping, line numbers, tab conversion/width, zoom, explorer visibility/width, autosave and restore. Language changes take effect on restart; catalog messages are embedded with Fluent. Native GTK dialog labels follow the platform locale, and operating-system error details may remain in the operating system's language. Sidebar visibility overrides the automatic reveal that would otherwise happen during session restoration. New configurations hide it by default.
 
 No new dependency was added. Light-theme CSS overrides the existing dark stylesheet; current-line shading uses transparency. Manual file writes use a worker to permit the saving spinner to animate. The UI remains locked against edits during a manual save, preserving its snapshot.
+
+
+## Version 1.3.0 decisions
+
+- `linux_install.rs` is compiled only on Linux. It uses existing tempfile and std APIs; it does not execute shell commands or request privilege escalation. Binary replacement is atomic; command/desktop conflicts fail safely. A stable copy avoids launchers pointing to a deleted Cargo target directory. No installer is run at build time or on Windows.
+- `config.rs` shares preference loading with localization. New settings win; otherwise the legacy data-directory file is read. The first normal save writes the new location, retaining the old file. Session snapshots are unaffected.
+- `NumberedView::insert_newline` handles ordinary Enter and the menu action. It preserves the exact leading whitespace before the split position, so splitting inside indentation does not duplicate whitespace from the suffix. Paste is unaffected. A selection is deleted and the insertion performed inside one GTK undo group. Shift+Enter retains its existing insert-above behavior.
+- Guides use visible logical lines only and GTK text geometry. They show complete indentation levels in leading whitespace, including mixed tabs/spaces. They do not infer nesting on empty lines. When indentation wraps, guides are confined to the first visual row rather than crossing wrapped text. Guides default off.
+- Theme is a string-valued GAction, providing mutually exclusive native menu indicators. System default resets GTK application overrides and uses native symbolic theme colors; desktop appearance changes are then handled by GTK. Explicit dark/light retain the existing visual identity. System color-scheme integration depends on the desktop and GTK version.
+- No new keyboard shortcuts: Enter is now listed in the shortcuts dialog to document the affected newline operation. Existing shortcuts remain.
+- No dependency added or license changed. Native GTK distribution obligations still apply when bundling GTK binaries.
+
+References: [Desktop Entry Specification](https://specifications.freedesktop.org/desktop-entry/latest-single/) and [Gtk.Settings.reset_property](https://docs.gtk.org/gtk4/method.Settings.reset_property.html).

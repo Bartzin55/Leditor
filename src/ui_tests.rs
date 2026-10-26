@@ -683,6 +683,20 @@ fn version_one_two_features(application: &gtk::Application) {
     let editor = create(application);
     let tab = editor.current().unwrap();
     let buffer = tab.view.buffer();
+    buffer.set_text(" \ttext");
+    buffer.place_cursor(&buffer.end_iter());
+    tab.view.insert_newline();
+    assert_eq!(tab.document.borrow().text, " \ttext\n \t");
+    buffer.undo();
+    assert_eq!(tab.document.borrow().text, " \ttext");
+    buffer.redo();
+    assert_eq!(tab.document.borrow().text, " \ttext\n \t");
+    toggle(&editor, "auto-indent");
+    tab.view.insert_newline();
+    assert!(tab.document.borrow().text.ends_with("\n"));
+    toggle(&editor, "auto-indent");
+    toggle(&editor, "indent-guides");
+    assert!(editor.indent_guides.get());
     buffer.set_text("ação\nespañol");
     buffer.place_cursor(&buffer.iter_at_offset(2));
     editor.edit_transform("case-upper");
@@ -705,14 +719,14 @@ fn version_one_two_features(application: &gtk::Application) {
     editor.saving.borrow_mut().clear();
     editor.zoom_input.set_value(145.0);
     editor.spaces_input.set_value(3.0);
-    editor.light.set(true);
+    editor.theme.replace("light".into());
     editor.apply_theme();
     editor.save_settings();
     editor.window.destroy();
     let restored = create(application);
     assert_eq!(restored.zoom.get(), 145.0);
     assert_eq!(restored.spaces.get(), 3);
-    assert!(restored.light.get());
+    assert_eq!(restored.theme.borrow().as_str(), "light");
     restored.window.destroy();
     let _ = std::fs::remove_dir_all(crate::session::directory());
 }

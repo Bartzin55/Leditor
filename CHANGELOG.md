@@ -1,3 +1,12 @@
+# Release 1.3.0 — 2026-10-26
+
+- Added Linux-only automatic per-user executable/launcher installation, atomic updates and conflict protection. Optional global installation is documented.
+- Moved preferences to the XDG config directory with legacy fallback; recovery stays in the user data directory.
+- Added default-enabled automatic indentation with spaces/tabs and one undo operation for newline plus indentation.
+- Added optional indentation guides below View → Line counter.
+- Replaced the light-theme checkbox with a radio-style Theme submenu: System default, Light theme, Dark theme. Existing explicit light/dark choices are preserved.
+- Updated all three Fluent catalogs, shortcuts reference, package metadata and build/development documentation. No dependencies added; MIT license retained.
+
 # Changelog
 
 All notable changes to Leditor from version 0.1.0 through version 1.2.0 are recorded below, newest first. Changes are grouped into **Major Additions**, **Minor Changes**, and **Bug Fixes**.
@@ -180,4 +189,5 @@ The initial MVP and its maintenance corrections were delivered under version 0.1
 ## Windows Validation Note
 
 The Windows x64 packages for versions 0.2.1 and 1.0.0 were cross-compiled on Linux. Their test executables were compiled, but execution through Wine was blocked before tests could start by `wineserver: socket: Operation not permitted`. No successful native Windows execution is claimed. These packaging updates did not change the editor's source version.
+
 

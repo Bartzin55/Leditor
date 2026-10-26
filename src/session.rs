@@ -16,6 +16,26 @@ pub fn directory() -> PathBuf {
         glib::user_data_dir().join("leditor")
     }
 }
+pub fn settings_path() -> PathBuf {
+    #[cfg(test)]
+    {
+        directory().join("settings.ini")
+    }
+    #[cfg(not(test))]
+    {
+        leditor::config::settings_path()
+    }
+}
+pub fn load_settings() -> Result<glib::KeyFile, glib::Error> {
+    #[cfg(test)]
+    {
+        read(&settings_path())
+    }
+    #[cfg(not(test))]
+    {
+        leditor::config::load()
+    }
+}
 pub fn write(path: &Path, key: &glib::KeyFile) -> io::Result<()> {
     let parent = path
         .parent()

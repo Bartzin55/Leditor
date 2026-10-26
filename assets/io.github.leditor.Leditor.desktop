@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Leditor
+Comment=Text editor
+Exec=leditor
+Icon=accessories-text-editor
+Terminal=false
+Categories=Utility;TextEditor;
+StartupNotify=true

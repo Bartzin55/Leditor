@@ -81,3 +81,10 @@ footer-position = Linhas: { $lines } · Caracteres: { $chars }    Linha: { $line
 footer-format = Codificação: { $encoding }    Formato: { $format }    Zoom: { $zoom }%
 
 language-current = Idioma atual da interface: { $language }
+
+
+auto-indent = Indentação automática
+indent-guides = Guias de indentação
+theme = Tema
+system-theme = Padrão do sistema
+dark-theme = Tema escuro

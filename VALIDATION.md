@@ -1,23 +1,26 @@
-# Validation — Leditor 1.2.0
+# Validation — Leditor 1.3.0
 
-Date: 2026-10-25. Base: GitHub main at 864dc99498ad35fc1f41be298a6ca96a2d024c76, preserving the user's latest README edit.
+Date: 2026-10-26. Base: GitHub main at bda3ee3ea8d3f7f0f53dfd361372e82e5f87a5e9, fetched before editing. No newer upstream commits were present.
 
-- Linux release compilation: passed.
-- Clippy with all targets and warnings denied: passed.
-- Formatting: passed.
-- Non-graphical tests: 26 passed (12 document/localization, 9 filesystem, 4 session, 1 Unicode case conversion).
-- GTK integration tests: compile, but cannot execute here. Xvfb failed to create listening sockets; no functional display is available.
-- Visual runtime inspection of 1.2.0: not performed. Both supplied mockups were inspected as implementation references.
-- Windows build/runtime: not performed.
+## Completed
 
-The new catalog test checks key parity and resolves every message with Fluent variables in all three languages. Unicode case conversion verifies accented Portuguese/Spanish and uppercase expansions. The compiled GTK integration suite now includes caret-word transformations, undo, line insertion, footer pending/saving states, and preference restoration. Those graphical assertions remain unexecuted; a passing non-graphical suite is not evidence that every UI behavior has been verified.
+- `cargo build --locked --release`: passed (Linux, Rust 1.99.1, GTK 4.14 development/runtime libraries).
 
-Manual local checks are still needed for footer layout at narrow widths and high DPI, light/dark rendering, menu controls, all three languages after restart, native dialogs, keyboard input, autosave indications, and preference persistence. Very narrow windows may require more space for all footer fields. Counts use Unicode scalar values and format detection uses extensions, as documented in DEVELOPMENT.md.
+- `cargo check --locked --all-targets`: passed.
+- `cargo fmt` and `cargo clippy --locked --all-targets -- -D warnings`: passed on the final Rust changes.
+- `cargo test --locked --lib --test document --test file_ops`: 22 passed (1 preference migration, 12 document/localization, 9 filesystem).
+- `cargo test --locked --bin leditor -- --skip ui::tests --test-threads=1`: 9 passed (2 Linux installation/desktop escaping, 4 recovery, 2 indentation, 1 Unicode case conversion). One graphical integration test excluded.
+- Total: **31 non-graphical tests passed**.
+- Catalog coverage includes matching keys and successful Fluent formatting in English, Portuguese and Spanish.
 
-No claim of bug-free operation. The source ZIP includes no Windows executable. No changes were pushed to GitHub.
+Initial test linking failed because the scratch GTK development environment had missing library links. Restoring development-library links resolved the failure; the tests above then passed. No project workaround or dependency change was needed.
 
-## Language selector revision — 2026-10-26
+## Remaining validation
 
-Replaced the three buttons with grouped GTK CheckButtons (radio-style exclusive selection). The configured language is selected before attaching persistence callbacks; only activation of a choice saves a preference. A separate localized label identifies the running interface language, which may differ until restart. Updated the catalog test arguments for the new placeholder.
+- GTK integration assertions compile, including the new autoindent undo/redo and guide preference assertions, but were **not executed**. Xvfb failed to open Unix/local listening sockets; no working graphical display was available. Theme selection, menu appearance, guide rendering, actual Enter keyboard dispatch and launcher appearance require local graphical testing.
+- Windows build and execution: not performed. Automatic installation is gated with `cfg(target_os = "linux")`.
+- Linux installation was exercised in isolated temporary directories (initial install, repeat install, executable update, command conflict, spaces/percent in desktop Exec paths). It was not registered in a real desktop session here.
+- `~/.local/bin` must be in the user's PATH. The app cannot modify its parent terminal's environment. Global `/usr/bin` installation requires an explicit administrator command; see BUILD.md.
+- System theme behavior depends on GTK and desktop integration. Guides cover leading indentation levels and the first visual row of wrapped indentation; blank lines do not infer nesting from neighboring lines.
 
-This small revision was inspected statically and catalog keys/placeholders were checked. The Rust toolchain is unavailable in the current workspace runtime, so compilation and graphical testing were not repeated. Results above refer to the original 1.2.0 build, not this revision. No GitHub push was made.
+No claim of bug-free operation. This ZIP contains source, not Windows binaries. No GitHub push was made.

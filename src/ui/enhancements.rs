@@ -66,10 +66,19 @@ impl Editor {
             .set_visible(!saving && tab.document.borrow().is_dirty());
     }
     pub(super) fn apply_theme(&self) {
-        let light = self.light.get();
-        self.actions["light-theme"].set_state(&light.to_variant());
+        let theme = self.theme.borrow();
+        let light = theme.as_str() == "light";
+        self.actions["theme"].set_state(&theme.as_str().to_variant());
         if let Some(settings) = gtk::Settings::default() {
-            if let Some(property) = settings.find_property("gtk-interface-color-scheme") {
+            if theme.as_str() == "system" {
+                settings.reset_property("gtk-application-prefer-dark-theme");
+                if settings
+                    .find_property("gtk-interface-color-scheme")
+                    .is_some()
+                {
+                    settings.reset_property("gtk-interface-color-scheme");
+                }
+            } else if let Some(property) = settings.find_property("gtk-interface-color-scheme") {
                 if let Some(value) = glib::EnumClass::with_type(property.value_type())
                     .and_then(|class| class.to_value_by_nick(if light { "light" } else { "dark" }))
                 {
@@ -79,11 +88,14 @@ impl Editor {
                 settings.set_gtk_application_prefer_dark_theme(!light);
             }
         }
-        self.theme_css.load_from_data(if light {
-            include_str!("../light.css")
-        } else {
-            ""
-        });
+        self.theme_css
+            .load_from_data(if theme.as_str() == "system" {
+                include_str!("../system.css")
+            } else if light {
+                include_str!("../light.css")
+            } else {
+                ""
+            });
         gtk::style_context_add_provider_for_display(
             &gtk::prelude::WidgetExt::display(&self.window),
             &self.theme_css,
@@ -114,9 +126,7 @@ impl Editor {
                 _ => "English",
             },
         );
-        let current = gtk::Label::new(Some(
-            &self.strings.format("language-current", Some(&args)),
-        ));
+        let current = gtk::Label::new(Some(&self.strings.format("language-current", Some(&args))));
         current.set_xalign(0.0);
         content.append(&current);
         let mut first: Option<gtk::CheckButton> = None;
@@ -159,10 +169,7 @@ impl Editor {
         };
         let buffer = tab.view.buffer();
         if name == "insert-below" {
-            buffer.begin_user_action();
-            buffer.delete_selection(true, true);
-            buffer.insert_at_cursor("\n");
-            buffer.end_user_action();
+            tab.view.insert_newline();
             return;
         }
         if name == "insert-above" {

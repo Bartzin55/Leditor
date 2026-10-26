@@ -7,6 +7,8 @@ impl Editor {
         for tab in self.tabs.borrow().iter() {
             tab.view
                 .configure(self.spaces.get(), self.convert.get(), self.zoom.get());
+            tab.view
+                .set_indentation_options(self.auto_indent.get(), self.indent_guides.get());
         }
     }
     pub(super) fn set_zoom(&self, value: f64) {
@@ -68,14 +70,16 @@ impl Editor {
         key.set_boolean("settings", "numbers", self.line_numbers.get());
         key.set_boolean("settings", "explorer", self.explorer.panel.is_visible());
         key.set_boolean("settings", "convert", self.convert.get());
-        key.set_boolean("settings", "light", self.light.get());
+        key.set_string("settings", "theme", &self.theme.borrow());
+        key.set_boolean("settings", "auto-indent", self.auto_indent.get());
+        key.set_boolean("settings", "indent-guides", self.indent_guides.get());
         key.set_integer("settings", "spaces", self.spaces.get() as i32);
         key.set_double("settings", "zoom", self.zoom.get());
         key.set_integer("settings", "sidebar-width", self.paned.position());
         key.set_string("settings", "language", &self.language.borrow());
         key.set_boolean("settings", "autosave", self.autosave.get());
         key.set_boolean("settings", "restore", self.restore.get());
-        if let Err(e) = session::write(&session::directory().join("settings.ini"), &key) {
+        if let Err(e) = session::write(&session::settings_path(), &key) {
             self.show_background_error(&e.to_string());
         }
     }
@@ -87,7 +91,7 @@ impl Editor {
         self.notice.set_visible(true);
     }
     pub(super) fn setup_preferences(self: &Rc<Self>) {
-        let settings = session::read(&session::directory().join("settings.ini")).ok();
+        let settings = session::load_settings().ok();
         self.explorer.panel.set_visible(false);
         self.explorer.reveal.set_visible(true);
         if let Some(key) = settings {
@@ -97,8 +101,31 @@ impl Editor {
                 .set(key.boolean("settings", "numbers").unwrap_or(true));
             self.convert
                 .set(key.boolean("settings", "convert").unwrap_or(false));
-            self.light
-                .set(key.boolean("settings", "light").unwrap_or(false));
+            let theme = key
+                .string("settings", "theme")
+                .map(|v| v.to_string())
+                .unwrap_or_else(|_| {
+                    if key.has_key("settings", "light").unwrap_or(false) {
+                        if key.boolean("settings", "light").unwrap_or(false) {
+                            "light"
+                        } else {
+                            "dark"
+                        }
+                    } else {
+                        "system"
+                    }
+                    .into()
+                });
+            self.theme
+                .replace(if ["system", "light", "dark"].contains(&theme.as_str()) {
+                    theme
+                } else {
+                    "system".into()
+                });
+            self.auto_indent
+                .set(key.boolean("settings", "auto-indent").unwrap_or(true));
+            self.indent_guides
+                .set(key.boolean("settings", "indent-guides").unwrap_or(false));
             self.spaces
                 .set(key.integer("settings", "spaces").unwrap_or(4).clamp(1, 8) as u32);
             let zoom = key.double("settings", "zoom").unwrap_or(100.0);
@@ -123,6 +150,8 @@ impl Editor {
         self.actions["enable-autosave"].set_state(&self.autosave.get().to_variant());
         self.actions["restore-session"].set_state(&self.restore.get().to_variant());
         for (name, value) in [
+            ("auto-indent", self.auto_indent.get()),
+            ("indent-guides", self.indent_guides.get()),
             ("word-wrap", self.wrap.get()),
             ("line-numbers", self.line_numbers.get()),
             ("convert-tabs", self.convert.get()),

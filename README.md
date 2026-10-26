@@ -2,19 +2,29 @@
 
 ### A modern text editor for Linux and Windows.
 
-**Version:** 1.2.0  
-**Release date:** October 25, 2026
+**Version:** 1.3.0  
+**Release date:** October 26, 2026
 
-Leditor brings text editing and file organization together in a clean, minimalist workspace. Write, edit, and browse your files with independent tabs, an integrated file explorer, and a distraction-free dark interface.
+Leditor brings text editing and file organization together in a clean, minimalist workspace. Write, edit, and browse your files with independent tabs, an integrated file explorer, and a distraction-free interface.
 
 Built with **Rust and GTK4**, Leditor works entirely offline and is growing step by step into a versatile editor for everyday writing and development.
 
-## New in 1.2.0
+## New in 1.3.0
+
+- **Linux integration:** running the built app (including `cargo run`) installs a per-user launcher and a stable executable, accessible through `~/.local/bin/leditor`.
+- **Automatic indentation:** Enter and Edit → Insert line below preserve leading spaces and tabs. Enabled by default; toggle Edit → Automatic indentation, below Number of spaces.
+- **Indentation guides:** optional vertical guides in View, below Line counter. Off by default; follows the configured tab width and editor zoom.
+- **Theme selector:** View → Theme offers System default, Light theme and Dark theme, with the active option marked.
+- **XDG preferences:** Linux settings now live in `~/.config/leditor/settings.ini`; existing preferences are migrated without deleting their old copy.
+
+See [BUILD.md](BUILD.md) for installation paths, PATH setup and optional system-wide installation.
+
+## Also included
 
 - **A useful status bar:** see line and character counts, caret position, save status, encoding, file format, and zoom at a glance.
 - **English, Português (Brasil), and Español:** choose your interface language in Other > Language and restart to apply it.
 - **Your preferences remembered:** keep your theme, zoom, wrapping, line numbers, indentation, explorer visibility and width, autosave, and session choices between launches.
-- **Light and dark themes:** choose Light theme in View, or turn it off for the dark interface.
+- **Light and dark themes:** choose System default, Light theme or Dark theme in View → Theme.
 - **Quick text transformations:** change case for a selection or the word at the caret. Insert a line above with Shift+Enter.
 - **A quieter start:** the explorer starts hidden for new configurations.
 
@@ -68,7 +78,7 @@ Leditor's roadmap focuses on richer editing, broader file support, and a more cu
 - **Additional interface languages** and localization.
 - **Support for more text encodings.**
 
-These features are planned for future releases and are not included in version 1.2.0.
+These features are planned for future releases and are not included in version 1.3.0.
 
 ## Get Started
 
@@ -81,4 +91,5 @@ See [BUILD.md](BUILD.md) for Linux and Windows build instructions, [DEVELOPMENT.
 ## Development Transparency
 
 Most of Leditor's code is generated with the assistance of artificial intelligence, under human supervision.
+
 

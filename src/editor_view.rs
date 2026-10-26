@@ -8,6 +8,8 @@ mod imp {
     pub struct NumberedView {
         pub spaces: std::cell::Cell<u32>,
         pub convert: std::cell::Cell<bool>,
+        pub auto_indent: std::cell::Cell<bool>,
+        pub guides: std::cell::Cell<bool>,
         pub css: gtk::CssProvider,
         pub css_id: std::cell::Cell<u64>,
     }
@@ -89,6 +91,9 @@ mod imp {
             self.parent_snapshot_layer(layer, snapshot.clone());
             if layer == gtk::TextViewLayer::BelowText {
                 let view = self.obj();
+                if self.guides.get() {
+                    view.draw_guides(&snapshot);
+                }
                 let iter = view
                     .buffer()
                     .iter_at_offset(view.buffer().cursor_position());
@@ -119,6 +124,91 @@ glib::wrapper! {
         @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Scrollable;
 }
 impl NumberedView {
+    pub fn set_indentation_options(&self, auto_indent: bool, guides: bool) {
+        self.imp().auto_indent.set(auto_indent);
+        self.imp().guides.set(guides);
+        self.queue_draw();
+    }
+    pub fn insert_newline(&self) {
+        if !self.is_editable() {
+            return;
+        }
+        let buffer = self.buffer();
+        buffer.begin_user_action();
+        buffer.delete_selection(true, true);
+        let cursor = buffer.iter_at_offset(buffer.cursor_position());
+        let mut start = cursor;
+        start.set_line_offset(0);
+        let prefix = buffer.text(&start, &cursor, true);
+        let indent = if self.imp().auto_indent.get() {
+            crate::text_ops::leading_indent(&prefix)
+        } else {
+            ""
+        };
+        buffer.insert_at_cursor(&format!("\n{indent}"));
+        buffer.end_user_action();
+        self.scroll_mark_onscreen(&buffer.get_insert());
+    }
+    fn draw_guides(&self, snapshot: &gtk::Snapshot) {
+        let visible = self.visible_rect();
+        let (mut iter, _) = self.line_at_y(visible.y());
+        let width = self.imp().spaces.get().clamp(1, 8) as usize;
+        let color = gtk::gdk::RGBA::new(0.5, 0.5, 0.5, 0.35);
+        snapshot.push_clip(&gtk::graphene::Rect::new(
+            visible.x() as f32,
+            visible.y() as f32,
+            visible.width() as f32,
+            visible.height() as f32,
+        ));
+        loop {
+            let (y, height) = self.line_yrange(&iter);
+            if y > visible.y() + visible.height() {
+                break;
+            }
+            let mut end = iter;
+            while matches!(end.char(), ' ' | '\t') && !end.is_end() {
+                end.forward_char();
+            }
+            let text = self.buffer().text(&iter, &end, true);
+            let columns = crate::text_ops::indent_columns(&text, width);
+            let mut position = iter;
+            let mut column = 0;
+            // Guides stay within the first visual row when indentation wraps.
+            let row_height = self.iter_location(&iter).height();
+            for col in (width..=columns).step_by(width) {
+                while column < col {
+                    column = if position.char() == '\t' {
+                        column + width - column % width
+                    } else {
+                        column + 1
+                    };
+                    position.forward_char();
+                }
+                let rectangle = self.iter_location(&position);
+                if rectangle.y() != self.iter_location(&iter).y() {
+                    break;
+                }
+                let gx = rectangle.x();
+                if gx >= visible.x() + visible.width() {
+                    break;
+                }
+                snapshot.append_color(
+                    &color,
+                    &gtk::graphene::Rect::new(
+                        gx as f32,
+                        y as f32,
+                        1.0,
+                        height.min(row_height) as f32,
+                    ),
+                );
+            }
+            if !iter.forward_line() {
+                break;
+            }
+        }
+        snapshot.pop();
+    }
+
     pub fn configure(&self, spaces: u32, convert: bool, zoom: f64) {
         self.imp().spaces.set(spaces);
         self.imp().convert.set(convert);
@@ -248,6 +338,18 @@ impl NumberedView {
         keys.set_propagation_phase(gtk::PropagationPhase::Capture);
         let weak = view.downgrade();
         keys.connect_key_pressed(move |_, key, _, state| {
+            if (key == gtk::gdk::Key::Return || key == gtk::gdk::Key::KP_Enter)
+                && !state.intersects(
+                    gtk::gdk::ModifierType::CONTROL_MASK
+                        | gtk::gdk::ModifierType::ALT_MASK
+                        | gtk::gdk::ModifierType::SHIFT_MASK,
+                )
+            {
+                if let Some(view) = weak.upgrade() {
+                    view.insert_newline();
+                    return glib::Propagation::Stop;
+                }
+            }
             if !state
                 .intersects(gtk::gdk::ModifierType::CONTROL_MASK | gtk::gdk::ModifierType::ALT_MASK)
                 && (key == gtk::gdk::Key::Tab || key == gtk::gdk::Key::ISO_Left_Tab)
@@ -277,6 +379,7 @@ impl NumberedView {
         buffer.set_text(text);
         buffer.set_enable_undo(true);
         view.configure(4, false, 100.0);
+        view.set_indentation_options(true, false);
         let weak = view.downgrade();
         buffer.connect_mark_set(move |_, _, _| {
             if let Some(view) = weak.upgrade() {

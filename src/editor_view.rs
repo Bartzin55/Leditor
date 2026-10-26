@@ -95,7 +95,7 @@ mod imp {
                 let (y, height) = view.line_yrange(&iter);
                 let visible = view.visible_rect();
                 snapshot.append_color(
-                    &gtk::gdk::RGBA::new(0.18, 0.18, 0.18, 1.0),
+                    &gtk::gdk::RGBA::new(0.5, 0.5, 0.5, 0.18),
                     &gtk::graphene::Rect::new(
                         visible.x() as f32,
                         y as f32,

@@ -1,4 +1,4 @@
-# Build and Run — Leditor 1.1.0
+# Build and Run — Leditor 1.2.0
 
 Use a current stable Rust toolchain and GTK **4.10 or later**. Keep Cargo.lock and use `--locked`. The source archive does not include installers or Windows DLLs.
 
@@ -57,3 +57,4 @@ cargo test --locked --bin leditor session::tests -- --test-threads=1
 ```
 
 The GTK integration test is Linux-only. Successful Windows filesystem tests alone would not validate the Windows interface.
+

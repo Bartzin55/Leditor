@@ -14,3 +14,5 @@ fn main() -> gtk::glib::ExitCode {
     app.connect_activate(ui::build);
     app.run()
 }
+
+mod text_ops;

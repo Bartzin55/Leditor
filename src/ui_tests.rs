@@ -358,6 +358,7 @@ fn tabs_history_layout_dialogs_and_file_safety() {
     assert_eq!(std::fs::read_to_string(quit_path).unwrap(), "quit save");
     assert!(editor.file_choices.borrow().is_empty());
     version_one_one_features(&application, test_home.path());
+    version_one_two_features(&application);
 }
 
 fn version_one_features(editor: &Rc<Editor>, root: &std::path::Path) {
@@ -674,6 +675,44 @@ fn version_one_one_features(application: &gtk::Application, root: &std::path::Pa
     toggle(&restored, "enable-autosave");
     assert!(!restored.restore.get());
     assert!(!restored.actions["restore-session"].is_enabled());
+    restored.window.destroy();
+    let _ = std::fs::remove_dir_all(crate::session::directory());
+}
+
+fn version_one_two_features(application: &gtk::Application) {
+    let editor = create(application);
+    let tab = editor.current().unwrap();
+    let buffer = tab.view.buffer();
+    buffer.set_text("ação\nespañol");
+    buffer.place_cursor(&buffer.iter_at_offset(2));
+    editor.edit_transform("case-upper");
+    assert_eq!(tab.document.borrow().text, "AÇÃO\nespañol");
+    buffer.undo();
+    assert_eq!(tab.document.borrow().text, "ação\nespañol");
+    buffer.place_cursor(&buffer.iter_at_offset(0));
+    editor.edit_transform("insert-above");
+    assert_eq!(tab.document.borrow().text, "\nação\nespañol");
+    assert_eq!(buffer.cursor_position(), 0);
+    buffer.undo();
+    buffer.place_cursor(&buffer.iter_at_offset(2));
+    editor.edit_transform("insert-below");
+    assert_eq!(tab.document.borrow().text, "aç\não\nespañol");
+    assert!(editor.footer_pending.is_visible());
+    editor.saving.borrow_mut().insert(tab.id);
+    editor.update_footer();
+    assert!(editor.footer_spinner.is_visible());
+    assert!(!editor.footer_pending.is_visible());
+    editor.saving.borrow_mut().clear();
+    editor.zoom_input.set_value(145.0);
+    editor.spaces_input.set_value(3.0);
+    editor.light.set(true);
+    editor.apply_theme();
+    editor.save_settings();
+    editor.window.destroy();
+    let restored = create(application);
+    assert_eq!(restored.zoom.get(), 145.0);
+    assert_eq!(restored.spaces.get(), 3);
+    assert!(restored.light.get());
     restored.window.destroy();
     let _ = std::fs::remove_dir_all(crate::session::directory());
 }

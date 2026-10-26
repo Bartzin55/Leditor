@@ -1,8 +1,32 @@
 # Changelog
 
-All notable changes to Leditor from version 0.1.0 through version 1.1.0 are recorded below, newest first. Changes are grouped into **Major Additions**, **Minor Changes**, and **Bug Fixes**.
+All notable changes to Leditor from version 0.1.0 through version 1.2.0 are recorded below, newest first. Changes are grouped into **Major Additions**, **Minor Changes**, and **Bug Fixes**.
 
 Dates use `YYYY-MM-DD`. Versions 0.2.0, 0.2.1, and 1.0.0 use the release dates recorded in their README and About metadata. Version 0.1.0 has no explicit release-date field; retained filesystem and archive timestamps span 2026-10-21 and 2026-10-22, so its exact release date remains unconfirmed. Maintenance changes delivered without a version increment are included under their existing version.
+
+## [1.2.0] — 2026-10-25
+
+Pre-publication UI revision, 2026-10-26: replaced language buttons with grouped radio-style choices, preselected the configured language, and added an explicit label identifying the currently running interface language. Restart remains required.
+
+### Major Additions
+
+- Added a footer with logical line and Unicode character counts, caret line/column, pending/saving indicators, UTF-8 encoding, extension-based format, and zoom.
+- Added Brazilian Portuguese and Spanish Fluent catalogs and a language selector (applied on restart).
+- Persisted all exposed editor preferences, including theme and explorer width/visibility.
+- Added case conversion for selections or the word touching the caret.
+- Added Insert line above (Shift+Enter) and Insert line below (Enter behavior).
+
+### Minor Changes
+
+- Added light-theme styling alongside the dark theme.
+- Hide the explorer by default for new configurations.
+- Updated About, shortcut reference, README, build and development documentation.
+- Incorporated upstream README changes from commit 864dc99498ad35fc1f41be298a6ca96a2d024c76.
+
+### Bug Fixes
+
+- Moved manual document writes to a worker so the footer can animate while saving.
+- Made current-line shading translucent for legibility in both themes.
 
 ## [1.1.0] — 2026-10-24
 
@@ -156,3 +180,4 @@ The initial MVP and its maintenance corrections were delivered under version 0.1
 ## Windows Validation Note
 
 The Windows x64 packages for versions 0.2.1 and 1.0.0 were cross-compiled on Linux. Their test executables were compiled, but execution through Wine was blocked before tests could start by `wineserver: socket: Operation not permitted`. No successful native Windows execution is claimed. These packaging updates did not change the editor's source version.
+

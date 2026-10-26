@@ -30,3 +30,6 @@ window.popup-surface { background-color: #111111; color: #eeeeee; }
 .unsupported-title { color: #ff5959; }
 
 .unsupported-icon { color: #bdb047; }
+
+.footer { background: #242424; color: #cccccc; padding: 4px 8px; font-size: 11px; }
+.footer .pending { color: #f4d750; }

@@ -1,4 +1,4 @@
-# Development Notes — 1.1.0
+# Development Notes — 1.2.0
 
 This release updates the existing 1.0.0 Rust/GTK4 project. No dependency was added.
 
@@ -24,7 +24,7 @@ With restoration enabled, quitting first preserves a snapshot, flushes eligible 
 
 On restart, clean named files reload from disk. Dirty recovered text retains its path only when its saved baseline matches the current file; otherwise it becomes an independent unsaved tab. Missing text files also recover as unsaved documents. Unsupported tabs retain their non-editable display. Corrupt recovery data disables automatic writes for that launch and reports the problem instead of immediately overwriting it.
 
-Conflict checks are best-effort: another process could change a file between checking and replacing it. Recovery is not a substitute for backups. The last debounce interval may be lost after a crash; orderly quit flushes the recovery snapshot. Snapshot serialization/writes currently happen on the main thread and may briefly pause very large sessions. Folder expansion, scroll offsets, undo history, and non-autosave preferences are not persisted.
+Conflict checks are best-effort: another process could change a file between checking and replacing it. Recovery is not a substitute for backups. The last debounce interval may be lost after a crash; orderly quit flushes the recovery snapshot. Snapshot serialization/writes currently happen on the main thread and may briefly pause very large sessions. Folder expansion, scroll offsets, undo history, are not persisted.
 
 ## Editing and presentation
 
@@ -35,3 +35,16 @@ Zoom defaults to 100%, clamps to 5–800%, and changes only the TextView font an
 ## Existing limitations retained
 
 Only UTF-8 text is editable. Explorer changes made outside Leditor require Refresh. Cross-volume moves and copies containing symbolic links retain the previous restrictions. No syntax highlighting, LSP, extra file viewers, or new language was added.
+
+
+## Version 1.2.0 decisions
+
+The base is upstream commit 864dc99498ad35fc1f41be298a6ca96a2d024c76. No remote writes were made.
+
+The footer uses a CenterBox independent of editor zoom. Counts and columns use Unicode scalar values (not UTF-8 bytes or grapheme clusters); columns are one-based and literal tabs count as one character. Lines are logical, so wrapping does not increase their count. Empty documents have one logical line. Unsupported files display unavailable text metrics. Format detection uses the filename extension and does not enable syntax highlighting.
+
+Case conversion preserves unrelated text and forms one undo operation. First-letter modes uppercase the relevant letters without lowercasing the remainder. A word consists of alphanumeric characters and underscores. Insert below follows Enter by splitting at the caret and replacing selected text; insert above inserts at the current logical line's start and places the caret on the new line.
+
+All exposed preferences are stored atomically in settings.ini: language, light/dark theme, wrapping, line numbers, tab conversion/width, zoom, explorer visibility/width, autosave and restore. Language changes take effect on restart; catalog messages are embedded with Fluent. Native GTK dialog labels follow the platform locale, and operating-system error details may remain in the operating system's language. Sidebar visibility overrides the automatic reveal that would otherwise happen during session restoration. New configurations hide it by default.
+
+No new dependency was added. Light-theme CSS overrides the existing dark stylesheet; current-line shading uses transparency. Manual file writes use a worker to permit the saving spinner to animate. The UI remains locked against edits during a manual save, preserving its snapshot.

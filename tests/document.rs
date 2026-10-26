@@ -192,3 +192,33 @@ fn in_flight_save_keeps_new_edits_dirty_and_recovery_preserves_format() {
         b"\xef\xbb\xbffirst\r\nsecond\r\n"
     );
 }
+
+#[test]
+fn all_languages_have_matching_messages_and_variables() {
+    use fluent_bundle::FluentArgs;
+    use leditor::i18n::I18n;
+    let en = include_str!("../locales/en-US.ftl");
+    for (id, catalog) in [
+        ("pt-BR", include_str!("../locales/pt-BR.ftl")),
+        ("es", include_str!("../locales/es.ftl")),
+        ("en-US", en),
+    ] {
+        let keys = |s: &str| {
+            s.lines()
+                .filter_map(|l| l.split_once(" = ").map(|(k, _)| k.to_owned()))
+                .collect::<std::collections::BTreeSet<_>>()
+        };
+        assert_eq!(keys(en), keys(catalog));
+        let strings = I18n::new(id);
+        let mut args = FluentArgs::new();
+        for name in ["name", "reason", "encoding", "format", "zoom", "language"] {
+            args.set(name, "test");
+        }
+        for name in ["lines", "chars", "line", "column"] {
+            args.set(name, 1);
+        }
+        for key in keys(en) {
+            assert!(!strings.format(&key, Some(&args)).is_empty());
+        }
+    }
+}

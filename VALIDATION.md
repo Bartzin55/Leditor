@@ -1,34 +1,23 @@
-# Validation — Leditor 1.1.0
+# Validation — Leditor 1.2.0
 
-Date: **2026-10-24**. Updated from the existing Leditor 1.0.0 source.
+Date: 2026-10-25. Base: GitHub main at 864dc99498ad35fc1f41be298a6ca96a2d024c76, preserving the user's latest README edit.
 
-## Results
+- Linux release compilation: passed.
+- Clippy with all targets and warnings denied: passed.
+- Formatting: passed.
+- Non-graphical tests: 26 passed (12 document/localization, 9 filesystem, 4 session, 1 Unicode case conversion).
+- GTK integration tests: compile, but cannot execute here. Xvfb failed to create listening sockets; no functional display is available.
+- Visual runtime inspection of 1.2.0: not performed. Both supplied mockups were inspected as implementation references.
+- Windows build/runtime: not performed.
 
-| Check | Result |
-|---|---|
-| Formatting | Passed |
-| Clippy, all targets, warnings denied | Passed |
-| Linux release build | Passed |
-| Document tests | 11 passed |
-| Filesystem-operation tests | 9 passed |
-| Session recovery tests | 4 passed |
-| GTK integration test compilation | Passed |
-| Full test suite execution | **Not passed: GTK integration test cannot initialize GTK without a display** |
-| Visual inspection / physical keyboard and mouse interaction | Not performed for 1.1.0 |
-| Windows compilation and execution | Not performed for 1.1.0 |
+The new catalog test checks key parity and resolves every message with Fluent variables in all three languages. Unicode case conversion verifies accented Portuguese/Spanish and uppercase expansions. The compiled GTK integration suite now includes caret-word transformations, undo, line insertion, footer pending/saving states, and preference restoration. Those graphical assertions remain unexecuted; a passing non-graphical suite is not evidence that every UI behavior has been verified.
 
-There are **24 passing non-graphical tests**. Do not interpret this as a passing full suite. The GTK test failed at `gtk::init()`, before its behavioral assertions could run. Xvfb could not establish listening sockets in this environment, so it could not provide a virtual display.
+Manual local checks are still needed for footer layout at narrow widths and high DPI, light/dark rendering, menu controls, all three languages after restart, native dialogs, keyboard input, autosave indications, and preference persistence. Very narrow windows may require more space for all footer fields. Counts use Unicode scalar values and format detection uses extensions, as documented in DEVELOPMENT.md.
 
-Rust 1.99.1 and GTK 4.14 development libraries were used. Missing toolchain files and local library links were repaired before successful compilation. Initial compile errors were corrected before the final checks.
+No claim of bug-free operation. The source ZIP includes no Windows executable. No changes were pushed to GitHub.
 
-## Verified behavior
+## Language selector revision — 2026-10-26
 
-The non-graphical tests cover the existing file and explorer safeguards plus successful autosave, external-edit/missing-file refusal, keeping new edits dirty while accepting an earlier saved snapshot, UTF-8 BOM/CRLF recovery, untitled text round-trips, snapshot replacement, clean-file reload, conflicting-file detachment, malformed-data rejection, and failed snapshot writes preserving existing bytes.
+Replaced the three buttons with grouped GTK CheckButtons (radio-style exclusive selection). The configured language is selected before attaching persistence callbacks; only activation of a choice saves a preference. A separate localized label identifies the running interface language, which may differ until restart. Updated the catalog test arguments for the new placeholder.
 
-The expanded GTK test includes existing behaviors and new assertions for grouped indentation undo/redo, numeric zoom limits and reset, snap-to-100%, autosave debounce, restore dependencies, untitled recovery, active-tab/folder restoration, and conflict notices. These assertions are **compiled but unexecuted** in this environment.
-
-## Required platform verification
-
-Run the full suite in a working Linux desktop. Manually verify the custom menu fields, tab widths at different zoom levels, line-highlight alignment during wrapping and scrolling, Ctrl+wheel/trackpad behavior, native file dialogs, and the About browser link. Repeat runtime checks on Windows, including GTK dependencies and default-browser launch.
-
-No power-loss simulation, storage exhaustion, concurrent-writer stress test, or large-session performance benchmark was performed. Recovery has the debounce and concurrency limitations described in DEVELOPMENT.md. No claim of bug-free operation is made.
+This small revision was inspected statically and catalog keys/placeholders were checked. The Rust toolchain is unavailable in the current workspace runtime, so compilation and graphical testing were not repeated. Results above refer to the original 1.2.0 build, not this revision. No GitHub push was made.

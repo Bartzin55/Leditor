@@ -1,0 +1,10 @@
+.editor-surface, textview.editor-surface text { background-color: #ffffff; color: #202020; }
+.line-numbers { background-color: #f3f3f3; border-color: #cccccc; }
+.tab-bar, .footer { background-color: #eeeeee; color: #202020; }
+.document-tab { background-color: #e5e5e5; border-color: #cccccc; }
+.document-tab.active { background-color: #ffffff; }
+.explorer { background: #f3f3f3; border-color: #cccccc; }
+.explorer-row:hover, .explorer-row:focus, .explorer-row.selected { background: #d8e6f3; }
+window.popup-surface { background: #ffffff; color: #202020; }
+.footer .pending, .dirty-dot { color: #866400; }
+.unsupported-title { color: #b80000; }

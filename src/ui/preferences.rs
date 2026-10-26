@@ -64,6 +64,15 @@ impl Editor {
     }
     pub(super) fn save_settings(&self) {
         let key = glib::KeyFile::new();
+        key.set_boolean("settings", "wrap", self.wrap.get());
+        key.set_boolean("settings", "numbers", self.line_numbers.get());
+        key.set_boolean("settings", "explorer", self.explorer.panel.is_visible());
+        key.set_boolean("settings", "convert", self.convert.get());
+        key.set_boolean("settings", "light", self.light.get());
+        key.set_integer("settings", "spaces", self.spaces.get() as i32);
+        key.set_double("settings", "zoom", self.zoom.get());
+        key.set_integer("settings", "sidebar-width", self.paned.position());
+        key.set_string("settings", "language", &self.language.borrow());
         key.set_boolean("settings", "autosave", self.autosave.get());
         key.set_boolean("settings", "restore", self.restore.get());
         if let Err(e) = session::write(&session::directory().join("settings.ini"), &key) {
@@ -79,7 +88,33 @@ impl Editor {
     }
     pub(super) fn setup_preferences(self: &Rc<Self>) {
         let settings = session::read(&session::directory().join("settings.ini")).ok();
+        self.explorer.panel.set_visible(false);
+        self.explorer.reveal.set_visible(true);
         if let Some(key) = settings {
+            self.wrap
+                .set(key.boolean("settings", "wrap").unwrap_or(false));
+            self.line_numbers
+                .set(key.boolean("settings", "numbers").unwrap_or(true));
+            self.convert
+                .set(key.boolean("settings", "convert").unwrap_or(false));
+            self.light
+                .set(key.boolean("settings", "light").unwrap_or(false));
+            self.spaces
+                .set(key.integer("settings", "spaces").unwrap_or(4).clamp(1, 8) as u32);
+            let zoom = key.double("settings", "zoom").unwrap_or(100.0);
+            self.zoom.set(if zoom.is_finite() {
+                zoom.clamp(5.0, 800.0)
+            } else {
+                100.0
+            });
+            let visible = key.boolean("settings", "explorer").unwrap_or(false);
+            self.explorer.panel.set_visible(visible);
+            self.explorer.reveal.set_visible(!visible);
+            self.paned.set_position(
+                key.integer("settings", "sidebar-width")
+                    .unwrap_or(250)
+                    .clamp(80, 2000),
+            );
             self.autosave
                 .set(key.boolean("settings", "autosave").unwrap_or(false));
             self.restore
@@ -87,6 +122,30 @@ impl Editor {
         }
         self.actions["enable-autosave"].set_state(&self.autosave.get().to_variant());
         self.actions["restore-session"].set_state(&self.restore.get().to_variant());
+        for (name, value) in [
+            ("word-wrap", self.wrap.get()),
+            ("line-numbers", self.line_numbers.get()),
+            ("convert-tabs", self.convert.get()),
+            ("show-explorer", self.explorer.panel.is_visible()),
+        ] {
+            self.actions[name].set_state(&value.to_variant());
+        }
+        self.zoom_input.set_value(self.zoom.get());
+        self.spaces_input.set_value(self.spaces.get() as f64);
+        for name in ["word-wrap", "line-numbers", "convert-tabs"] {
+            let weak = Rc::downgrade(self);
+            self.actions[name].connect_activate(move |_, _| {
+                if let Some(e) = weak.upgrade() {
+                    e.save_settings();
+                }
+            });
+        }
+        let weak = Rc::downgrade(self);
+        self.paned.connect_position_notify(move |_| {
+            if let Some(e) = weak.upgrade() {
+                e.save_settings();
+            }
+        });
         for (input, is_zoom) in [(&self.zoom_input, true), (&self.spaces_input, false)] {
             let weak = Rc::downgrade(self);
             input.connect_value_changed(move |input| {
@@ -97,6 +156,8 @@ impl Editor {
                         e.spaces.set(input.value_as_int() as u32);
                     }
                     e.apply_text_options();
+                    e.update_footer();
+                    e.save_settings();
                 }
             });
         }
@@ -139,6 +200,10 @@ impl Editor {
         if jobs.is_empty() {
             return;
         }
+        self.saving
+            .borrow_mut()
+            .extend(jobs.iter().map(|(id, _)| *id));
+        self.update_footer();
         self.busy.set(true);
         let editor = self.clone();
         glib::spawn_future_local(async move {
@@ -169,6 +234,7 @@ impl Editor {
                 }
                 Err(_) => editor.show_background_error("Autosave worker failed"),
             }
+            editor.saving.borrow_mut().clear();
             editor.busy.set(false);
             editor.refresh();
             if let Err(error) = editor.save_recovery() {

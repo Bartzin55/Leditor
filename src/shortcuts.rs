@@ -7,6 +7,12 @@ pub struct Shortcut {
 }
 pub const SHORTCUTS: &[Shortcut] = &[
     Shortcut {
+        action: "insert-above",
+        label: "insert-above",
+        accelerators: &["<Shift>Return"],
+        display: "Shift+Enter",
+    },
+    Shortcut {
         action: "zoom-in",
         label: "zoom-in",
         accelerators: &["<Primary>plus", "<Primary>KP_Add"],

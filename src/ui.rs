@@ -10,6 +10,7 @@ use std::path::PathBuf;
 #[path = "ui/explorer.rs"]
 mod explorer;
 use explorer::{Explorer, Operation};
+mod enhancements;
 mod preferences;
 #[path = "ui/tab_actions.rs"]
 mod tab_actions;
@@ -53,6 +54,15 @@ struct Editor {
     notice: gtk::Label,
     zoom_input: gtk::SpinButton,
     spaces_input: gtk::SpinButton,
+    footer_left: gtk::Label,
+    footer_right: gtk::Label,
+    footer_pending: gtk::Label,
+    footer_spinner: gtk::Spinner,
+    saving: RefCell<std::collections::BTreeSet<u64>>,
+    light: Cell<bool>,
+    language: RefCell<String>,
+    theme_css: gtk::CssProvider,
+    paned: gtk::Paned,
     strings: I18n,
     actions: BTreeMap<&'static str, gio::SimpleAction>,
     #[cfg(test)]
@@ -120,6 +130,12 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
                 ("paste", "paste"),
                 ("convert-tabs", "convert-tabs"),
                 ("number-spaces", "number-spaces"),
+                ("insert-above", "insert-above"),
+                ("insert-below", "insert-below"),
+                ("case-first", "case-first"),
+                ("case-words", "case-words"),
+                ("case-upper", "case-upper"),
+                ("case-lower", "case-lower"),
             ],
         ),
         (
@@ -128,6 +144,7 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
                 ("word-wrap", "word-wrap"),
                 ("line-numbers", "line-counter"),
                 ("show-explorer", "show-explorer"),
+                ("light-theme", "light-theme"),
                 ("zoom", "zoom"),
                 ("zoom-in", "zoom-in"),
                 ("zoom-out", "zoom-out"),
@@ -141,13 +158,16 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
                 ("restore-session", "restore-session"),
                 ("keyboard", "keyboard-shortcuts"),
                 ("about", "about"),
+                ("language", "language"),
             ],
         ),
     ] {
         let submenu = gio::Menu::new();
+        let cases = gio::Menu::new();
         for (name, label) in entries {
             let action = match name {
-                "word-wrap" | "convert-tabs" | "enable-autosave" | "restore-session" => {
+                "light-theme" | "word-wrap" | "convert-tabs" | "enable-autosave"
+                | "restore-session" => {
                     gio::SimpleAction::new_stateful(name, None, &false.to_variant())
                 }
                 "line-numbers" | "show-explorer" => {
@@ -161,9 +181,14 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
                 let item = gio::MenuItem::new(None, None);
                 item.set_attribute_value("custom", Some(&name.to_variant()));
                 submenu.append_item(&item);
+            } else if name.starts_with("case-") {
+                cases.append(Some(&strings.text(label)), Some(&format!("win.{name}")));
             } else {
                 submenu.append(Some(&strings.text(label)), Some(&format!("win.{name}")));
             }
+        }
+        if menu_name == "edit" {
+            submenu.append_submenu(Some(&strings.text("convert-case")), &cases);
         }
         model.append_submenu(Some(&strings.text(menu_name)), &submenu);
     }
@@ -215,6 +240,21 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
     paned.set_shrink_start_child(false);
     paned.set_position(250);
     root.append(&paned);
+    let footer = gtk::CenterBox::new();
+    footer.add_css_class("footer");
+    let footer_left = gtk::Label::new(None);
+    let footer_right = gtk::Label::new(None);
+    let footer_pending = gtk::Label::new(Some(&format!("! {}", strings.text("unsaved"))));
+    footer_pending.add_css_class("pending");
+    let footer_spinner = gtk::Spinner::new();
+    footer_spinner.set_tooltip_text(Some(&strings.text("saving")));
+    let status = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    status.append(&footer_spinner);
+    status.append(&footer_pending);
+    footer.set_start_widget(Some(&footer_left));
+    footer.set_center_widget(Some(&status));
+    footer.set_end_widget(Some(&footer_right));
+    root.append(&footer);
     let notice = gtk::Label::new(None);
     notice.set_wrap(true);
     notice.set_visible(false);
@@ -222,6 +262,15 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
     root.append(&notice);
     window.set_child(Some(&root));
     let editor = Rc::new(Editor {
+        footer_left,
+        footer_right,
+        footer_pending,
+        footer_spinner,
+        saving: RefCell::new(std::collections::BTreeSet::new()),
+        light: Cell::new(false),
+        language: RefCell::new(strings.language().to_owned()),
+        theme_css: gtk::CssProvider::new(),
+        paned,
         window,
         explorer,
         stack,
@@ -278,11 +327,17 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
     });
     editor.setup_explorer();
     editor.setup_preferences();
+    let explorer_visible = editor.explorer.panel.is_visible();
     editor.restore_startup();
+    editor.explorer.panel.set_visible(explorer_visible);
+    editor.explorer.reveal.set_visible(!explorer_visible);
+    editor.actions["show-explorer"].set_state(&explorer_visible.to_variant());
+    editor.save_settings();
     if editor.tabs.borrow().is_empty() {
         editor.add_tab(Document::default());
     }
     editor.refresh();
+    editor.apply_theme();
     editor.window.present();
     editor
 }
@@ -298,6 +353,14 @@ impl Editor {
             return;
         }
         match name {
+            "light-theme" => {
+                self.light.set(!self.light.get());
+                self.apply_theme();
+                self.save_settings();
+            }
+            "language" => self.language_dialog(),
+            "case-first" | "case-words" | "case-upper" | "case-lower" | "insert-above"
+            | "insert-below" => self.edit_transform(name),
             "enable-autosave" => {
                 self.autosave.set(!self.autosave.get());
                 self.autosave_failed.borrow_mut().clear();
@@ -448,6 +511,12 @@ impl Editor {
                     }
                 });
         }
+        let weak = Rc::downgrade(self);
+        tab.view.buffer().connect_mark_set(move |_, _, _| {
+            if let Some(e) = weak.upgrade() {
+                e.update_footer();
+            }
+        });
         self.setup_tab_actions(&tab);
         self.tabs_box.append(&tab.header);
         self.stack.add_named(&tab.scroll, Some(&id.to_string()));
@@ -476,6 +545,7 @@ impl Editor {
         self.refresh();
     }
     fn refresh(&self) {
+        self.update_footer();
         self.pending.set(Some(std::time::Instant::now()));
         let current = self.current();
         let title = current
@@ -697,7 +767,24 @@ impl Editor {
             self.error(&self.strings.text("destination-open")).await;
             return false;
         }
-        let result = tab.document.borrow_mut().save_to(&path);
+        self.saving.borrow_mut().insert(tab.id);
+        self.update_footer();
+        let mut snapshot = tab.document.borrow().clone();
+        let result = gio::spawn_blocking(move || {
+            snapshot.save_to(&path)?;
+            Ok::<_, std::io::Error>(snapshot)
+        })
+        .await;
+        self.saving.borrow_mut().remove(&tab.id);
+        let result = match result {
+            Ok(Ok(saved)) => {
+                *tab.document.borrow_mut() = saved;
+                Ok(())
+            }
+            Ok(Err(e)) => Err(e),
+            Err(_) => Err(std::io::Error::other("Save worker failed")),
+        };
+        self.update_footer();
         match result {
             Ok(()) => {
                 self.autosave_failed.borrow_mut().remove(&tab.id);

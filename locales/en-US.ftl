@@ -67,3 +67,20 @@ indent = Indent
 outdent = Outdent
 
 background-save-error = Automatic save/recovery failed: { $reason }. Your text remains open. Use Save or Save As to retry.
+
+language = Language
+language-restart = Choose a language. The change takes effect after restarting Leditor.
+light-theme = Light theme
+convert-case = Convert case
+case-first = Uppercase the first letter
+case-words = Uppercase the first letter of each word
+case-upper = UPPERCASE ALL
+case-lower = lowercase all
+insert-above = Insert line above
+insert-below = Insert line below
+saving = Saving
+plain-text = Plain text
+footer-position = Lines: { $lines } · Characters: { $chars }    Line: { $line } · Column: { $column }
+footer-format = Encoding: { $encoding }    Format: { $format }    Zoom: { $zoom }%
+
+language-current = Current interface language: { $language }

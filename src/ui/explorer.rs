@@ -132,6 +132,7 @@ impl Editor {
         self.explorer.panel.set_visible(visible);
         self.explorer.reveal.set_visible(!visible);
         self.actions["show-explorer"].set_state(&visible.to_variant());
+        self.save_settings();
         if !visible {
             self.explorer.focused.set(false);
             if let Some(tab) = self.current() {

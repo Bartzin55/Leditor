@@ -7,6 +7,18 @@ pub struct Shortcut {
 }
 pub const SHORTCUTS: &[Shortcut] = &[
     Shortcut {
+        action: "find-replace",
+        label: "find-replace",
+        accelerators: &["<Primary>f"],
+        display: "Ctrl+F",
+    },
+    Shortcut {
+        action: "focus",
+        label: "focus",
+        accelerators: &["<Shift>F11"],
+        display: "Shift+F11",
+    },
+    Shortcut {
         action: "insert-above",
         label: "insert-above",
         accelerators: &["<Shift>Return"],
@@ -80,6 +92,9 @@ pub const SHORTCUTS: &[Shortcut] = &[
     },
 ];
 pub const TEXT_SHORTCUTS: &[(&str, &str)] = &[
+    ("Esc", "exit-focus-search"),
+    ("Enter / Shift+Enter", "search-navigation"),
+    ("Tab / Shift+Tab", "search-fields"),
     ("Enter", "insert-below"),
     ("Tab", "indent"),
     ("Shift+Tab", "outdent"),

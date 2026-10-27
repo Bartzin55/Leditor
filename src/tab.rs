@@ -15,6 +15,8 @@ pub struct Tab {
     pub document: RefCell<Document>,
     pub view: NumberedView,
     pub scroll: gtk::ScrolledWindow,
+    pub content: gtk::Box,
+    pub minimap: gtk::DrawingArea,
     pub header: gtk::Box,
     pub select: gtk::Button,
     pub title: gtk::Label,
@@ -32,19 +34,23 @@ impl Tab {
             .overlay_scrolling(false)
             .child(&view)
             .build();
+        let minimap = crate::minimap::create(&view, &scroll);
+        let content = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        content.append(&scroll);
+        content.append(&minimap);
         let header = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         header.add_css_class("document-tab");
         let select = gtk::Button::new();
         select.add_css_class("flat");
-        let content = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        let header_content = gtk::Box::new(gtk::Orientation::Horizontal, 8);
         let title = gtk::Label::new(None);
         title.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
         title.set_max_width_chars(26);
         let dirty = gtk::Label::new(Some("●"));
         dirty.add_css_class("dirty-dot");
-        content.append(&title);
-        content.append(&dirty);
-        select.set_child(Some(&content));
+        header_content.append(&title);
+        header_content.append(&dirty);
+        select.set_child(Some(&header_content));
         let close = gtk::Button::from_icon_name("window-close-symbolic");
         close.add_css_class("tab-close");
         close.add_css_class("flat");
@@ -58,6 +64,8 @@ impl Tab {
             document: RefCell::new(document),
             view,
             scroll,
+            content,
+            minimap,
             header,
             select,
             title,
@@ -101,6 +109,7 @@ impl Tab {
     }
     pub fn mark_unsupported(&self, strings: &I18n) {
         self.unsupported.set(true);
+        self.minimap.set_visible(false);
         self.title.add_css_class("unsupported-title");
         let content = gtk::Box::new(gtk::Orientation::Vertical, 16);
         content.set_valign(gtk::Align::Center);

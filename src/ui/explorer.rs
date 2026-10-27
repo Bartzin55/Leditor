@@ -128,6 +128,9 @@ impl Editor {
         self.refresh_explorer();
     }
     pub(super) fn toggle_explorer(&self) {
+        if self.focus_mode.get() {
+            return;
+        }
         let visible = !self.explorer.panel.is_visible();
         self.explorer.panel.set_visible(visible);
         self.explorer.reveal.set_visible(!visible);

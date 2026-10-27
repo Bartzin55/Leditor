@@ -1,3 +1,12 @@
+# Release 1.4.0 — 2026-10-26
+
+- Added an optional clickable minimap following the active theme; its visibility preference is saved.
+- Added Ctrl+F / Edit → Find and replace, a two-row bar matching the supplied mockups, yellow/green match tags, wrapping navigation, replacement messages and grouped undo for Replace/Replace all.
+- Added per-invocation case sensitivity (never persisted), Find-field Enter/Shift+Enter and Tab navigation between fields.
+- Added Shift+F11 Focus mode with top-edge menu/tab reveal and Esc exit, preserving explorer/line-counter preferences and the previous fullscreen state.
+- Added Always on top through native Windows and X11 window-manager requests. Native Wayland does not expose a portable GTK equivalent; the option is disabled there. Focus and Always on top never persist.
+- Updated all three catalogs, shortcuts, package/About version, documentation and Linux graphical tests.
+
 # Release 1.3.0 — 2026-10-26
 
 - Added Linux-only automatic per-user executable/launcher installation, atomic updates and conflict protection. Optional global installation is documented.

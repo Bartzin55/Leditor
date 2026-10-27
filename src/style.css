@@ -34,3 +34,9 @@ window.popup-surface { background-color: #111111; color: #eeeeee; }
 .footer { background: #242424; color: #cccccc; padding: 4px 8px; font-size: 11px; }
 .footer .pending { color: #f4d750; }
 
+
+.search-bar { background: #242424; padding: 6px 10px; }
+.search-success { color: #86ee77; }
+.search-error { color: #ff6666; }
+.search-replaced { color: #fff1a0; }
+.minimap { border-left: 1px solid #666; }

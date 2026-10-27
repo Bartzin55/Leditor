@@ -214,7 +214,7 @@ fn all_languages_have_matching_messages_and_variables() {
         for name in ["name", "reason", "encoding", "format", "zoom", "language"] {
             args.set(name, "test");
         }
-        for name in ["lines", "chars", "line", "column"] {
+        for name in ["lines", "chars", "line", "column", "current", "total"] {
             args.set(name, 1);
         }
         for key in keys(en) {

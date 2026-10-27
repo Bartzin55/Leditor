@@ -11,7 +11,9 @@ use std::path::PathBuf;
 mod explorer;
 use explorer::{Explorer, Operation};
 mod enhancements;
+mod focus;
 mod preferences;
+mod search;
 #[path = "ui/tab_actions.rs"]
 mod tab_actions;
 use std::{
@@ -31,6 +33,13 @@ enum Intent {
     Operation(Operation),
 }
 struct Editor {
+    search: search::SearchBar,
+    minimap: Cell<bool>,
+    focus_mode: Cell<bool>,
+    focus_snapshot: RefCell<Option<focus::FocusSnapshot>>,
+    menubar: gtk::PopoverMenuBar,
+    footer: gtk::CenterBox,
+    always_on_top: Cell<bool>,
     window: gtk::ApplicationWindow,
     explorer: Explorer,
     stack: gtk::Stack,
@@ -125,6 +134,7 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         (
             "edit",
             vec![
+                ("find-replace", "find-replace"),
                 ("undo", "undo"),
                 ("redo", "redo"),
                 ("cut", "cut"),
@@ -144,6 +154,9 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         (
             "view",
             vec![
+                ("minimap", "minimap"),
+                ("always-on-top", "always-on-top"),
+                ("focus", "focus"),
                 ("word-wrap", "word-wrap"),
                 ("line-numbers", "line-counter"),
                 ("indent-guides", "indent-guides"),
@@ -175,8 +188,8 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
                     Some(glib::VariantTy::STRING),
                     &"system".to_variant(),
                 ),
-                "indent-guides" | "word-wrap" | "convert-tabs" | "enable-autosave"
-                | "restore-session" => {
+                "minimap" | "always-on-top" | "focus" | "indent-guides" | "word-wrap"
+                | "convert-tabs" | "enable-autosave" | "restore-session" => {
                     gio::SimpleAction::new_stateful(name, None, &false.to_variant())
                 }
                 "auto-indent" | "line-numbers" | "show-explorer" => {
@@ -276,6 +289,8 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
     footer.set_start_widget(Some(&footer_left));
     footer.set_center_widget(Some(&status));
     footer.set_end_widget(Some(&footer_right));
+    let search = search::SearchBar::new(&strings);
+    editor_area.append(&search.bar);
     root.append(&footer);
     let notice = gtk::Label::new(None);
     notice.set_wrap(true);
@@ -284,6 +299,13 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
     root.append(&notice);
     window.set_child(Some(&root));
     let editor = Rc::new(Editor {
+        search,
+        minimap: Cell::new(false),
+        focus_mode: Cell::new(false),
+        focus_snapshot: RefCell::new(None),
+        menubar,
+        footer,
+        always_on_top: Cell::new(false),
         footer_left,
         footer_right,
         footer_pending,
@@ -360,6 +382,8 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
             window.disconnect(handler);
         }
     });
+    editor.setup_search();
+    editor.setup_focus(&root);
     editor.setup_explorer();
     editor.setup_preferences();
     let explorer_visible = editor.explorer.panel.is_visible();
@@ -374,6 +398,10 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
     editor.refresh();
     editor.apply_theme();
     editor.window.present();
+    editor.refresh();
+    if !crate::window_mode::supported(&editor.window) {
+        editor.actions["always-on-top"].set_enabled(false);
+    }
     editor
 }
 impl Editor {
@@ -388,6 +416,18 @@ impl Editor {
             return;
         }
         match name {
+            "find-replace" => self.open_search(),
+            "focus" => self.toggle_focus(),
+            "always-on-top" => self.toggle_always_on_top(),
+            "minimap" => {
+                self.minimap.set(!self.minimap.get());
+                action.set_state(&self.minimap.get().to_variant());
+                for tab in self.tabs.borrow().iter() {
+                    tab.minimap
+                        .set_visible(self.minimap.get() && !tab.unsupported.get());
+                }
+                self.save_settings();
+            }
             "auto-indent" | "indent-guides" => {
                 let setting = if name == "auto-indent" {
                     &self.auto_indent
@@ -492,6 +532,7 @@ impl Editor {
             self.active.set(Some(id));
             self.stack.set_visible_child_name(&id.to_string());
             self.refresh();
+            self.refresh_search();
             tab.view.grab_focus();
         }
     }
@@ -520,7 +561,9 @@ impl Editor {
         });
         tab.view.add_controller(scroll);
         tab.set_wrap(self.wrap.get());
-        tab.view.set_line_numbers(self.line_numbers.get());
+        tab.view
+            .set_line_numbers(self.line_numbers.get() && !self.focus_mode.get());
+        tab.minimap.set_visible(self.minimap.get());
         let weak = Rc::downgrade(self);
         tab.select.connect_clicked(move |_| {
             if let Some(editor) = weak.upgrade() {
@@ -540,6 +583,9 @@ impl Editor {
             if let Some(editor) = weak.upgrade() {
                 if let Some(tab) = editor.tab(id) {
                     tab.synchronize();
+                    if editor.active.get() == Some(id) {
+                        editor.refresh_search();
+                    }
                 }
                 editor.refresh();
             }
@@ -558,11 +604,12 @@ impl Editor {
         tab.view.buffer().connect_mark_set(move |_, _, _| {
             if let Some(e) = weak.upgrade() {
                 e.update_footer();
+                e.search_cursor_changed();
             }
         });
         self.setup_tab_actions(&tab);
         self.tabs_box.append(&tab.header);
-        self.stack.add_named(&tab.scroll, Some(&id.to_string()));
+        self.stack.add_named(&tab.content, Some(&id.to_string()));
         self.tabs.borrow_mut().push(tab);
         self.select(id);
         id
@@ -576,7 +623,7 @@ impl Editor {
         let next = tabs.get(index).or_else(|| tabs.last()).map(|tab| tab.id);
         drop(tabs);
         self.tabs_box.remove(&tab.header);
-        self.stack.remove(&tab.scroll);
+        self.stack.remove(&tab.content);
         if self.active.get() == Some(id) {
             self.active.set(None);
             if let Some(id) = next {
@@ -608,6 +655,8 @@ impl Editor {
         self.window.set_title(Some(&title));
         for (&name, action) in &self.actions {
             let enabled = match name {
+                "always-on-top" => crate::window_mode::supported(&self.window),
+                "line-numbers" | "show-explorer" if self.focus_mode.get() => false,
                 "restore-session" => self.autosave.get(),
                 "close" => current.is_some(),
                 "cut" | "copy" | "paste" if self.explorer.focused.get() => {
@@ -627,6 +676,12 @@ impl Editor {
             action.set_enabled(!self.busy.get() && enabled);
         }
         self.tab_bar.set_sensitive(!self.busy.get());
+        self.search.replace.set_sensitive(
+            !self.busy.get() && current.as_ref().is_some_and(|t| !t.unsupported.get()),
+        );
+        self.search.replace_all.set_sensitive(
+            !self.busy.get() && current.as_ref().is_some_and(|t| !t.unsupported.get()),
+        );
         for button in self.explorer.creators.borrow().iter() {
             button.set_sensitive(!self.busy.get() && self.explorer.root.borrow().is_some());
         }

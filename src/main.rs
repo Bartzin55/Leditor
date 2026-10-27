@@ -2,11 +2,13 @@
 mod editor_view;
 #[cfg(target_os = "linux")]
 mod linux_install;
+mod minimap;
 mod popups;
 mod session;
 mod shortcuts;
 mod tab;
 mod ui;
+mod window_mode;
 use gtk::prelude::*;
 fn main() -> gtk::glib::ExitCode {
     #[cfg(target_os = "linux")]

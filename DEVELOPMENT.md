@@ -1,4 +1,4 @@
-# Development Notes — 1.3.0
+# Development Notes — 1.4.0
 
 This release updates the existing 1.0.0 Rust/GTK4 project. No dependency was added.
 
@@ -61,3 +61,14 @@ No new dependency was added. Light-theme CSS overrides the existing dark stylesh
 - No dependency added or license changed. Native GTK distribution obligations still apply when bundling GTK binaries.
 
 References: [Desktop Entry Specification](https://specifications.freedesktop.org/desktop-entry/latest-single/) and [Gtk.Settings.reset_property](https://docs.gtk.org/gtk4/method.Settings.reset_property.html).
+
+## Version 1.4.0 decisions
+
+- `minimap.rs` adds a GTK DrawingArea next to each tab's ScrolledWindow. A cached 240-column bitmap represents non-whitespace text; rendering samples at most one logical line per vertical pixel for large files. The map covers the whole document, marks the visible line range and navigates to line starts. Lines wrap only in the main editor. Colors come from the text widget and existing theme CSS. The map is a structural text overview, not syntax highlighting.
+- `ui/search.rs` uses GTK TextIter forward_search, including native Unicode case-insensitive matching, rather than implementing a second search engine. Two TextTags provide yellow and green highlighting without modifying document contents/dirty state. Searches are literal, non-overlapping and local to the active tab. Replacements are applied in reverse offset order within a single user action, preventing inserted text from being searched/replaced again in the same operation. Buffer changes, undo/redo and tab switches refresh matches.
+- The bar matches the supplied two-row mockup: Find and arrows above Replace and replacement buttons, followed by status, case sensitivity and a close control. Ctrl+F always resets case sensitivity and focuses Find. Navigation keeps focus in the search box. Case, query and replacement are not persisted.
+- `ui/focus.rs` snapshots explorer visibility, sidebar width and fullscreen state. Line-number preference stays unchanged; only its presentation is suppressed. Settings writes during Focus use the snapshot, so closing the application in Focus cannot persist a hidden explorer by accident. Menu/tab reveal is tied to top-edge pointer motion. The existing fullscreen state is restored on exit.
+- `window_mode.rs` confines platform-specific work: typed GTK backend bindings plus x11rb EWMH client messages on X11, and a narrow SetWindowPos call on Windows. No focus-stealing timers, command-line window tools or privileged processes are used. Native Wayland support is explicitly unavailable; the action remains unchecked and disabled.
+- No document format, file-saving, recovery or Linux installation behavior was changed.
+
+References: GTK TextIter.forward_search, GDK X11Surface.get_xid and Win32Surface.get_handle; the EWMH _NET_WM_STATE_ABOVE protocol and Microsoft SetWindowPos API.

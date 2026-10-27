@@ -3,3 +3,8 @@
 .tab-bar, .footer, .document-tab, window.popup-surface { background-color: @theme_bg_color; color: @theme_fg_color; }
 .document-tab.active { background-color: @theme_base_color; }
 .explorer-row:hover, .explorer-row:focus, .explorer-row.selected { background-color: @theme_selected_bg_color; color: @theme_selected_fg_color; }
+
+.search-bar { background: @theme_bg_color; color: @theme_fg_color; }
+.search-success { color: #278739; }
+.search-error { color: #d13f4b; }
+.search-replaced { color: @theme_fg_color; }

@@ -68,14 +68,29 @@ impl Editor {
         let key = glib::KeyFile::new();
         key.set_boolean("settings", "wrap", self.wrap.get());
         key.set_boolean("settings", "numbers", self.line_numbers.get());
-        key.set_boolean("settings", "explorer", self.explorer.panel.is_visible());
+        key.set_boolean(
+            "settings",
+            "explorer",
+            self.focus_snapshot
+                .borrow()
+                .as_ref()
+                .map_or_else(|| self.explorer.panel.is_visible(), |s| s.explorer),
+        );
+        key.set_boolean("settings", "minimap", self.minimap.get());
         key.set_boolean("settings", "convert", self.convert.get());
         key.set_string("settings", "theme", &self.theme.borrow());
         key.set_boolean("settings", "auto-indent", self.auto_indent.get());
         key.set_boolean("settings", "indent-guides", self.indent_guides.get());
         key.set_integer("settings", "spaces", self.spaces.get() as i32);
         key.set_double("settings", "zoom", self.zoom.get());
-        key.set_integer("settings", "sidebar-width", self.paned.position());
+        key.set_integer(
+            "settings",
+            "sidebar-width",
+            self.focus_snapshot
+                .borrow()
+                .as_ref()
+                .map_or(self.paned.position(), |s| s.sidebar_width),
+        );
         key.set_string("settings", "language", &self.language.borrow());
         key.set_boolean("settings", "autosave", self.autosave.get());
         key.set_boolean("settings", "restore", self.restore.get());
@@ -95,6 +110,8 @@ impl Editor {
         self.explorer.panel.set_visible(false);
         self.explorer.reveal.set_visible(true);
         if let Some(key) = settings {
+            self.minimap
+                .set(key.boolean("settings", "minimap").unwrap_or(false));
             self.wrap
                 .set(key.boolean("settings", "wrap").unwrap_or(false));
             self.line_numbers
@@ -150,6 +167,7 @@ impl Editor {
         self.actions["enable-autosave"].set_state(&self.autosave.get().to_variant());
         self.actions["restore-session"].set_state(&self.restore.get().to_variant());
         for (name, value) in [
+            ("minimap", self.minimap.get()),
             ("auto-indent", self.auto_indent.get()),
             ("indent-guides", self.indent_guides.get()),
             ("word-wrap", self.wrap.get()),

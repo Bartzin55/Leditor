@@ -1,4 +1,4 @@
-# Build and Run — Leditor 1.3.0
+# Build and Run — Leditor 1.4.0
 
 Use a current stable Rust toolchain and GTK **4.10 or later**. Keep Cargo.lock and use `--locked`. The source archive does not include installers or Windows DLLs.
 
@@ -93,3 +93,22 @@ sudo install -Dm644 assets/io.github.leditor.Leditor.desktop /usr/local/share/ap
 If `/usr/bin` is explicitly required, replace `/usr/local/bin/leditor` with `/usr/bin/leditor` in the first command; do not install twice into `/bin` and `/usr/bin`. Global installations skip per-user binary installation. Do not run Cargo or the GUI as root.
 
 To remove per-user integration, delete only the installed symlink, the managed desktop entry and `leditor/bin/leditor` at the paths above. Keep `settings.ini` and `session.ini` unless you intentionally want to discard preferences and recovery data.
+
+## 1.4.0 platform requirements and tests
+
+Linux GTK must include its X11 backend (`pkg-config gtk4-x11`), as provided by the Ubuntu/Arch GTK packages above. Native Wayland remains supported for editing, search, minimap and Focus. Always on top is disabled on Wayland because standard GTK toplevels cannot request a universal above-other-windows state there. X11 requests are subject to window-manager policy.
+
+Windows uses the GTK Win32 backend and the operating system's SetWindowPos API; no additional installer or service is introduced.
+
+New platform bindings: gdk4-x11/gdk4-win32 0.10 (MIT), x11rb 0.13 (MIT OR Apache-2.0), windows-sys 0.61 (MIT OR Apache-2.0). These are platform-specific and Cargo selects the relevant ones. Cargo.lock pins exact versions. Leditor remains MIT; native GTK's existing distribution requirements still apply.
+
+The existing GTK regression and new 1.4.0 graphical suite must run in separate processes because GTK initialization belongs to one thread. The new suite is ignored by default for that reason; invoke it explicitly:
+
+```bash
+cargo test --locked --lib --test document --test file_ops
+cargo test --locked --bin leditor -- --skip ui:: --test-threads=1
+cargo test --locked --bin leditor ui::tests::tabs_history_layout_dialogs_and_file_safety -- --exact
+cargo test --locked --bin leditor ui::search::tests::find_replace_focus_and_minimap -- --ignored --exact
+```
+
+The last two commands require a graphical display. Tests isolate settings and files in temporary directories. The legacy UI regression is Linux-only; the new GTK suite is portable but has only been executed on Linux.

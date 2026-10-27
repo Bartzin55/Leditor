@@ -9,3 +9,8 @@ window.popup-surface { background: #ffffff; color: #202020; }
 .footer .pending, .dirty-dot { color: #866400; }
 .unsupported-title { color: #b80000; }
 
+
+.search-bar { background: #eeeeee; }
+.search-success { color: #176b24; }
+.search-error { color: #b00020; }
+.search-replaced { color: #745000; }

@@ -4,6 +4,15 @@ impl Editor {
         let Some(tab) = self.current() else {
             return;
         };
+        if tab.media.get() {
+            self.footer_left.set_text("");
+            self.footer_right
+                .set_text(&format!("{:.0}%", self.zoom.get()));
+            self.footer_pending.set_visible(false);
+            self.footer_spinner.set_visible(false);
+            self.footer_spinner.stop();
+            return;
+        }
         let buffer = tab.view.buffer();
         let cursor = buffer.iter_at_offset(buffer.cursor_position());
         let mut args = FluentArgs::new();
@@ -17,26 +26,11 @@ impl Editor {
             self.strings.format("footer-position", Some(&args))
         };
         self.footer_left.set_text(&position);
-        let name = tab.name(&self.strings);
-        let format = match std::path::Path::new(&name)
-            .extension()
-            .and_then(|x| x.to_str())
-            .unwrap_or("")
-            .to_ascii_lowercase()
-            .as_str()
-        {
-            "rs" => "Rust",
-            "c" | "h" => "C",
-            "cpp" | "hpp" | "cc" => "C++",
-            "md" | "markdown" => "Markdown",
-            "py" => "Python",
-            "json" => "JSON",
-            "html" => "HTML",
-            "css" => "CSS",
-            "js" => "JavaScript",
-            "toml" => "TOML",
-            _ => "",
-        };
+        let format = tab
+            .source_buffer()
+            .language()
+            .map(|l| l.name().to_string())
+            .unwrap_or_default();
         let mut args = FluentArgs::new();
         args.set(
             "encoding",
@@ -127,7 +121,7 @@ impl Editor {
         dialog.present();
     }
     pub(super) fn edit_transform(&self, name: &str) {
-        let Some(tab) = self.current().filter(|t| !t.unsupported.get()) else {
+        let Some(tab) = self.current().filter(|t| t.is_text()) else {
             return;
         };
         let buffer = tab.view.buffer();

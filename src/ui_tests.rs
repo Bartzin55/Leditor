@@ -1,4 +1,5 @@
 use super::*;
+use crate::session;
 use std::time::{Duration, Instant};
 
 #[track_caller]
@@ -737,4 +738,304 @@ fn version_one_two_features(application: &gtk::Application) {
     assert_eq!(restored.theme.borrow().as_str(), "light");
     restored.window.destroy();
     let _ = std::fs::remove_dir_all(crate::session::directory());
+}
+
+#[test]
+#[ignore = "Run separately with a graphical display and PDFium runtime"]
+fn version_150_syntax_media_and_save_all() {
+    let temp = tempfile::tempdir().unwrap();
+    std::env::set_var("XDG_CONFIG_HOME", temp.path());
+    std::env::set_var("XDG_DATA_HOME", temp.path());
+    std::env::set_var("GSETTINGS_BACKEND", "memory");
+    let _ = std::fs::remove_dir_all(crate::session::directory());
+    gtk::init().unwrap();
+    let app = gtk::Application::builder()
+        .application_id("io.github.leditor.V150Tests")
+        .flags(gio::ApplicationFlags::NON_UNIQUE)
+        .build();
+    app.register(gio::Cancellable::NONE).unwrap();
+    let e = create(&app);
+    let initial = e.current().unwrap();
+    // Menus are in the requested order, with translated labels and all languages.
+    for locale in ["en-US", "pt-BR", "es"] {
+        let strings = I18n::new(locale);
+        let (menu, _) = menu::build(&gtk::ApplicationWindow::new(&app), &strings);
+        assert_eq!(menu.n_items(), 5);
+        for (i, name) in ["file", "edit", "view", "window", "other"]
+            .iter()
+            .enumerate()
+        {
+            assert_eq!(
+                menu.item_attribute_value(i as i32, "label", None)
+                    .unwrap()
+                    .str()
+                    .unwrap(),
+                strings.text(name)
+            );
+        }
+        let view = menu.item_link(2, "submenu").unwrap();
+        let syntax = view.item_link(view.n_items() - 1, "submenu").unwrap();
+        let languages = syntax.item_link(2, "section").unwrap();
+        assert_eq!(
+            languages.n_items() as usize,
+            sourceview5::LanguageManager::default().language_ids().len() + 1
+        );
+        assert_eq!(
+            languages
+                .item_attribute_value(0, "label", None)
+                .unwrap()
+                .str()
+                .unwrap(),
+            strings.text("plain-text")
+        );
+    }
+    let rust = temp.path().join("example.rs");
+    std::fs::write(&rust, "fn main() {\n    let message = \"Olá\";\n}\n").unwrap();
+    queue(&e, false, Some(&rust));
+    run(&e, Intent::Open);
+    let text = e.current().unwrap();
+    assert_eq!(text.source_buffer().language().unwrap().id(), "rust");
+    let buffer = text.source_buffer();
+    buffer.ensure_highlight(&buffer.start_iter(), &buffer.end_iter());
+    assert!(
+        !buffer.start_iter().tags().is_empty(),
+        "Rust keyword must have a syntax tag"
+    );
+    assert!(!text.document.borrow().is_dirty());
+    assert!(!buffer.can_undo());
+    e.choose_syntax("python");
+    assert_eq!(
+        e.actions["syntax-language"].state().unwrap().str(),
+        Some("python")
+    );
+    e.select(initial.id);
+    assert_eq!(
+        e.actions["syntax-language"].state().unwrap().str(),
+        Some("plain")
+    );
+    e.select(text.id);
+    assert_eq!(
+        e.actions["syntax-language"].state().unwrap().str(),
+        Some("python")
+    );
+    e.actions["syntax-detect"].activate(None);
+    assert_eq!(buffer.language().unwrap().id(), "rust");
+    e.actions["syntax-enable"].activate(None);
+    assert!(!buffer.is_highlight_syntax());
+    assert!(!e.actions["syntax-detect"].is_enabled());
+    assert!(!session::load_settings()
+        .unwrap()
+        .boolean("settings", "syntax")
+        .unwrap());
+    e.actions["syntax-enable"].activate(None);
+    e.choose_syntax("plain");
+    assert!(buffer.language().is_none());
+    e.choose_syntax("rust");
+    for theme in ["light", "dark"] {
+        e.theme.replace(theme.into());
+        e.apply_theme();
+        assert_eq!(
+            buffer.style_scheme().unwrap().id(),
+            if theme == "light" {
+                "Adwaita"
+            } else {
+                "Adwaita-dark"
+            }
+        );
+    }
+    append(&text, "// edit");
+    buffer.undo();
+    assert_eq!(
+        text.document.borrow().text,
+        std::fs::read_to_string(&rust).unwrap()
+    );
+    // Save All saves existing files, prompts for untitled, and stops at Cancel.
+    append(&initial, "untitled content");
+    append(&text, "// saved");
+    let pending_id = e.add_tab(Document::default());
+    append(&e.tab(pending_id).unwrap(), "leave dirty");
+    let destination = temp.path().join("created.txt");
+    queue(&e, true, Some(&destination));
+    queue(&e, true, None);
+    run(&e, Intent::SaveAll);
+    assert_eq!(
+        std::fs::read_to_string(&destination).unwrap(),
+        "untitled content"
+    );
+    assert!(std::fs::read_to_string(&rust)
+        .unwrap()
+        .ends_with("// saved"));
+    assert!(e.tab(pending_id).unwrap().document.borrow().is_dirty());
+    queue(&e, true, Some(temp.path()));
+    e.request(Intent::SaveAll);
+    click("Close");
+    pump_until(|| !e.busy.get());
+    assert!(e.tab(pending_id).unwrap().document.borrow().is_dirty());
+    assert!(e.tab(pending_id).unwrap().document.borrow().path.is_none());
+    // Both image decoders, readonly commands and real zoom geometry.
+    let pixbuf =
+        gtk::gdk_pixbuf::Pixbuf::new(gtk::gdk_pixbuf::Colorspace::Rgb, false, 8, 320, 180).unwrap();
+    pixbuf.fill(0x3070b0ff);
+    for extension in ["png", "jpeg"] {
+        let path = temp.path().join(format!("image.{extension}"));
+        pixbuf.savev(&path, extension, &[]).unwrap();
+        let original = std::fs::read(&path).unwrap();
+        queue(&e, false, Some(&path));
+        run(&e, Intent::Open);
+        let tab = e.current().unwrap();
+        assert!(tab.media.get());
+        assert!(!tab.is_text());
+        assert!(!tab.minimap.is_visible());
+        assert!(!e.actions["save"].is_enabled());
+        assert!(!e.actions["find-replace"].is_enabled());
+        assert!(e.footer_left.text().is_empty());
+        assert_eq!(tab.viewer.borrow().as_ref().unwrap().page_count(), 1);
+        e.set_zoom(200.0);
+        drain();
+        let area = tab
+            .viewer
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .content
+            .first_child()
+            .unwrap()
+            .downcast::<gtk::DrawingArea>()
+            .unwrap();
+        assert_eq!(area.content_width(), 640);
+        assert_eq!(area.content_height(), 360);
+        e.set_zoom(100.0);
+        assert_eq!(e.footer_right.text(), "100%");
+        e.edit_transform("case-upper");
+        assert!(!glib::MainContext::default().block_on(e.save(&tab, false)));
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+        let key = e.recovery_key();
+        let index = e.tabs.borrow().iter().position(|t| t.id == tab.id).unwrap();
+        let recovered = session::recover(&key, &format!("tab-{index}")).unwrap();
+        assert!(recovered.viewer);
+        assert_eq!(recovered.document.path.as_deref(), Some(path.as_path()));
+    }
+    let pdf = temp.path().join("two-pages.pdf");
+    std::fs::write(&pdf, test_pdf()).unwrap();
+    queue(&e, false, Some(&pdf));
+    run(&e, Intent::Open);
+    let pdf_tab = e.current().unwrap();
+    let viewer = pdf_tab.viewer.borrow().as_ref().unwrap().clone();
+    assert_eq!(viewer.page_count(), 2);
+    pump_until(|| viewer.rendered_pages() > 0);
+    pdf_tab
+        .scroll
+        .vadjustment()
+        .set_value(pdf_tab.scroll.vadjustment().upper());
+    pump_until(|| viewer.rendered_pages() == 2);
+    if let Ok(directory) = std::env::var("LEDITOR_QA_DIR") {
+        drain();
+        let snapshot = gtk::Snapshot::new();
+        gtk::WidgetPaintable::new(Some(&e.window)).snapshot(
+            &snapshot,
+            e.window.width() as f64,
+            e.window.height() as f64,
+        );
+        e.window
+            .renderer()
+            .unwrap()
+            .render_texture(snapshot.to_node().unwrap(), None)
+            .save_to_png(std::path::Path::new(&directory).join("pdf.png"))
+            .unwrap();
+    }
+    e.set_zoom(800.0);
+    drain();
+    assert_eq!(e.footer_right.text(), "800%");
+    e.set_zoom(5.0);
+    drain();
+    e.set_zoom(100.0);
+    let corrupt = temp.path().join("bad.pdf");
+    std::fs::write(&corrupt, b"not a PDF").unwrap();
+    assert!(glib::MainContext::default()
+        .block_on(crate::viewer::Viewer::load(corrupt, 100.0))
+        .is_err());
+    let bad_image = temp.path().join("bad.png");
+    std::fs::write(&bad_image, b"not a PNG").unwrap();
+    assert!(glib::MainContext::default()
+        .block_on(crate::viewer::Viewer::load(bad_image, 100.0))
+        .is_err());
+    // A snapshot restores media as media, not an empty writable text document.
+    e.restore.set(true);
+    e.autosave.set(true);
+    e.save_settings();
+    e.save_recovery().unwrap();
+    let restored = create(&app);
+    pump_until(|| {
+        restored
+            .tabs
+            .borrow()
+            .iter()
+            .filter(|t| t.media.get())
+            .all(|t| t.viewer.borrow().is_some())
+    });
+    assert_eq!(
+        restored
+            .tabs
+            .borrow()
+            .iter()
+            .filter(|t| t.media.get())
+            .count(),
+        3
+    );
+    assert!(restored
+        .tabs
+        .borrow()
+        .iter()
+        .any(|t| t.document.borrow().text == "leave dirty"));
+    if let Ok(directory) = std::env::var("LEDITOR_QA_DIR") {
+        for theme in ["light", "dark"] {
+            e.select(text.id);
+            e.theme.replace(theme.into());
+            e.apply_theme();
+            drain();
+            let snapshot = gtk::Snapshot::new();
+            gtk::WidgetPaintable::new(Some(&e.window)).snapshot(
+                &snapshot,
+                e.window.width() as f64,
+                e.window.height() as f64,
+            );
+            e.window
+                .renderer()
+                .unwrap()
+                .render_texture(snapshot.to_node().unwrap(), None)
+                .save_to_png(std::path::Path::new(&directory).join(format!("syntax-{theme}.png")))
+                .unwrap();
+        }
+    }
+    restored.window.destroy();
+    e.window.destroy();
+    drain();
+}
+
+fn test_pdf() -> Vec<u8> {
+    let stream = "0.2 0.4 0.8 rg 40 40 200 120 re f\n";
+    let objects = [
+        "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
+        "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>".to_owned(),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 500] /Resources << >> /Contents 5 0 R >>"
+            .to_owned(),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 500] /Resources << >> /Contents 5 0 R >>"
+            .to_owned(),
+        format!("<< /Length {} >>\nstream\n{stream}endstream", stream.len()),
+    ];
+    let mut pdf = b"%PDF-1.4\n".to_vec();
+    let mut offsets = Vec::new();
+    for (i, obj) in objects.iter().enumerate() {
+        offsets.push(pdf.len());
+        pdf.extend_from_slice(format!("{} 0 obj\n{}\nendobj\n", i + 1, obj).as_bytes());
+    }
+    let xref = pdf.len();
+    pdf.extend_from_slice(b"xref\n0 6\n0000000000 65535 f \n");
+    for offset in offsets {
+        pdf.extend_from_slice(format!("{offset:010} 00000 n \n").as_bytes());
+    }
+    pdf.extend_from_slice(
+        format!("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").as_bytes(),
+    );
+    pdf
 }

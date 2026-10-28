@@ -18,7 +18,7 @@ mod imp {
     impl ObjectSubclass for NumberedView {
         const NAME: &'static str = "LeditorNumberedView";
         type Type = super::NumberedView;
-        type ParentType = gtk::TextView;
+        type ParentType = sourceview5::View;
     }
     impl ObjectImpl for NumberedView {
         fn dispose(&self) {
@@ -87,6 +87,7 @@ mod imp {
             snapshot.pop();
         }
     }
+    impl sourceview5::subclass::prelude::ViewImpl for NumberedView {}
     impl TextViewImpl for NumberedView {
         fn snapshot_layer(&self, layer: gtk::TextViewLayer, snapshot: gtk::Snapshot) {
             self.parent_snapshot_layer(layer, snapshot.clone());
@@ -121,7 +122,7 @@ mod imp {
 }
 glib::wrapper! {
     pub struct NumberedView(ObjectSubclass<imp::NumberedView>)
-        @extends gtk::TextView, gtk::Widget,
+        @extends sourceview5::View, gtk::TextView, gtk::Widget,
         @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Scrollable;
 }
 impl NumberedView {
@@ -374,7 +375,8 @@ impl NumberedView {
         let gutter = gtk::Box::new(gtk::Orientation::Vertical, 0);
         gutter.add_css_class("line-numbers");
         view.set_gutter(gtk::TextWindowType::Left, Some(&gutter));
-        let buffer = view.buffer();
+        let buffer = sourceview5::Buffer::new(None);
+        view.set_buffer(Some(&buffer));
         buffer.set_enable_undo(false);
         buffer.set_text(text);
         buffer.set_enable_undo(true);

@@ -11,6 +11,9 @@ use std::{
 pub struct Tab {
     pub id: u64,
     pub unsupported: Cell<bool>,
+    pub media: Cell<bool>,
+    pub viewer: RefCell<Option<Rc<crate::viewer::Viewer>>>,
+    pub syntax_detected: Cell<bool>,
     pub display_name: RefCell<Option<String>>,
     pub document: RefCell<Document>,
     pub view: NumberedView,
@@ -60,6 +63,9 @@ impl Tab {
         let tab = Rc::new(Self {
             id,
             unsupported: Cell::new(false),
+            media: Cell::new(false),
+            viewer: RefCell::new(None),
+            syntax_detected: Cell::new(false),
             display_name: RefCell::new(None),
             document: RefCell::new(document),
             view,
@@ -74,6 +80,21 @@ impl Tab {
         });
         tab.refresh(strings);
         tab
+    }
+    pub fn is_text(&self) -> bool {
+        !self.unsupported.get() && !self.media.get()
+    }
+    pub fn source_buffer(&self) -> sourceview5::Buffer {
+        self.view.buffer().downcast().expect("source buffer")
+    }
+    pub fn set_viewer(&self, viewer: Rc<crate::viewer::Viewer>) {
+        self.media.set(true);
+        self.minimap.set_visible(false);
+        self.scroll
+            .set_hscrollbar_policy(gtk::PolicyType::Automatic);
+        self.scroll.set_child(Some(&viewer.content));
+        viewer.attach_scroll(&self.scroll);
+        self.viewer.replace(Some(viewer));
     }
     pub fn name(&self, strings: &I18n) -> String {
         self.document
@@ -122,12 +143,18 @@ impl Tab {
         self.scroll.set_child(Some(&content));
     }
     pub fn synchronize(&self) {
+        if !self.is_text() {
+            return;
+        }
         let buffer = self.view.buffer();
         self.document.borrow_mut().text = buffer
             .text(&buffer.start_iter(), &buffer.end_iter(), true)
             .to_string();
     }
     pub fn set_wrap(&self, wrap: bool) {
+        if !self.is_text() {
+            return;
+        }
         self.view.set_wrap_mode(if wrap {
             gtk::WrapMode::WordChar
         } else {

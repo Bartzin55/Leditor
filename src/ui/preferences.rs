@@ -5,6 +5,9 @@ use std::time::{Duration, Instant};
 impl Editor {
     pub(super) fn apply_text_options(&self) {
         for tab in self.tabs.borrow().iter() {
+            if let Some(viewer) = tab.viewer.borrow().as_ref() {
+                viewer.set_zoom(self.zoom.get());
+            }
             tab.view
                 .configure(self.spaces.get(), self.convert.get(), self.zoom.get());
             tab.view
@@ -54,6 +57,12 @@ impl Editor {
             tab.document.borrow().write_recovery(&key, &group);
             key.set_string(&group, "name", &tab.name(&self.strings));
             key.set_boolean(&group, "unsupported", tab.unsupported.get());
+            key.set_boolean(&group, "viewer", tab.media.get());
+            if let Some(language) = tab.source_buffer().language() {
+                key.set_string(&group, "syntax-language", &language.id());
+            } else if tab.syntax_detected.get() {
+                key.set_string(&group, "syntax-language", "plain");
+            }
             key.set_integer(&group, "cursor", tab.view.buffer().cursor_position());
         }
         key
@@ -77,6 +86,7 @@ impl Editor {
                 .map_or_else(|| self.explorer.panel.is_visible(), |s| s.explorer),
         );
         key.set_boolean("settings", "minimap", self.minimap.get());
+        key.set_boolean("settings", "syntax", self.syntax_enabled.get());
         key.set_boolean("settings", "convert", self.convert.get());
         key.set_string("settings", "theme", &self.theme.borrow());
         key.set_boolean("settings", "auto-indent", self.auto_indent.get());
@@ -110,6 +120,8 @@ impl Editor {
         self.explorer.panel.set_visible(false);
         self.explorer.reveal.set_visible(true);
         if let Some(key) = settings {
+            self.syntax_enabled
+                .set(key.boolean("settings", "syntax").unwrap_or(true));
             self.minimap
                 .set(key.boolean("settings", "minimap").unwrap_or(false));
             self.wrap
@@ -168,6 +180,7 @@ impl Editor {
         self.actions["restore-session"].set_state(&self.restore.get().to_variant());
         for (name, value) in [
             ("minimap", self.minimap.get()),
+            ("syntax-enable", self.syntax_enabled.get()),
             ("auto-indent", self.auto_indent.get()),
             ("indent-guides", self.indent_guides.get()),
             ("word-wrap", self.wrap.get()),
@@ -239,7 +252,7 @@ impl Editor {
                 let doc = tab.document.borrow();
                 (doc.is_dirty()
                     && doc.path.is_some()
-                    && !tab.unsupported.get()
+                    && tab.is_text()
                     && !self.autosave_failed.borrow().contains(&tab.id))
                 .then(|| (tab.id, doc.clone()))
             })
@@ -329,6 +342,25 @@ impl Editor {
                     let id = self.add_tab(recovered.document);
                     let tab = self.tab(id).unwrap();
                     tab.display_name.replace(recovered.name);
+                    if recovered.viewer {
+                        let e = self.clone();
+                        let path = tab.document.borrow().path.clone();
+                        tab.media.set(true);
+                        if let Some(path) = path {
+                            glib::spawn_future_local(async move {
+                                e.load_viewer(id, path).await;
+                            });
+                        }
+                    }
+                    if let Some(language) = recovered.syntax_language {
+                        tab.source_buffer().set_language(
+                            sourceview5::LanguageManager::default()
+                                .language(&language)
+                                .as_ref(),
+                        );
+                        tab.syntax_detected.set(true);
+                        self.apply_syntax(&tab);
+                    }
                     if recovered.unsupported {
                         tab.mark_unsupported(&self.strings);
                     }

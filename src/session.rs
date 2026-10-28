@@ -65,12 +65,15 @@ pub struct Recovered {
     pub name: Option<String>,
     pub unsupported: bool,
     pub cursor: i32,
+    pub viewer: bool,
+    pub syntax_language: Option<String>,
 }
 pub fn recover(key: &glib::KeyFile, group: &str) -> Result<Recovered, glib::Error> {
     let mut document = Document::from_recovery(key, group)?;
     let name = key.string(group, "name").ok().map(|s| s.to_string());
     let unsupported = key.boolean(group, "unsupported")?;
-    if !unsupported {
+    let viewer = key.boolean(group, "viewer").unwrap_or(false);
+    if !unsupported && !viewer {
         if let Some(path) = document.path.clone() {
             match Document::open(&path) {
                 Ok(disk) if !document.is_dirty() => document = disk,
@@ -84,6 +87,11 @@ pub fn recover(key: &glib::KeyFile, group: &str) -> Result<Recovered, glib::Erro
         document,
         name,
         unsupported,
+        viewer,
+        syntax_language: key
+            .string(group, "syntax-language")
+            .ok()
+            .map(|s| s.to_string()),
         cursor: key.integer(group, "cursor").unwrap_or(0),
     })
 }

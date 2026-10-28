@@ -61,7 +61,7 @@ zoom = Zoom (%)
 zoom-in = Aumentar zoom
 zoom-out = Diminuir zoom
 zoom-reset = Restaurar zoom
-zoom-scroll = Zoom do texto (pausa em 100%)
+zoom-scroll = Zoom do texto, PDF ou imagem (pausa em 100%)
 indent = Indentar
 outdent = Diminuir indentação
 background-save-error = Falha ao salvar ou recuperar automaticamente: { $reason }. Seu texto permanece aberto. Use Salvar ou Salvar como para tentar novamente.
@@ -110,3 +110,10 @@ search-fields = Alternar campos Localizar / Substituir
 
 find-toggle-shortcut = Localizar e substituir (abrir/fechar)
 insert-above-shortcut = Inserir linha acima (busca fechada)
+
+window = Janela
+save-all = Salvar tudo
+indentation-options = Opções de indentação
+syntax-highlighting = Realce de sintaxe
+syntax-enable = Ativar
+syntax-detect = Detectar linguagem

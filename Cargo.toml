@@ -1,12 +1,14 @@
 [package]
 name = "leditor"
-version = "1.4.1"
+version = "1.5.0"
 license = "MIT"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.88"
 description = "A minimal, offline GTK text editor"
 
 [dependencies]
+sourceview5 = "0.10"
+pdfium-render = { version = "=0.9.4", default-features = false, features = ["pdfium_7881", "thread_safe"] }
 gtk = { package = "gtk4", version = "0.10", features = ["v4_10"] }
 fluent-bundle = "0.16"
 unic-langid = { version = "0.9", features = ["macros"] }

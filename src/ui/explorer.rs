@@ -533,6 +533,14 @@ impl Editor {
             self.select(id);
             return;
         }
+        if crate::viewer::supported(path) {
+            let mut document = Document::default();
+            document.path = Some(path.to_owned());
+            let id = self.add_tab(document);
+            self.tab(id).unwrap().media.set(true);
+            self.load_viewer(id, path.to_owned()).await;
+            return;
+        }
         match Document::open(path) {
             Ok(doc) => {
                 self.add_tab(doc);
@@ -547,6 +555,26 @@ impl Editor {
                 self.refresh();
             }
             Err(error) => self.error(&error.to_string()).await,
+        }
+    }
+    pub(super) async fn load_viewer(self: &Rc<Self>, id: u64, path: PathBuf) {
+        let result = crate::viewer::Viewer::load(path, self.zoom.get()).await;
+        if let Some(tab) = self.tab(id) {
+            match result {
+                Ok(viewer) => {
+                    viewer.set_zoom(self.zoom.get());
+                    tab.set_viewer(viewer);
+                    tab.unsupported.set(false);
+                }
+                Err(error) => {
+                    tab.mark_unsupported(&self.strings);
+                    self.error(&error).await;
+                }
+            }
+            if self.active.get() == Some(id) && !tab.is_text() {
+                self.close_search();
+            }
+            self.refresh();
         }
     }
     fn affected(&self, path: &Path) -> Vec<(Rc<Tab>, PathBuf)> {
@@ -696,7 +724,7 @@ impl Editor {
                 }
             }
             Operation::Duplicate(id) => {
-                if let Some(tab) = self.tab(id).filter(|t| !t.unsupported.get()) {
+                if let Some(tab) = self.tab(id).filter(|t| t.is_text()) {
                     let mut document = Document::default();
                     document.text = tab.document.borrow().text.clone();
                     let id = self.add_tab(document);

@@ -2,14 +2,24 @@
 
 ### A modern text editor for Linux and Windows.
 
-**Version:** 1.4.1
-**Release date:** October 26, 2026
+**Version:** 1.5.0
+**Release date:** October 28, 2026
 
 Leditor brings text editing and file organization together in a clean, minimalist workspace. Write, edit, and browse your files with independent tabs, an integrated file explorer, and a distraction-free interface.
 
 Built with **Rust and GTK4**, Leditor works entirely offline and is growing step by step into a versatile editor for everyday writing and development.
 
-## New in 1.4.1
+## New in 1.5.0
+
+- **Syntax highlighting:** View → Syntax highlighting enables/disables GtkSourceView highlighting (enabled by default). Detect language uses the filename and GIO content metadata. Plain Text is first; all installed GtkSourceView language definitions follow alphabetically, with a radio indicator for the active tab. The enable preference is saved; per-tab selections are included in optional session recovery.
+- **PDF viewer:** open PDFs in read-only tabs, with continuous vertical pages and the existing 5–800% zoom controls. Requires the PDFium runtime described in BUILD.md.
+- **Image viewer:** open PNG, JPG and JPEG in read-only tabs, using the same zoom controls. Media tabs hide line numbers/minimap, and show only zoom in the footer.
+- **Save all:** saves text tabs in their current order, asking for a destination for each untitled document. Cancellation or failure stops the operation; remaining edits are retained. Read-only viewers are skipped.
+- **Reorganized menus:** File, Edit, View, Window, Other. Indentation settings now share an Edit submenu; minimap, focus, line counter, explorer and theme are under Window.
+
+PDF and image tabs are viewers only: no text editing, Save/Save as, find/replace or duplication-as-text. Renaming, closing and reordering still work. PDFs requiring passwords are not supported in this basic viewer. Syntax names come from the installed GtkSourceView catalog; the surrounding UI is translated into English, Portuguese and Spanish.
+
+## Retained from 1.4.1
 
 This maintenance release continues the GTK 1.4.0 codebase. No Qt migration or alpha relabeling is included.
 
@@ -21,7 +31,7 @@ This maintenance release continues the GTK 1.4.0 codebase. No Qt migration or al
 
 ## Retained from 1.4.0
 
-- **Clickable minimap:** enable View → Minimap to see a compact overview at the right. Click to move the caret and viewport to a logical line. Off by default; your choice is remembered.
+- **Clickable minimap:** enable Window → Minimap to see a compact overview at the right. Click to move the caret and viewport to a logical line. Off by default; your choice is remembered.
 - **Find and replace:** Ctrl+F toggles the two-row search bar and focuses Find. Matches are yellow; the active match is green. Navigate with ↑/↓ or Enter in Find or Shift+Enter while the bar is visible. Tab switches between Find and Replace. Replace one or all with Undo/Redo support.
 - **Case-sensitive search:** optional for each search session, reset whenever Find is invoked; never saved.
 - **Focus mode:** Shift+F11 enters fullscreen and hides menus, tabs, explorer, line numbers and footer. Move to the top edge to reveal menus/tabs. Shift+F11 or Esc restores the previous layout. Never saved.
@@ -31,9 +41,9 @@ Search is literal and applies to the active document. Empty searches produce no 
 ## Included since 1.3.0
 
 - **Linux integration:** running the built app (including `cargo run`) installs a per-user launcher and a stable executable, accessible through `~/.local/bin/leditor`.
-- **Automatic indentation:** Enter and Edit → Insert line below preserve leading spaces and tabs. Enabled by default; toggle Edit → Automatic indentation, below Number of spaces.
-- **Indentation guides:** optional vertical guides in View, below Line counter. Off by default; follows the configured tab width and editor zoom.
-- **Theme selector:** View → Theme offers System default, Light theme and Dark theme, with the active option marked.
+- **Automatic indentation:** Enter and Edit → Insert line below preserve leading spaces and tabs. Enabled by default; toggle Edit → Indentation options → Automatic indentation.
+- **Indentation guides:** optional vertical guides in View. Off by default; follows the configured tab width and editor zoom.
+- **Theme selector:** Window → Theme offers System default, Light theme and Dark theme, with the active option marked.
 - **XDG preferences:** Linux settings now live in `~/.config/leditor/settings.ini`; existing preferences are migrated without deleting their old copy.
 
 See [BUILD.md](BUILD.md) for installation paths, PATH setup and optional system-wide installation.
@@ -43,7 +53,7 @@ See [BUILD.md](BUILD.md) for installation paths, PATH setup and optional system-
 - **A useful status bar:** see line and character counts, caret position, save status, encoding, file format, and zoom at a glance.
 - **English, Português (Brasil), and Español:** choose your interface language in Other > Language and restart to apply it.
 - **Your preferences remembered:** keep your theme, zoom, wrapping, line numbers, indentation, explorer visibility and width, autosave, and session choices between launches.
-- **Light and dark themes:** choose System default, Light theme or Dark theme in View → Theme.
+- **Light and dark themes:** choose System default, Light theme or Dark theme in Window → Theme.
 - **Quick text transformations:** change case for a selection or the word at the caret. Insert a line above with Shift+Enter.
 - **A quieter start:** the explorer starts hidden for new configurations.
 
@@ -89,15 +99,14 @@ The interface is available in **English, Brazilian Portuguese, and Spanish**. Bi
 
 Leditor's roadmap focuses on richer editing, broader file support, and a more customizable workspace:
 
-- **Syntax highlighting** for source code and structured text.
 - **Language Server Protocol (LSP) support** for language-aware editing tools.
 - **Advanced text-editing features** for more demanding workflows.
 - **An integrated Markdown viewer** for reading formatted documents.
-- **PDF, image, and CSV viewers** within the editor.
+- **CSV viewer** within the editor.
 - **Additional interface languages** and localization.
 - **Support for more text encodings.**
 
-These features are planned for future releases and are not included in version 1.4.1.
+These features are planned for future releases and are not included in version 1.5.0.
 
 ## Get Started
 
@@ -105,7 +114,7 @@ See [BUILD.md](BUILD.md) for Linux and Windows build instructions, [DEVELOPMENT.
 
 ## License
 
-[LICENSE](LICENSE)
+[MIT license](LICENSE). See [THIRD_PARTY.md](THIRD_PARTY.md) for dependency licenses and runtime redistribution requirements.
 
 ## Development Transparency
 

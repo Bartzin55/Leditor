@@ -1,13 +1,13 @@
-# Build and Run — Leditor 1.4.1
+# Build and Run — Leditor 1.5.0
 
-Use a current stable Rust toolchain and GTK **4.10 or later**. Keep Cargo.lock and use `--locked`. The source archive does not include installers or Windows DLLs.
+Use a Rust 1.88+ (current stable recommended) and GTK **4.10 or later**. Keep Cargo.lock and use `--locked`. The source archive does not include installers or Windows DLLs.
 
 ## Linux
 
 On Ubuntu 24.04 or later:
 
 ```bash
-sudo apt install build-essential pkg-config libgtk-4-dev libglib2.0-dev-bin
+sudo apt install build-essential pkg-config libgtk-4-dev libgtksourceview-5-dev libglib2.0-dev-bin
 cargo build --locked --release
 cargo run --locked --release
 ```
@@ -15,7 +15,7 @@ cargo run --locked --release
 On Arch Linux:
 
 ```bash
-sudo pacman -S --needed base-devel rust gtk4 glib2-devel pkgconf
+sudo pacman -S --needed base-devel rust gtk4 gtksourceview5 glib2-devel pkgconf
 cargo build --locked --release
 ./target/release/leditor
 ```
@@ -28,12 +28,45 @@ Install MSYS2, open its **UCRT64** terminal, update its packages, and install:
 
 ```bash
 pacman -Syu
-pacman -S --needed mingw-w64-ucrt-x86_64-rust mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-pkgconf
+pacman -S --needed mingw-w64-ucrt-x86_64-rust mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-gtksourceview5 mingw-w64-ucrt-x86_64-pkgconf
 cargo build --locked --release
 ./target/release/leditor.exe
 ```
 
 Reopen UCRT64 if the MSYS2 update requests it. Build and run within UCRT64 so that GTK tools and DLLs are on PATH. A portable distribution must bundle GTK's runtime DLLs, schemas, icons, and relevant licenses; copying the EXE alone is insufficient. This release has not been compiled or executed on Windows in the current validation environment.
+
+## PDFium runtime (Linux and Windows)
+
+The Rust crate does not compile or download PDFium. The application dynamically loads it only when opening a PDF. Text editing and images work without it; PDF opening reports an error if it is absent. No PDFium binary is bundled in this source ZIP.
+
+The tested ABI is **PDFium Chromium 7881**, selected explicitly by the `pdfium_7881` Cargo feature. [PDFium binaries](https://github.com/bblanchon/pdfium-binaries/releases/tag/chromium%2F7881) provides builds for both platforms. This is a third-party build distribution, not a Leditor dependency installer. Keep its LICENSE and licenses/ directory when redistributing its binaries. For future runtime updates, select a matching ABI supported by pdfium-render and retest it; do not silently exchange unrelated versions.
+
+Linux x64 example (run from the project directory):
+
+```sh
+curl -fL https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/7881/pdfium-linux-x64.tgz -o pdfium-linux-x64.tgz
+mkdir -p pdfium-runtime
+tar -xzf pdfium-linux-x64.tgz -C pdfium-runtime
+mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/leditor/lib"
+cp pdfium-runtime/lib/libpdfium.so "${XDG_DATA_HOME:-$HOME/.local/share}/leditor/lib/"
+cargo run --locked --release
+```
+
+The per-user runtime location also works with the automatically installed launcher after the source folder is moved. The runtime and notices remain the user's responsibility; the app does not download or update libraries.
+
+Windows x64, in MSYS2 UCRT64 after the Cargo build:
+
+```sh
+curl -fL https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/7881/pdfium-win-x64.tgz -o pdfium-win-x64.tgz
+mkdir -p pdfium-runtime
+tar -xzf pdfium-win-x64.tgz -C pdfium-runtime
+cp pdfium-runtime/bin/pdfium.dll target/release/
+./target/release/leditor.exe
+```
+
+Alternatively set `LEDITOR_PDFIUM_LIBRARY` to the absolute `.so`/`.dll` path. Without that override, lookup tries beside the executable, the per-user data location `leditor/lib`, then the OS library loader. It deliberately does not add the current document's folder to the library search path. Restart Leditor after installing/changing the runtime.
+
+GtkSourceView's `language-specs` and `styles` data directories must accompany a portable GTK distribution (normally in `share/gtksourceview-5`); the native library alone is insufficient. PNG/JPEG need their GdkPixbuf loaders. Keep architecture and runtime ABI consistent across GTK, GtkSourceView, PDFium and the executable.
 
 ## Linux integration (1.3.0)
 
@@ -93,3 +126,9 @@ cargo test --locked --bin leditor ui::search::tests::find_replace_focus_and_mini
 ```
 
 Run GTK suites in separate processes with a graphical display: GTK must remain on one thread. Tests isolate settings/documents in temporary directories. See VALIDATION.md for checks actually performed.
+
+Run the new UI integration suite separately with a display and PDFium installed:
+
+```sh
+cargo test --locked --bin leditor ui::tests::version_150_syntax_media_and_save_all -- --ignored --exact
+```

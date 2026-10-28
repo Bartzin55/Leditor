@@ -169,6 +169,9 @@ impl Editor {
         }
     }
     pub(super) fn open_search(&self) {
+        if !self.current().is_some_and(|t| t.is_text()) {
+            return;
+        }
         self.search.case.set_active(false);
         self.search.bar.set_visible(true);
         self.actions["insert-above"].set_enabled(false);
@@ -219,7 +222,7 @@ impl Editor {
         self.clear_search_tags();
         let term = self.search.find.text();
         let mut matches = Vec::new();
-        if let Some(tab) = self.current().filter(|t| !t.unsupported.get()) {
+        if let Some(tab) = self.current().filter(|t| t.is_text()) {
             let b = tab.view.buffer();
             for (name, color) in [("search-match", "#ffe066"), ("search-current", "#66dd77")] {
                 if b.tag_table().lookup(name).is_none() {
@@ -333,7 +336,7 @@ impl Editor {
         }
         let Some(tab) = self
             .current()
-            .filter(|t| !t.unsupported.get() && t.view.is_editable())
+            .filter(|t| t.is_text() && t.view.is_editable())
         else {
             return;
         };

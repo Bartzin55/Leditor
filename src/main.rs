@@ -9,6 +9,7 @@ mod session;
 mod shortcuts;
 mod tab;
 mod ui;
+mod viewer;
 use gtk::prelude::*;
 fn main() -> gtk::glib::ExitCode {
     #[cfg(target_os = "linux")]

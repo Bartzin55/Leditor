@@ -1,3 +1,14 @@
+# Release 1.5.0 — 2026-10-28
+
+- Integrated GtkSourceView 5 syntax highlighting, automatic extension/content-type detection, per-tab radio language selection and persisted enable preference.
+- Added read-only PDF tabs using PDFium and PNG/JPG/JPEG tabs using GTK/GdkPixbuf. Existing zoom controls work with both; media footers contain only zoom and omit minimap/line numbers.
+- PDF rasterization runs in one background worker with lazy visible-page rendering and a bounded cache. Unsupported/corrupt/password-protected documents report errors without modifying the source file.
+- Added sequential Save all, including Save as for untitled documents; stops safely on cancellation or failure and skips viewers.
+- Reorganized top menus into File / Edit / View / Window / Other, including an indentation submenu.
+- Retained GTK editing, autosave, recovery, themes, minimap, focus and find/replace. Session recovery reopens media paths as read-only tabs.
+- Updated About metadata, existing zoom shortcut descriptions, EN/PT-BR/ES catalogs and Linux/Windows build documentation. No new keyboard binding was introduced.
+- Added sourceview5 (MIT), pdfium-render (MIT OR Apache-2.0); native GtkSourceView is LGPL-2.1-or-later and PDFium is BSD-style with third-party notices. Leditor remains MIT.
+
 # Release 1.4.1 — 2026-10-27
 
 GTK maintenance release based on 1.4.0. Historical versions and Git tags are unchanged.

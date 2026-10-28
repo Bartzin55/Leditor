@@ -62,7 +62,7 @@ zoom = Zoom (%)
 zoom-in = Zoom in
 zoom-out = Zoom out
 zoom-reset = Reset zoom
-zoom-scroll = Zoom text (snap at 100%)
+zoom-scroll = Zoom text, PDF or image (snap at 100%)
 indent = Indent
 outdent = Outdent
 
@@ -113,3 +113,10 @@ search-fields = Switch Find / Replace fields
 
 find-toggle-shortcut = Find and replace (show/hide)
 insert-above-shortcut = Insert line above (search closed)
+
+window = Window
+save-all = Save all
+indentation-options = Indentation options
+syntax-highlighting = Syntax highlighting
+syntax-enable = Enable
+syntax-detect = Detect language

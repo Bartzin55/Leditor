@@ -1,48 +1,44 @@
-# Validation — Leditor 1.4.1
+# Validation — Leditor 1.5.0
 
-Date: 2026-10-27 (America/Sao_Paulo). Base: published GTK 1.4.0, Git commit `1696cdbdfcc43df03178c30f751c8705b6546649`. No push, tag rewrite, Qt code or alpha relabeling.
+Date: 2026-10-28. Base: GTK 1.4.1, commit `1676a13d1fd9ef1c93c1462963f8888b8d835f27`. The remote was checked before work; no push was performed.
 
-## Results
+## Environment and successful checks
 
-| Check | Result |
-|---|---|
-| `cargo build --locked` (Linux debug) | Passed |
-| `cargo check --locked` | Passed |
-| `cargo fmt --check` | Passed |
-| `cargo clippy --locked --all-targets -- -D warnings` | Passed |
-| Library tests | 1 passed |
-| Document integration tests | 12 passed |
-| Filesystem integration tests | 9 passed |
-| Non-GUI binary tests | 11 passed |
-| GTK lifecycle/files/dialogs regression suite | 1 passed |
-| GTK search/minimap/focus and new corrections suite | 1 passed |
-| Total tests | **35 passed**, no failures in the final runs |
-| Windows icon resource | Compiled with MinGW windres; verified x86-64 COFF `.rsrc` section |
-| Windows application compilation/execution | Not performed in this environment |
-| Rendered guide review | Dark/light screenshots inspected; dashed, offset guides continue across blank lines |
-| Version/dependency metadata and Git whitespace | Verified |
+Linux x86_64 (Ubuntu 24.04), Rust/Cargo 1.99.1, GTK 4.14.5, GtkSourceView 5.12.0, pdfium-render 0.9.4 and PDFium Chromium 7881 x64. Native development packages were extracted into a local prefix. GTK suites ran in separate processes under Xvfb/X11 over local TCP, with Cairo rendering. Configuration and documents were isolated in temporary directories.
 
-Environment: Linux x86-64, Rust/Cargo 1.89, GTK 4.14.5, Xvfb virtual X11 display, Cairo renderer. The GTK suites run in separate processes. Tests use temporary documents and settings. Toolchains and machine-specific build paths are excluded from the ZIP.
+- `cargo build --locked`: passed, Linux debug executable.
+- `cargo check --locked`: passed.
+- `cargo fmt --check`: passed.
+- `cargo clippy --locked --all-targets -- -D warnings`: passed.
+- Library tests: **1 passed**.
+- Document tests: **12 passed**.
+- Filesystem tests: **9 passed**.
+- Non-GUI binary tests: **11 passed**.
+- Existing GTK lifecycle/editing/file safety suite: **1 passed**.
+- Existing GTK search/minimap/focus/1.4.1 regression suite: **1 passed**.
+- New syntax/media/Save All GTK integration suite: **1 passed**.
+- Total: **36 passed**, no failures in the final runs. GTK suites marked ignored are run explicitly in separate processes, not left untested.
 
-## New coverage
+## What the new integration suite exercised
 
-- Always on top action is absent and no corresponding preference is persisted.
-- Ctrl+F toggles the bar. Insert Above is disabled and directly guarded while the bar is visible, then enabled again after closing.
-- A Shift+Enter event delivered to the window search controller selects the previous match without changing document text.
-- System selection uses exactly the same light stylesheet as explicit Light and the same base dark stylesheet as explicit Dark.
-- GTK theme change notifications switch the resolved preference after opening the application. A regression test caught and led to correction of monitor initialization placement.
-- Guide depth calculation covers blank lines, mixed tabs/spaces and different widths; screenshots cover actual rendering in both palettes.
-- The About image has a decoded paintable and the embedded application icon is discoverable by GtkIconTheme.
-- Linux installation writes the provided PNG and a matching desktop icon name, preserving existing update/conflict tests.
+- Five-menu order in EN/PT-BR/ES, Plain Text first and one menu entry for every runtime GtkSourceView language definition.
+- Automatic Rust detection; actual keyword tags; manual language action and tab switching; Detect language; disabling and persisting the preference; Plain Text selection; both theme schemes; highlighting does not dirty text or add an undo step; ordinary edit/Undo remains correct.
+- Save All for named and untitled tabs; cancellation leaves later tabs dirty; a failed write to a directory preserves an untitled document and its contents.
+- Actual PNG/JPEG creation, decoding and read-only tabs; minimap hidden; only zoom in the footer; 200% geometry; editing and Save are rejected; original bytes remain identical.
+- Two-page PDF load and rasterization, scrolling to the second page, zoom limits, malformed PDF/image errors, and session recovery of all three media tabs alongside unsaved text.
+- Visual snapshots inspected for syntax highlighting in both light/dark palettes and rendered PDF content, without text gutters or other footer fields.
 
-Existing suites also cover file safety, unsaved prompts, tabs, undo/redo, recovery, explorer operations, search replacements, minimap navigation, focus, zoom, Unicode and preference persistence.
+An initial PDF scrolling test found that a newly visible page was not invalidated after the viewport moved. The callback was corrected and the suite passed again. Early GUI starts failed because this execution environment blocks Unix sockets; running the X server and tests together through local TCP resolved that environment issue. Xvfb emits EGL/DRI3 acceleration warnings; the configured Cairo renderer continued successfully.
 
-## Limitations and encountered issues
+## Limits and untested platforms
 
-The temporary environment reset during development; these results come from fresh runs after reconstructing the working tree. The first build attempt after reset lacked the recovered icon asset and failed resource compilation; it passed after restoring the supplied asset. Earlier environment setup also required repairing local development-library linker symlinks. None of those toolchain paths are project requirements.
+- **Windows was not compiled or executed here.** MSYS2/UCRT64 build/runtime instructions are supplied, but native DLL packaging and Windows behavior need testing on the user's machine.
+- Native Wayland/compositor behavior and real desktop appearance notifications were not revalidated in this release.
+- No release/LTO build, sustained large-document stress test or exhaustive PDF compatibility suite was performed. The PDF tests use a simple two-page PDF; this is not a claim of universal PDF compatibility.
+- PDFium must be installed separately. The ZIP contains source and required application assets, not third-party runtime binaries. Text/image use does not require PDFium.
+- Basic PDF viewing does not support password entry, annotations, editing, text search or printing. Corrupt/password-protected files report a load error. Original media files are never rewritten by the viewers.
+- PDF raster resolution is capped at 4096 pixels per axis, with up to 128 MiB of cached raster pixels per viewer. At high zoom the displayed page can exceed this raster resolution and appear softer. PDF file bytes, decoded images and page widgets consume additional memory; total app memory is not capped.
+- Image decoding runs on the UI thread after asynchronous byte reading; very large PNG/JPEG files can briefly pause the interface. No image-size stress benchmark was performed.
+- Installed GtkSourceView language/style data and GdkPixbuf PNG/JPEG loaders are required. Language labels come from that native catalog; low-level library/OS error details may remain in English.
 
-Xvfb printed expected EGL/DRI3 and keyboard-map warnings. Rendering and tests completed with the software renderer. A physical desktop, native COSMIC/Wayland portal notifications, GTK 4.20+ appearance-property behavior and Windows runtime behavior were not exercised. Validate those on your own desktop; the Windows resource check does not establish a working Windows application build.
-
-No release/LTO build or large-file stress test was run in this validation. The ZIP is complete source, not an executable distribution. The existing Windows build instructions include GTK runtime requirements; no automatic Windows installation or Start menu registration is introduced. Linux launchers may cache an old icon until refreshed or the session restarts.
-
-Reproduction commands and dependencies are in BUILD.md. This report does not claim bug-free operation.
+See BUILD.md for the repeatable commands and runtime setup. No tests justify claiming the application is bug-free.

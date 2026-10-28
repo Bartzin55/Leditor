@@ -24,11 +24,13 @@ impl Editor {
                     ("close", Operation::CloseTab(id)),
                     ("close-all", Operation::CloseAll),
                 ];
-                items.extend([
-                    ("save", Operation::SaveTab(id, false)),
-                    ("save-as", Operation::SaveTab(id, true)),
-                    ("duplicate", Operation::Duplicate(id)),
-                ]);
+                if e.tab(id).is_some_and(|t| t.is_text()) {
+                    items.extend([
+                        ("save", Operation::SaveTab(id, false)),
+                        ("save-as", Operation::SaveTab(id, true)),
+                        ("duplicate", Operation::Duplicate(id)),
+                    ]);
+                }
                 items.push(("rename", Operation::RenameTab(id)));
                 e.operation_menu(&header, items, x, y);
                 g.set_state(gtk::EventSequenceState::Claimed);
@@ -142,7 +144,7 @@ impl Editor {
             }
             return;
         }
-        if let Some(tab) = self.current().filter(|t| !t.unsupported.get()) {
+        if let Some(tab) = self.current().filter(|t| t.is_text()) {
             match action {
                 "cut" => tab.view.copy_or_cut(true),
                 "copy" => tab.view.copy_or_cut(false),

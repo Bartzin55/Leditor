@@ -5,6 +5,7 @@ use leditor::{
     document::{same_path, Document, OpenError},
     i18n::I18n,
 };
+use sourceview5::prelude::BufferExt;
 #[cfg(test)]
 use std::path::PathBuf;
 #[path = "ui/explorer.rs"]
@@ -12,8 +13,10 @@ mod explorer;
 use explorer::{Explorer, Operation};
 mod enhancements;
 mod focus;
+mod menu;
 mod preferences;
 mod search;
+mod syntax;
 #[path = "ui/tab_actions.rs"]
 mod tab_actions;
 mod theme;
@@ -30,11 +33,13 @@ enum Intent {
     Close(u64),
     Save(u64),
     SaveAs(u64),
+    SaveAll,
     Quit,
     Operation(Operation),
 }
 struct Editor {
     search: search::SearchBar,
+    syntax_enabled: Cell<bool>,
     minimap: Cell<bool>,
     focus_mode: Cell<bool>,
     focus_snapshot: RefCell<Option<focus::FocusSnapshot>>,
@@ -108,117 +113,7 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         .default_height(720)
         .build();
     let root = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    let model = gio::Menu::new();
-    let mut actions = BTreeMap::new();
-    for (menu_name, entries) in [
-        (
-            "file",
-            vec![
-                ("new", "new-file"),
-                ("open", "open-file"),
-                ("open-folder", "open-folder"),
-                ("close-folder", "close-folder"),
-                ("new-folder", "new-folder"),
-                ("close", "close-file"),
-                ("save", "save"),
-                ("save-as", "save-as"),
-            ],
-        ),
-        (
-            "edit",
-            vec![
-                ("find-replace", "find-replace"),
-                ("undo", "undo"),
-                ("redo", "redo"),
-                ("cut", "cut"),
-                ("copy", "copy"),
-                ("paste", "paste"),
-                ("convert-tabs", "convert-tabs"),
-                ("number-spaces", "number-spaces"),
-                ("auto-indent", "auto-indent"),
-                ("insert-above", "insert-above"),
-                ("insert-below", "insert-below"),
-                ("case-first", "case-first"),
-                ("case-words", "case-words"),
-                ("case-upper", "case-upper"),
-                ("case-lower", "case-lower"),
-            ],
-        ),
-        (
-            "view",
-            vec![
-                ("minimap", "minimap"),
-                ("focus", "focus"),
-                ("word-wrap", "word-wrap"),
-                ("line-numbers", "line-counter"),
-                ("indent-guides", "indent-guides"),
-                ("show-explorer", "show-explorer"),
-                ("theme", "theme"),
-                ("zoom", "zoom"),
-                ("zoom-in", "zoom-in"),
-                ("zoom-out", "zoom-out"),
-                ("zoom-reset", "zoom-reset"),
-            ],
-        ),
-        (
-            "other",
-            vec![
-                ("enable-autosave", "enable-autosave"),
-                ("restore-session", "restore-session"),
-                ("keyboard", "keyboard-shortcuts"),
-                ("about", "about"),
-                ("language", "language"),
-            ],
-        ),
-    ] {
-        let submenu = gio::Menu::new();
-        let cases = gio::Menu::new();
-        for (name, label) in entries {
-            let action = match name {
-                "theme" => gio::SimpleAction::new_stateful(
-                    name,
-                    Some(glib::VariantTy::STRING),
-                    &"system".to_variant(),
-                ),
-                "minimap" | "focus" | "indent-guides" | "word-wrap" | "convert-tabs"
-                | "enable-autosave" | "restore-session" => {
-                    gio::SimpleAction::new_stateful(name, None, &false.to_variant())
-                }
-                "auto-indent" | "line-numbers" | "show-explorer" => {
-                    gio::SimpleAction::new_stateful(name, None, &true.to_variant())
-                }
-                _ => gio::SimpleAction::new(name, None),
-            };
-            window.add_action(&action);
-            actions.insert(name, action);
-            if name == "theme" {
-                let themes = gio::Menu::new();
-                for (value, label) in [
-                    ("system", "system-theme"),
-                    ("light", "light-theme"),
-                    ("dark", "dark-theme"),
-                ] {
-                    themes.append(
-                        Some(&strings.text(label)),
-                        Some(&format!("win.theme::{value}")),
-                    );
-                }
-                submenu.append_submenu(Some(&strings.text("theme")), &themes);
-            } else if name == "zoom" || name == "number-spaces" {
-                let item = gio::MenuItem::new(None, None);
-                item.set_attribute_value("custom", Some(&name.to_variant()));
-                submenu.append_item(&item);
-            } else if name.starts_with("case-") {
-                cases.append(Some(&strings.text(label)), Some(&format!("win.{name}")));
-            } else {
-                submenu.append(Some(&strings.text(label)), Some(&format!("win.{name}")));
-            }
-        }
-        if menu_name == "edit" {
-            submenu.append_submenu(Some(&strings.text("convert-case")), &cases);
-        }
-        model.append_submenu(Some(&strings.text(menu_name)), &submenu);
-    }
+    let (model, actions) = menu::build(&window, &strings);
     for shortcut in SHORTCUTS {
         application
             .set_accels_for_action(&format!("win.{}", shortcut.action), shortcut.accelerators);
@@ -292,6 +187,7 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
     window.set_child(Some(&root));
     let editor = Rc::new(Editor {
         search,
+        syntax_enabled: Cell::new(true),
         minimap: Cell::new(false),
         focus_mode: Cell::new(false),
         focus_snapshot: RefCell::new(None),
@@ -343,6 +239,12 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         let weak = Rc::downgrade(&editor);
         action.connect_activate(move |action, value| {
             if let Some(editor) = weak.upgrade() {
+                if name == "syntax-language" {
+                    if let Some(id) = value.and_then(|v| v.str()) {
+                        editor.choose_syntax(id);
+                    }
+                    return;
+                }
                 if name == "theme" {
                     if let Some(value) = value
                         .and_then(|v| v.str())
@@ -420,8 +322,7 @@ impl Editor {
                 self.minimap.set(!self.minimap.get());
                 action.set_state(&self.minimap.get().to_variant());
                 for tab in self.tabs.borrow().iter() {
-                    tab.minimap
-                        .set_visible(self.minimap.get() && !tab.unsupported.get());
+                    tab.minimap.set_visible(self.minimap.get() && tab.is_text());
                 }
                 self.save_settings();
             }
@@ -476,6 +377,25 @@ impl Editor {
                     self.request(Intent::Close(id));
                 }
             }
+            "syntax-enable" => {
+                self.syntax_enabled.set(!self.syntax_enabled.get());
+                action.set_state(&self.syntax_enabled.get().to_variant());
+                for tab in self.tabs.borrow().iter() {
+                    if self.syntax_enabled.get() && !tab.syntax_detected.get() {
+                        self.detect_syntax(tab);
+                    }
+                    self.apply_syntax(tab);
+                }
+                self.save_settings();
+                self.refresh();
+            }
+            "syntax-detect" => {
+                if let Some(tab) = self.current() {
+                    self.detect_syntax(&tab);
+                    self.refresh();
+                }
+            }
+            "save-all" => self.request(Intent::SaveAll),
             "save" => {
                 if let Some(id) = self.active.get() {
                     self.request(Intent::Save(id));
@@ -530,7 +450,12 @@ impl Editor {
             self.stack.set_visible_child_name(&id.to_string());
             self.refresh();
             self.refresh_search();
-            tab.view.grab_focus();
+            if tab.is_text() {
+                tab.view.grab_focus();
+            } else {
+                self.close_search();
+                tab.scroll.grab_focus();
+            }
         }
     }
     fn add_tab(self: &Rc<Self>, document: Document) -> u64 {
@@ -556,7 +481,7 @@ impl Editor {
             }
             glib::Propagation::Proceed
         });
-        tab.view.add_controller(scroll);
+        tab.content.add_controller(scroll);
         tab.set_wrap(self.wrap.get());
         tab.view
             .set_line_numbers(self.line_numbers.get() && !self.focus_mode.get());
@@ -605,6 +530,10 @@ impl Editor {
             }
         });
         self.setup_tab_actions(&tab);
+        if self.syntax_enabled.get() {
+            self.detect_syntax(&tab);
+        }
+        self.apply_syntax(&tab);
         self.tabs_box.append(&tab.header);
         self.stack.add_named(&tab.content, Some(&id.to_string()));
         self.tabs.borrow_mut().push(tab);
@@ -633,6 +562,7 @@ impl Editor {
     }
     fn refresh(&self) {
         self.update_footer();
+        self.sync_syntax_action();
         self.pending.set(Some(std::time::Instant::now()));
         let current = self.current();
         let title = current
@@ -659,8 +589,13 @@ impl Editor {
                 "cut" | "copy" | "paste" if self.explorer.focused.get() => {
                     self.explorer.selected.borrow().is_some()
                 }
-                "save" | "save-as" | "cut" | "copy" | "paste" => {
-                    current.as_ref().is_some_and(|t| !t.unsupported.get())
+                "save-all" => self.tabs.borrow().iter().any(|t| t.is_text()),
+                "syntax-detect" | "syntax-language" => {
+                    self.syntax_enabled.get() && current.as_ref().is_some_and(|t| t.is_text())
+                }
+                "find-replace" | "insert-above" | "insert-below" | "case-first" | "case-words"
+                | "case-upper" | "case-lower" | "save" | "save-as" | "cut" | "copy" | "paste" => {
+                    current.as_ref().is_some_and(|t| t.is_text())
                 }
                 "undo" => current
                     .as_ref()
@@ -673,19 +608,18 @@ impl Editor {
             action.set_enabled(!self.busy.get() && enabled);
         }
         self.tab_bar.set_sensitive(!self.busy.get());
-        self.search.replace.set_sensitive(
-            !self.busy.get() && current.as_ref().is_some_and(|t| !t.unsupported.get()),
-        );
-        self.search.replace_all.set_sensitive(
-            !self.busy.get() && current.as_ref().is_some_and(|t| !t.unsupported.get()),
-        );
+        self.search
+            .replace
+            .set_sensitive(!self.busy.get() && current.as_ref().is_some_and(|t| t.is_text()));
+        self.search
+            .replace_all
+            .set_sensitive(!self.busy.get() && current.as_ref().is_some_and(|t| t.is_text()));
         for button in self.explorer.creators.borrow().iter() {
             button.set_sensitive(!self.busy.get() && self.explorer.root.borrow().is_some());
         }
         for tab in self.tabs.borrow().iter() {
             tab.refresh(&self.strings);
-            tab.view
-                .set_editable(!self.busy.get() && !tab.unsupported.get());
+            tab.view.set_editable(!self.busy.get() && tab.is_text());
             if self.active.get() == Some(tab.id) {
                 tab.header.add_css_class("active");
             } else {
@@ -740,6 +674,14 @@ impl Editor {
                     self.save(&tab, save_as).await;
                 }
             }
+            Intent::SaveAll => {
+                let tabs = self.tabs.borrow().clone();
+                for tab in tabs.into_iter().filter(|t| t.is_text()) {
+                    if !self.save(&tab, false).await {
+                        break;
+                    }
+                }
+            }
             Intent::Quit => {
                 if self.restore.get() {
                     // Flush pending named-file edits before saving the final session.
@@ -753,7 +695,7 @@ impl Editor {
                         let mut doc = tab.document.borrow().clone();
                         if doc.path.is_some()
                             && doc.is_dirty()
-                            && !tab.unsupported.get()
+                            && tab.is_text()
                             && !self.autosave_failed.borrow().contains(&tab.id)
                         {
                             match gio::spawn_blocking(move || {
@@ -835,7 +777,7 @@ impl Editor {
         }
     }
     async fn save(self: &Rc<Self>, tab: &Tab, save_as: bool) -> bool {
-        if tab.unsupported.get() {
+        if !tab.is_text() {
             return false;
         }
         let current = tab.document.borrow().path.clone();
@@ -873,7 +815,11 @@ impl Editor {
         self.saving.borrow_mut().remove(&tab.id);
         let result = match result {
             Ok(Ok(saved)) => {
+                let renamed = tab.document.borrow().path != saved.path;
                 *tab.document.borrow_mut() = saved;
+                if renamed && self.syntax_enabled.get() {
+                    self.detect_syntax(tab);
+                }
                 Ok(())
             }
             Ok(Err(e)) => Err(e),

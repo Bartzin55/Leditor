@@ -81,3 +81,15 @@ References: [Desktop Entry Specification](https://specifications.freedesktop.org
 - Source remains MIT; native GTK/library licensing obligations remain applicable to binary redistribution.
 
 Reference: https://docs.gtk.org/gtk4/property.Settings.gtk-interface-color-scheme.html
+
+## Version 1.5.0 decisions
+
+- `editor_view.rs` subclasses GtkSourceView's View and uses its Buffer, retaining Leditor's own gutter, guides, key handling and existing GTK Undo/Redo. Native highlighting supplies tags; it does not rewrite text or mark files dirty. Existing light/dark CSS stays in place and syntax uses matching Adwaita style schemes (classic/oblivion fallback).
+- `ui/menu.rs` builds the five menus and string-valued language action. `ui/syntax.rs` owns automatic detection, manual selection and theme integration. The supported-language list comes from the runtime language manager, including all installed definitions, with Plain Text first.
+- `viewer.rs` isolates media loading/rendering. One worker owns a single PDFium instance and its documents: library initialization/destruction and page rendering never race across tabs. Communication uses standard Rust channels; no GTK object crosses the worker boundary. Documents are opened from owned byte snapshots. Dropping a viewer releases its PDF document on that worker.
+- PDF page widgets use 96 DPI at 100%; image pixels use 1:1 sizing. Image aspect ratios and mixed PDF page sizes are preserved. PDF raster dimensions are capped at 4096 per axis and cached pixels at 128 MiB per tab; at very high zoom, display size remains correct but fine detail may soften. Up to four page requests per tab can be pending. Scrolling invalidates drawing after viewport changes, avoiding blank newly-visible pages.
+- Image decoding uses GdkPixbuf's installed loaders and renders with Cairo. No image editing, extraction, PDF annotations, printing or password dialog was added.
+- A media flag distinguishes text, media loading/viewing and unsupported documents while retaining the existing tab controller. Text mutation/save/autosave paths and context menu actions exclude media. Session data stores paths, not PDF/image bytes, and restores viewers asynchronously. Existing text recovery conflict protection remains unchanged.
+- Save All holds the existing busy guard, snapshots the ordered tab list, and awaits the existing Save/Save as path once per text tab. Cancel/failure stops subsequent saves, without dropping unsaved tabs.
+- The syntax toggle is a saved global preference. Language choices are per document; optional recovery preserves them. Opening with highlighting disabled does not guess a language; enabling it detects tabs that have no earlier selection. Save as with a new path re-detects language when highlighting is enabled.
+- Rust minimum metadata is 1.88 because the resolved libloading dependency requires it. No source is pushed as part of ZIP delivery.

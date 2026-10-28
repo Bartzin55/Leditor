@@ -153,6 +153,9 @@ impl Editor {
             &self.theme_css,
             gtk::STYLE_PROVIDER_PRIORITY_APPLICATION + 2,
         );
+        for tab in self.tabs.borrow().iter() {
+            self.apply_syntax(tab);
+        }
         self.applying_theme.set(false);
     }
 }

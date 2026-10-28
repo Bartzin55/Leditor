@@ -1,7 +1,7 @@
 use crate::shortcuts::{SHORTCUTS, TEXT_SHORTCUTS};
 use gtk::prelude::*;
 use leditor::i18n::I18n;
-pub const RELEASE_DATE: &str = "10/27/2026";
+pub const RELEASE_DATE: &str = "10/28/2026";
 
 fn window(parent: &gtk::ApplicationWindow, title: &str, width: i32, height: i32) -> gtk::Window {
     let window = gtk::Window::builder()

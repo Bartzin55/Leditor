@@ -69,3 +69,40 @@ mod indentation_tests {
         assert_eq!(indent_columns("   x", 8), 3);
     }
 }
+
+/// Blank lines continue the deepest adjacent indentation without changing text.
+pub fn guide_columns(text: &str, width: usize) -> Vec<usize> {
+    let lines: Vec<_> = text.split('\n').collect();
+    let mut depths: Vec<_> = lines
+        .iter()
+        .map(|line| indent_columns(leading_indent(line), width.max(1)))
+        .collect();
+    let mut previous = 0;
+    for (line, depth) in lines.iter().zip(&mut depths) {
+        if line.trim().is_empty() {
+            *depth = (*depth).max(previous);
+        } else {
+            previous = *depth;
+        }
+    }
+    let mut next = 0;
+    for (line, depth) in lines.iter().zip(&mut depths).rev() {
+        if line.trim().is_empty() {
+            *depth = (*depth).max(next);
+        } else {
+            next = *depth;
+        }
+    }
+    depths
+}
+#[cfg(test)]
+mod guide_tests {
+    #[test]
+    fn blank_lines_keep_context_and_tabs() {
+        assert_eq!(
+            super::guide_columns("root\n    one\n\n\t\ttwo\n\n    three\n\nroot", 4),
+            vec![0, 4, 8, 8, 8, 4, 4, 0]
+        );
+        assert_eq!(super::guide_columns("\n  text\n", 2), vec![2, 2, 2]);
+    }
+}

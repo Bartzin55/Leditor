@@ -77,6 +77,24 @@ impl SearchBar {
 }
 impl Editor {
     pub(super) fn setup_search(self: &Rc<Self>) {
+        // Capture before accelerators or TextView can insert a line.
+        let keys = gtk::EventControllerKey::new();
+        keys.set_propagation_phase(gtk::PropagationPhase::Capture);
+        let weak = Rc::downgrade(self);
+        keys.connect_key_pressed(move |_, key, _, state| {
+            use gtk::gdk::{Key, ModifierType};
+            if let Some(e) = weak.upgrade().filter(|e| e.search.bar.is_visible()) {
+                if (key == Key::Return || key == Key::KP_Enter)
+                    && state.contains(ModifierType::SHIFT_MASK)
+                    && !state.intersects(ModifierType::CONTROL_MASK | ModifierType::ALT_MASK)
+                {
+                    e.navigate_search(-1);
+                    return glib::Propagation::Stop;
+                }
+            }
+            glib::Propagation::Proceed
+        });
+        self.window.add_controller(keys);
         let weak = Rc::downgrade(self);
         self.search.find.connect_changed(move |_| {
             if let Some(e) = weak.upgrade() {
@@ -153,12 +171,20 @@ impl Editor {
     pub(super) fn open_search(&self) {
         self.search.case.set_active(false);
         self.search.bar.set_visible(true);
+        self.actions["insert-above"].set_enabled(false);
+        if let Some(app) = self.window.application() {
+            app.set_accels_for_action("win.insert-above", &[]);
+        }
         self.refresh_search();
         self.paint_current_match(true);
         self.search.find.grab_focus();
     }
     pub(super) fn close_search(&self) {
         self.search.bar.set_visible(false);
+        if let Some(app) = self.window.application() {
+            app.set_accels_for_action("win.insert-above", &["<Shift>Return"]);
+        }
+        self.refresh();
         self.clear_search_tags();
         self.search.matches.borrow_mut().clear();
         self.search.current.set(None);
@@ -401,17 +427,43 @@ mod tests {
         let b = tab.view.buffer();
         assert!(!e.minimap.get());
         assert!(!e.focus_mode.get());
-        assert!(!e.always_on_top.get());
+        assert!(!e.actions.contains_key("always-on-top"));
         b.set_text("ação AÇÃO ação\nsecond line\n");
         b.place_cursor(&b.start_iter());
         e.open_search();
+        assert!(!e.actions["insert-above"].is_enabled());
+        let original = b.text(&b.start_iter(), &b.end_iter(), true);
+        e.edit_transform("insert-above");
+        assert_eq!(b.text(&b.start_iter(), &b.end_iter(), true), original);
+        e.actions["find-replace"].activate(None);
+        assert!(!e.search.bar.is_visible());
+        assert!(e.actions["insert-above"].is_enabled());
+        e.actions["find-replace"].activate(None);
+        assert!(e.search.bar.is_visible());
         e.search.find.set_text("ação");
         assert_eq!(e.search.matches.borrow().len(), 3);
         assert_eq!(e.search.current.get(), Some(0));
         e.navigate_search(1);
         assert_eq!(b.cursor_position(), 5);
-        e.navigate_search(-1);
+        let controllers = e.window.observe_controllers();
+        let handled = (0..controllers.n_items()).any(|i| {
+            controllers
+                .item(i)
+                .and_then(|c| c.downcast::<gtk::EventControllerKey>().ok())
+                .is_some_and(|keys| {
+                    keys.emit_by_name::<bool>(
+                        "key-pressed",
+                        &[
+                            &gtk::gdk::Key::Return,
+                            &0u32,
+                            &gtk::gdk::ModifierType::SHIFT_MASK,
+                        ],
+                    )
+                })
+        });
+        assert!(handled);
         assert_eq!(b.cursor_position(), 0);
+        assert_eq!(b.text(&b.start_iter(), &b.end_iter(), true), original);
         e.navigate_search(-1);
         assert_eq!(b.cursor_position(), 10); // wrap
         e.search.case.set_active(true);
@@ -463,6 +515,30 @@ mod tests {
         click.emit_by_name::<()>("pressed", &[&1i32, &20.0f64, &100.0f64]);
         assert!(b.iter_at_offset(b.cursor_position()).line() > 0);
         e.open_search();
+        e.theme.replace("system".into());
+        if let Some(settings) = gtk::Settings::default()
+            .filter(|s| s.find_property("gtk-interface-color-scheme").is_none())
+        {
+            let original_theme = settings.gtk_theme_name();
+            settings.set_gtk_theme_name(Some("Adwaita-dark"));
+            assert!(e.system_dark.get());
+            settings.set_gtk_theme_name(Some("Adwaita"));
+            assert!(!e.system_dark.get());
+            settings.set_gtk_theme_name(original_theme.as_deref());
+        }
+        e.system_dark.set(true);
+        e.apply_theme();
+        assert!(e.theme_css.to_string().is_empty());
+        e.system_dark.set(false);
+        e.apply_theme();
+        let system_light = e.theme_css.to_string();
+        e.theme.replace("light".into());
+        e.apply_theme();
+        assert_eq!(e.theme_css.to_string(), system_light);
+        assert!(
+            gtk::IconTheme::for_display(&gtk::prelude::WidgetExt::display(&e.window))
+                .has_icon("io.github.leditor.Leditor")
+        );
         e.theme.replace("dark".into());
         e.apply_theme();
         pump();
@@ -516,6 +592,15 @@ mod tests {
         assert!(!e.search.bar.is_visible());
         let tag = b.tag_table().lookup("search-match").unwrap();
         assert!(!b.start_iter().has_tag(&tag));
+        e.indent_guides.set(true);
+        e.apply_text_options();
+        b.set_text("root\n    first\n\n        nested\n        nested\n\n    last\n\nroot");
+        e.theme.replace("dark".into());
+        e.apply_theme();
+        capture(&e, "v141-guides-dark.png");
+        e.theme.replace("light".into());
+        e.apply_theme();
+        capture(&e, "v141-guides-light.png");
         e.window.destroy();
         let _ = std::fs::remove_dir_all(crate::session::directory());
     }

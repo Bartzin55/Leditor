@@ -103,9 +103,10 @@ no-matches = Nenhuma ocorrência encontrada
 match-count = { $current } de { $total } ocorrências
 one-replaced = Uma ocorrência foi substituída
 all-replaced = Todas as { $total } ocorrências foram substituídas
-always-on-top = Sempre no topo
 focus = Foco
 exit-focus-search = Sair do Foco / fechar busca
-search-navigation = Próxima / anterior (campo Localizar)
+search-navigation = Próxima ocorrência (Localizar) / anterior (busca aberta)
 search-fields = Alternar campos Localizar / Substituir
-top-unavailable = Sempre no topo indisponível neste sistema de janelas. No Wayland, use o menu ou as regras do compositor.
+
+find-toggle-shortcut = Localizar e substituir (abrir/fechar)
+insert-above-shortcut = Inserir linha acima (busca fechada)

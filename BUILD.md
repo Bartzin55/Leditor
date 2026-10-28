@@ -1,4 +1,4 @@
-# Build and Run — Leditor 1.4.0
+# Build and Run — Leditor 1.4.1
 
 Use a current stable Rust toolchain and GTK **4.10 or later**. Keep Cargo.lock and use `--locked`. The source archive does not include installers or Windows DLLs.
 
@@ -7,7 +7,7 @@ Use a current stable Rust toolchain and GTK **4.10 or later**. Keep Cargo.lock a
 On Ubuntu 24.04 or later:
 
 ```bash
-sudo apt install build-essential pkg-config libgtk-4-dev
+sudo apt install build-essential pkg-config libgtk-4-dev libglib2.0-dev-bin
 cargo build --locked --release
 cargo run --locked --release
 ```
@@ -15,7 +15,7 @@ cargo run --locked --release
 On Arch Linux:
 
 ```bash
-sudo pacman -S --needed base-devel rust gtk4 pkgconf
+sudo pacman -S --needed base-devel rust gtk4 glib2-devel pkgconf
 cargo build --locked --release
 ./target/release/leditor
 ```
@@ -34,31 +34,6 @@ cargo build --locked --release
 ```
 
 Reopen UCRT64 if the MSYS2 update requests it. Build and run within UCRT64 so that GTK tools and DLLs are on PATH. A portable distribution must bundle GTK's runtime DLLs, schemas, icons, and relevant licenses; copying the EXE alone is insufficient. This release has not been compiled or executed on Windows in the current validation environment.
-
-## Validation commands
-
-```bash
-cargo fmt --check
-cargo clippy --locked --all-targets -- -D warnings
-cargo test --locked -- --test-threads=1
-```
-
-The Linux GTK integration test requires a functioning graphical session. For a Linux headless host where Xvfb and sockets are permitted:
-
-```bash
-xvfb-run -a cargo test --locked -- --test-threads=1
-```
-
-Tests not requiring a display:
-
-```bash
-cargo test --locked --test document --test file_ops -- --test-threads=1
-cargo test --locked --bin leditor session::tests -- --test-threads=1
-```
-
-The GTK integration test is Linux-only. Successful Windows filesystem tests alone would not validate the Windows interface.
-
-
 
 ## Linux integration (1.3.0)
 
@@ -88,27 +63,33 @@ The application cannot change the PATH of its parent terminal. Desktops may refr
 ```sh
 sudo install -m755 target/release/leditor /usr/local/bin/leditor
 sudo install -Dm644 assets/io.github.leditor.Leditor.desktop /usr/local/share/applications/io.github.leditor.Leditor.desktop
+sudo install -Dm644 assets/leditor.png /usr/local/share/icons/hicolor/512x512/apps/io.github.leditor.Leditor.png
 ```
 
 If `/usr/bin` is explicitly required, replace `/usr/local/bin/leditor` with `/usr/bin/leditor` in the first command; do not install twice into `/bin` and `/usr/bin`. Global installations skip per-user binary installation. Do not run Cargo or the GUI as root.
 
 To remove per-user integration, delete only the installed symlink, the managed desktop entry and `leditor/bin/leditor` at the paths above. Keep `settings.ini` and `session.ini` unless you intentionally want to discard preferences and recovery data.
 
-## 1.4.0 platform requirements and tests
+## Icon build tools and desktop integration
 
-Linux GTK must include its X11 backend (`pkg-config gtk4-x11`), as provided by the Ubuntu/Arch GTK packages above. Native Wayland remains supported for editing, search, minimap and Focus. Always on top is disabled on Wayland because standard GTK toplevels cannot request a universal above-other-windows state there. X11 requests are subject to window-manager policy.
+`build.rs` embeds the PNG with `glib-compile-resources`, supplied by GLib development packages (Ubuntu `libglib2.0-dev-bin`, Arch `glib2-devel`; MSYS2 UCRT64 `mingw-w64-ucrt-x86_64-glib2`). Set `GLIB_COMPILE_RESOURCES` if it is not on PATH. Windows additionally uses `windres` from MinGW; set `WINDRES` for a cross compiler such as `x86_64-w64-mingw32-windres`.
 
-Windows uses the GTK Win32 backend and the operating system's SetWindowPos API; no additional installer or service is introduced.
+Linux startup installs the icon under `$XDG_DATA_HOME/icons/hicolor/512x512/apps/io.github.leditor.Leditor.png` alongside the existing managed desktop entry, without root access. Launchers may cache the old icon until a refresh or session restart.
 
-New platform bindings: gdk4-x11/gdk4-win32 0.10 (MIT), x11rb 0.13 (MIT OR Apache-2.0), windows-sys 0.61 (MIT OR Apache-2.0). These are platform-specific and Cargo selects the relevant ones. Cargo.lock pins exact versions. Leditor remains MIT; native GTK's existing distribution requirements still apply.
+The Windows executable contains the icon and About uses the embedded PNG. No automatic Windows installer or Start menu registration is added. A normal shortcut pointing to `leditor.exe` uses its embedded icon; place it in your Start menu if desired. A portable executable still requires GTK DLLs/runtime assets.
 
-The existing GTK regression and new 1.4.0 graphical suite must run in separate processes because GTK initialization belongs to one thread. The new suite is ignored by default for that reason; invoke it explicitly:
+The dedicated GTK X11/Win32 bindings and x11rb are no longer required. windows-sys is retained only for reading the Windows application color-scheme preference. Leditor remains MIT; native GTK distribution obligations still apply.
 
-```bash
+## Validation commands
+
+```sh
+cargo fmt --check
+cargo check --locked
+cargo clippy --locked --all-targets -- -D warnings
 cargo test --locked --lib --test document --test file_ops
 cargo test --locked --bin leditor -- --skip ui:: --test-threads=1
 cargo test --locked --bin leditor ui::tests::tabs_history_layout_dialogs_and_file_safety -- --exact
 cargo test --locked --bin leditor ui::search::tests::find_replace_focus_and_minimap -- --ignored --exact
 ```
 
-The last two commands require a graphical display. Tests isolate settings and files in temporary directories. The legacy UI regression is Linux-only; the new GTK suite is portable but has only been executed on Linux.
+Run GTK suites in separate processes with a graphical display: GTK must remain on one thread. Tests isolate settings/documents in temporary directories. See VALIDATION.md for checks actually performed.

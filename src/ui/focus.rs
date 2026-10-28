@@ -88,17 +88,4 @@ impl Editor {
         self.actions["focus"].set_state(&self.focus_mode.get().to_variant());
         self.refresh();
     }
-    pub(super) fn toggle_always_on_top(&self) {
-        let enabled = !self.always_on_top.get();
-        match crate::window_mode::set_above(&self.window, enabled) {
-            Ok(()) => {
-                self.always_on_top.set(enabled);
-                self.actions["always-on-top"].set_state(&enabled.to_variant());
-            }
-            Err(_) => {
-                self.notice.set_text(&self.strings.text("top-unavailable"));
-                self.notice.set_visible(true);
-            }
-        }
-    }
 }

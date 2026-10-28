@@ -8,7 +8,7 @@ pub struct Shortcut {
 pub const SHORTCUTS: &[Shortcut] = &[
     Shortcut {
         action: "find-replace",
-        label: "find-replace",
+        label: "find-toggle-shortcut",
         accelerators: &["<Primary>f"],
         display: "Ctrl+F",
     },
@@ -20,7 +20,7 @@ pub const SHORTCUTS: &[Shortcut] = &[
     },
     Shortcut {
         action: "insert-above",
-        label: "insert-above",
+        label: "insert-above-shortcut",
         accelerators: &["<Shift>Return"],
         display: "Shift+Enter",
     },

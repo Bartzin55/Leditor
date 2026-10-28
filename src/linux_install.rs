@@ -80,7 +80,7 @@ pub fn install(source: &Path, data: &Path, home: &Path) -> io::Result<()> {
             "An unmanaged Leditor desktop entry already exists",
         ));
     }
-    let entry = format!("[Desktop Entry]\nType=Application\nName=Leditor\nComment=Text editor\nExec={}\nIcon=accessories-text-editor\nTerminal=false\nCategories=Utility;TextEditor;\nStartupNotify=true\nX-Leditor-Managed=true\n", desktop_exec(&executable)?);
+    let entry = format!("[Desktop Entry]\nType=Application\nName=Leditor\nComment=Text editor\nExec={}\nIcon=io.github.leditor.Leditor\nTerminal=false\nCategories=Utility;TextEditor;\nStartupNotify=true\nX-Leditor-Managed=true\n", desktop_exec(&executable)?);
     fs::create_dir_all(&app_dir)?;
     fs::create_dir_all(&bin_dir)?;
     fs::create_dir_all(&applications)?;
@@ -95,6 +95,12 @@ pub fn install(source: &Path, data: &Path, home: &Path) -> io::Result<()> {
     if fs::symlink_metadata(&command).is_err() {
         symlink(&executable, &command)?;
     }
+    let icons = data.join("icons/hicolor/512x512/apps");
+    fs::create_dir_all(&icons)?;
+    atomic_write(
+        &icons.join("io.github.leditor.Leditor.png"),
+        include_bytes!("../assets/leditor.png"),
+    )?;
     atomic_write(&desktop, entry.as_bytes())?;
     Ok(())
 }
@@ -128,6 +134,16 @@ mod tests {
         let source = temp.path().join("build");
         fs::write(&source, b"first binary").unwrap();
         install(&source, &data, &home).unwrap();
+        assert_eq!(
+            fs::read(data.join("icons/hicolor/512x512/apps/io.github.leditor.Leditor.png"))
+                .unwrap(),
+            include_bytes!("../assets/leditor.png")
+        );
+        assert!(
+            fs::read_to_string(data.join("applications/io.github.leditor.Leditor.desktop"))
+                .unwrap()
+                .contains("Icon=io.github.leditor.Leditor")
+        );
         install(&source, &data, &home).unwrap();
         assert_eq!(
             fs::read(home.join(".local/bin/leditor")).unwrap(),

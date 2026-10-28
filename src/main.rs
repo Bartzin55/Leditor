@@ -1,4 +1,5 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
+mod app_icon;
 mod editor_view;
 #[cfg(target_os = "linux")]
 mod linux_install;
@@ -8,7 +9,6 @@ mod session;
 mod shortcuts;
 mod tab;
 mod ui;
-mod window_mode;
 use gtk::prelude::*;
 fn main() -> gtk::glib::ExitCode {
     #[cfg(target_os = "linux")]

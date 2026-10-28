@@ -106,9 +106,10 @@ no-matches = No matches found
 match-count = { $current } of { $total } matches
 one-replaced = A match has been replaced
 all-replaced = All { $total } matches have been replaced
-always-on-top = Always on top
 focus = Focus
 exit-focus-search = Exit Focus / close search
-search-navigation = Next / previous match (Find box)
+search-navigation = Next match (Find) / previous match (search open)
 search-fields = Switch Find / Replace fields
-top-unavailable = Always on top is unavailable with this window system. On Wayland, use your compositor’s window menu or rules.
+
+find-toggle-shortcut = Find and replace (show/hide)
+insert-above-shortcut = Insert line above (search closed)

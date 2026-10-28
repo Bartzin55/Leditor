@@ -65,43 +65,6 @@ impl Editor {
         self.footer_pending
             .set_visible(!saving && tab.document.borrow().is_dirty());
     }
-    pub(super) fn apply_theme(&self) {
-        let theme = self.theme.borrow();
-        let light = theme.as_str() == "light";
-        self.actions["theme"].set_state(&theme.as_str().to_variant());
-        if let Some(settings) = gtk::Settings::default() {
-            if theme.as_str() == "system" {
-                settings.reset_property("gtk-application-prefer-dark-theme");
-                if settings
-                    .find_property("gtk-interface-color-scheme")
-                    .is_some()
-                {
-                    settings.reset_property("gtk-interface-color-scheme");
-                }
-            } else if let Some(property) = settings.find_property("gtk-interface-color-scheme") {
-                if let Some(value) = glib::EnumClass::with_type(property.value_type())
-                    .and_then(|class| class.to_value_by_nick(if light { "light" } else { "dark" }))
-                {
-                    settings.set_property_from_value("gtk-interface-color-scheme", &value);
-                }
-            } else {
-                settings.set_gtk_application_prefer_dark_theme(!light);
-            }
-        }
-        self.theme_css
-            .load_from_data(if theme.as_str() == "system" {
-                include_str!("../system.css")
-            } else if light {
-                include_str!("../light.css")
-            } else {
-                ""
-            });
-        gtk::style_context_add_provider_for_display(
-            &gtk::prelude::WidgetExt::display(&self.window),
-            &self.theme_css,
-            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION + 2,
-        );
-    }
     pub(super) fn language_dialog(self: &Rc<Self>) {
         let dialog = gtk::Window::builder()
             .title(self.strings.text("language"))
@@ -173,6 +136,9 @@ impl Editor {
             return;
         }
         if name == "insert-above" {
+            if self.search.bar.is_visible() {
+                return;
+            }
             let mut start = buffer.iter_at_offset(buffer.cursor_position());
             start.set_line_offset(0);
             let offset = start.offset();

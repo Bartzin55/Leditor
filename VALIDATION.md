@@ -1,26 +1,48 @@
-# Validation — Leditor 1.4.0
+# Validation — Leditor 1.4.1
 
-Date: 2026-10-26. Base: GitHub main at 6916fdb797281d55a042ded7db921e422567759c, checked before implementation. No push made.
+Date: 2026-10-27 (America/Sao_Paulo). Base: published GTK 1.4.0, Git commit `1696cdbdfcc43df03178c30f751c8705b6546649`. No push, tag rewrite, Qt code or alpha relabeling.
 
-## Passed
+## Results
 
-- Linux `cargo check --all-targets` and release build.
-- Formatting and Clippy with `--all-targets -- -D warnings`.
-- 22 library/integration tests: preference migration, document/localization, filesystem safety.
-- 10 non-graphical binary tests: installation, session recovery, Unicode conversion/indentation and minimap representation.
-- Existing GTK regression suite: passed, including tabs/history/layout/dialogs/file safety and previous-version behaviors.
-- New GTK suite: passed, including Unicode case-insensitive search, case reset, next/previous/wrap navigation, single/all replacement, undo/redo, absent/empty/multiline terms, replacement containing the search term, tab switching, minimap click, Focus visibility/top-edge reveal/restoration and settings isolation.
-- Total: **34 passing tests** across separate invocations.
-- Screenshots rendered and visually inspected in dark and light themes. Both attached mockups were used as references for the search bar.
+| Check | Result |
+|---|---|
+| `cargo build --locked` (Linux debug) | Passed |
+| `cargo check --locked` | Passed |
+| `cargo fmt --check` | Passed |
+| `cargo clippy --locked --all-targets -- -D warnings` | Passed |
+| Library tests | 1 passed |
+| Document integration tests | 12 passed |
+| Filesystem integration tests | 9 passed |
+| Non-GUI binary tests | 11 passed |
+| GTK lifecycle/files/dialogs regression suite | 1 passed |
+| GTK search/minimap/focus and new corrections suite | 1 passed |
+| Total tests | **35 passed**, no failures in the final runs |
+| Windows icon resource | Compiled with MinGW windres; verified x86-64 COFF `.rsrc` section |
+| Windows application compilation/execution | Not performed in this environment |
+| Rendered guide review | Dark/light screenshots inspected; dashed, offset guides continue across blank lines |
+| Version/dependency metadata and Git whitespace | Verified |
 
-## Environment and limits
+Environment: Linux x86-64, Rust/Cargo 1.89, GTK 4.14.5, Xvfb virtual X11 display, Cairo renderer. The GTK suites run in separate processes. Tests use temporary documents and settings. Toolchains and machine-specific build paths are excluded from the ZIP.
 
-Rust 1.99.1, Linux x64, GTK 4.14. Graphical tests ran under Xvfb over TCP with the Cairo renderer and `G_DEBUG=fatal-criticals`. Initial separate-process display setup failed; launching Xvfb and the test in the same execution environment resolved connectivity. An initial widget-parenting integration issue was found and fixed; the final graphical suite passed without GTK criticals. EGL reported lack of DRI3 acceleration; hardware-accelerated rendering was not tested.
+## New coverage
 
-Windows build/runtime and native Wayland runtime: not tested for 1.4.0. The Windows implementation was reviewed against the native binding signatures. The previously delivered Windows 1.3.0 executable does not contain these changes.
+- Always on top action is absent and no corresponding preference is persisted.
+- Ctrl+F toggles the bar. Insert Above is disabled and directly guarded while the bar is visible, then enabled again after closing.
+- A Shift+Enter event delivered to the window search controller selects the previous match without changing document text.
+- System selection uses exactly the same light stylesheet as explicit Light and the same base dark stylesheet as explicit Dark.
+- GTK theme change notifications switch the resolved preference after opening the application. A regression test caught and led to correction of monitor initialization placement.
+- Guide depth calculation covers blank lines, mixed tabs/spaces and different widths; screenshots cover actual rendering in both palettes.
+- The About image has a decoded paintable and the embedded application icon is discoverable by GtkIconTheme.
+- Linux installation writes the provided PNG and a matching desktop icon name, preserving existing update/conflict tests.
 
-Always-on-top stacking and fullscreen window-manager behavior require real desktop testing: Xvfb alone has no desktop window manager. Wayland's Always on top option is intentionally disabled; compositor-specific pinning can be used externally. Focus fullscreen requests, mouse-edge handlers and widget restoration are covered, but a real compositor must verify the resulting fullscreen/stacking state.
+Existing suites also cover file safety, unsaved prompts, tabs, undo/redo, recovery, explorer operations, search replacements, minimap navigation, focus, zoom, Unicode and preference persistence.
 
-Keyboard accelerators/controllers are registered; search navigation and menu actions are exercised programmatically. Physical keyboard/IME, touch, mixed-DPI, extreme file sizes, and compositor-specific behavior still need local checks. The minimap samples dense documents and shows the first 240 visual columns, with clicks targeting logical line starts. Search refresh is synchronous, so unusually large files with many matches can take longer.
+## Limitations and encountered issues
 
-No claim of bug-free operation. The deliverable is a complete source ZIP with manifests, lockfile, assets and documentation, not a Windows binary package.
+The temporary environment reset during development; these results come from fresh runs after reconstructing the working tree. The first build attempt after reset lacked the recovered icon asset and failed resource compilation; it passed after restoring the supplied asset. Earlier environment setup also required repairing local development-library linker symlinks. None of those toolchain paths are project requirements.
+
+Xvfb printed expected EGL/DRI3 and keyboard-map warnings. Rendering and tests completed with the software renderer. A physical desktop, native COSMIC/Wayland portal notifications, GTK 4.20+ appearance-property behavior and Windows runtime behavior were not exercised. Validate those on your own desktop; the Windows resource check does not establish a working Windows application build.
+
+No release/LTO build or large-file stress test was run in this validation. The ZIP is complete source, not an executable distribution. The existing Windows build instructions include GTK runtime requirements; no automatic Windows installation or Start menu registration is introduced. Linux launchers may cache an old icon until refreshed or the session restarts.
+
+Reproduction commands and dependencies are in BUILD.md. This report does not claim bug-free operation.

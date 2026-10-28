@@ -16,6 +16,7 @@ mod preferences;
 mod search;
 #[path = "ui/tab_actions.rs"]
 mod tab_actions;
+mod theme;
 use std::{
     cell::{Cell, RefCell},
     collections::BTreeMap,
@@ -39,7 +40,9 @@ struct Editor {
     focus_snapshot: RefCell<Option<focus::FocusSnapshot>>,
     menubar: gtk::PopoverMenuBar,
     footer: gtk::CenterBox,
-    always_on_top: Cell<bool>,
+    system_dark: Cell<bool>,
+    applying_theme: Cell<bool>,
+    portal: RefCell<Option<gio::DBusProxy>>,
     window: gtk::ApplicationWindow,
     explorer: Explorer,
     stack: gtk::Stack,
@@ -87,17 +90,7 @@ pub fn build(application: &gtk::Application) {
     }
 }
 fn create(application: &gtk::Application) -> Rc<Editor> {
-    if let Some(settings) = gtk::Settings::default() {
-        if let Some(property) = settings.find_property("gtk-interface-color-scheme") {
-            if let Some(value) = glib::EnumClass::with_type(property.value_type())
-                .and_then(|class| class.to_value_by_nick("dark"))
-            {
-                settings.set_property_from_value("gtk-interface-color-scheme", &value);
-            }
-        } else {
-            settings.set_gtk_application_prefer_dark_theme(true);
-        }
-    }
+    crate::app_icon::register();
     let css = gtk::CssProvider::new();
     css.load_from_data(include_str!("style.css"));
     if let Some(display) = gtk::gdk::Display::default() {
@@ -155,7 +148,6 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
             "view",
             vec![
                 ("minimap", "minimap"),
-                ("always-on-top", "always-on-top"),
                 ("focus", "focus"),
                 ("word-wrap", "word-wrap"),
                 ("line-numbers", "line-counter"),
@@ -188,8 +180,8 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
                     Some(glib::VariantTy::STRING),
                     &"system".to_variant(),
                 ),
-                "minimap" | "always-on-top" | "focus" | "indent-guides" | "word-wrap"
-                | "convert-tabs" | "enable-autosave" | "restore-session" => {
+                "minimap" | "focus" | "indent-guides" | "word-wrap" | "convert-tabs"
+                | "enable-autosave" | "restore-session" => {
                     gio::SimpleAction::new_stateful(name, None, &false.to_variant())
                 }
                 "auto-indent" | "line-numbers" | "show-explorer" => {
@@ -305,7 +297,9 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         focus_snapshot: RefCell::new(None),
         menubar,
         footer,
-        always_on_top: Cell::new(false),
+        system_dark: Cell::new(false),
+        applying_theme: Cell::new(false),
+        portal: RefCell::new(None),
         footer_left,
         footer_right,
         footer_pending,
@@ -396,12 +390,10 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         editor.add_tab(Document::default());
     }
     editor.refresh();
+    editor.setup_theme();
     editor.apply_theme();
     editor.window.present();
     editor.refresh();
-    if !crate::window_mode::supported(&editor.window) {
-        editor.actions["always-on-top"].set_enabled(false);
-    }
     editor
 }
 impl Editor {
@@ -416,9 +408,14 @@ impl Editor {
             return;
         }
         match name {
-            "find-replace" => self.open_search(),
+            "find-replace" => {
+                if self.search.bar.is_visible() {
+                    self.close_search();
+                } else {
+                    self.open_search();
+                }
+            }
             "focus" => self.toggle_focus(),
-            "always-on-top" => self.toggle_always_on_top(),
             "minimap" => {
                 self.minimap.set(!self.minimap.get());
                 action.set_state(&self.minimap.get().to_variant());
@@ -655,7 +652,7 @@ impl Editor {
         self.window.set_title(Some(&title));
         for (&name, action) in &self.actions {
             let enabled = match name {
-                "always-on-top" => crate::window_mode::supported(&self.window),
+                "insert-above" if self.search.bar.is_visible() => false,
                 "line-numbers" | "show-explorer" if self.focus_mode.get() => false,
                 "restore-session" => self.autosave.get(),
                 "close" => current.is_some(),

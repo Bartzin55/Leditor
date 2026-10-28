@@ -284,6 +284,14 @@ fn tabs_history_layout_dialogs_and_file_safety() {
     run(&editor, Intent::Close(d.id));
     // Popups share the package version and shortcut definitions with the app.
     let about = popups::about(&editor.window, &editor.strings);
+    let icon = about
+        .child()
+        .unwrap()
+        .first_child()
+        .unwrap()
+        .downcast::<gtk::Image>()
+        .unwrap();
+    assert!(icon.paintable().is_some());
     let contents = labels(about.upcast_ref());
     assert!(contents.contains(&env!("CARGO_PKG_VERSION").to_owned()));
     assert!(contents.contains(&popups::RELEASE_DATE.to_owned()));

@@ -103,9 +103,10 @@ no-matches = No se encontraron coincidencias
 match-count = { $current } de { $total } coincidencias
 one-replaced = Se ha reemplazado una coincidencia
 all-replaced = Se han reemplazado las { $total } coincidencias
-always-on-top = Siempre encima
 focus = Enfoque
 exit-focus-search = Salir de Enfoque / cerrar búsqueda
-search-navigation = Siguiente / anterior (campo Buscar)
+search-navigation = Siguiente coincidencia (Buscar) / anterior (búsqueda abierta)
 search-fields = Alternar campos Buscar / Reemplazar
-top-unavailable = Siempre encima no está disponible en este sistema de ventanas. En Wayland, use el menú o las reglas del compositor.
+
+find-toggle-shortcut = Buscar y reemplazar (mostrar/ocultar)
+insert-above-shortcut = Insertar línea arriba (búsqueda cerrada)

@@ -10,6 +10,7 @@ mod imp {
         pub convert: std::cell::Cell<bool>,
         pub auto_indent: std::cell::Cell<bool>,
         pub guides: std::cell::Cell<bool>,
+        pub guide_columns: std::cell::RefCell<Vec<usize>>,
         pub css: gtk::CssProvider,
         pub css_id: std::cell::Cell<u64>,
     }
@@ -165,42 +166,30 @@ impl NumberedView {
             if y > visible.y() + visible.height() {
                 break;
             }
-            let mut end = iter;
-            while matches!(end.char(), ' ' | '\t') && !end.is_end() {
-                end.forward_char();
-            }
-            let text = self.buffer().text(&iter, &end, true);
-            let columns = crate::text_ops::indent_columns(&text, width);
-            let mut position = iter;
-            let mut column = 0;
-            // Guides stay within the first visual row when indentation wraps.
-            let row_height = self.iter_location(&iter).height();
+            let columns = self
+                .imp()
+                .guide_columns
+                .borrow()
+                .get(iter.line() as usize)
+                .copied()
+                .unwrap_or(0);
+            let origin = self.iter_location(&iter);
+            let space = self.create_pango_layout(Some("        ")).pixel_size().0 as f32 / 8.0;
+            let row_height = height.min(origin.height());
             for col in (width..=columns).step_by(width) {
-                while column < col {
-                    column = if position.char() == '\t' {
-                        column + width - column % width
-                    } else {
-                        column + 1
-                    };
-                    position.forward_char();
-                }
-                let rectangle = self.iter_location(&position);
-                if rectangle.y() != self.iter_location(&iter).y() {
+                let gx = origin.x() as f32 + col as f32 * space - space * 0.5;
+                if gx >= (visible.x() + visible.width()) as f32 {
                     break;
                 }
-                let gx = rectangle.x();
-                if gx >= visible.x() + visible.width() {
-                    break;
+                // Half a character before the text; dash phase follows document coordinates.
+                for dy in 0..row_height {
+                    if (y + dy).rem_euclid(6) < 3 {
+                        snapshot.append_color(
+                            &color,
+                            &gtk::graphene::Rect::new(gx, (y + dy) as f32, 1.0, 1.0),
+                        );
+                    }
                 }
-                snapshot.append_color(
-                    &color,
-                    &gtk::graphene::Rect::new(
-                        gx as f32,
-                        y as f32,
-                        1.0,
-                        height.min(row_height) as f32,
-                    ),
-                );
             }
             if !iter.forward_line() {
                 break;
@@ -209,8 +198,19 @@ impl NumberedView {
         snapshot.pop();
     }
 
+    fn update_guides(&self) {
+        let b = self.buffer();
+        self.imp()
+            .guide_columns
+            .replace(crate::text_ops::guide_columns(
+                &b.text(&b.start_iter(), &b.end_iter(), true),
+                self.imp().spaces.get().clamp(1, 8) as usize,
+            ));
+    }
     pub fn configure(&self, spaces: u32, convert: bool, zoom: f64) {
-        self.imp().spaces.set(spaces);
+        if self.imp().spaces.replace(spaces) != spaces {
+            self.update_guides();
+        }
         self.imp().convert.set(convert);
         self.imp().css.load_from_data(&format!(
             "textview.leditor-text-{} {{ font-size: {}px; }}",
@@ -389,9 +389,11 @@ impl NumberedView {
         let weak = view.downgrade();
         buffer.connect_changed(move |_| {
             if let Some(view) = weak.upgrade() {
+                view.update_guides();
                 view.update_gutter();
             }
         });
+        view.update_guides();
         view
     }
     pub fn update_gutter(&self) {

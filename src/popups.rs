@@ -1,7 +1,7 @@
 use crate::shortcuts::{SHORTCUTS, TEXT_SHORTCUTS};
 use gtk::prelude::*;
 use leditor::i18n::I18n;
-pub const RELEASE_DATE: &str = "10/25/2026";
+pub const RELEASE_DATE: &str = "10/27/2026";
 
 fn window(parent: &gtk::ApplicationWindow, title: &str, width: i32, height: i32) -> gtk::Window {
     let window = gtk::Window::builder()
@@ -31,6 +31,11 @@ pub fn about(parent: &gtk::ApplicationWindow, strings: &I18n) -> gtk::Window {
     content.set_margin_bottom(24);
     content.set_margin_start(24);
     content.set_margin_end(24);
+    let icon = gtk::Image::from_resource(
+        "/io/github/leditor/Leditor/icons/512x512/apps/io.github.leditor.Leditor.png",
+    );
+    icon.set_pixel_size(96);
+    content.append(&icon);
     let name = gtk::Label::new(Some("Leditor"));
     name.add_css_class("app-name");
     content.append(&name);

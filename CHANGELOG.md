@@ -1,3 +1,17 @@
+# Release 1.4.1 — 2026-10-27
+
+GTK maintenance release based on 1.4.0. Historical versions and Git tags are unchanged.
+
+### Changes
+- Removed Always on top, its menu action, translations and exclusive X11/Win32 bindings.
+- Embedded the supplied icon for About, Linux launchers and Windows executable resources.
+
+### Bug fixes
+- System default selects the existing light/dark palettes and follows appearance changes, preserving explicit manual choices.
+- Ctrl+F shows/hides search; Shift+Enter goes to the previous match while search is visible without inserting an unintended line.
+- Indentation guides are dashed and offset from text; blank lines continue adjacent indentation levels.
+- Updated shortcuts, English/Portuguese/Spanish catalogs and build instructions.
+
 # Release 1.4.0 — 2026-10-26
 
 - Added an optional clickable minimap following the active theme; its visibility preference is saved.

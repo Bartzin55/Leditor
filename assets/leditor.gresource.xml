@@ -1,0 +1,3 @@
+<gresources><gresource prefix="/io/github/leditor/Leditor/icons">
+<file alias="512x512/apps/io.github.leditor.Leditor.png">leditor.png</file>
+</gresource></gresources>

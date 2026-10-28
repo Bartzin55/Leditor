@@ -2,20 +2,29 @@
 
 ### A modern text editor for Linux and Windows.
 
-**Version:** 1.4.0
+**Version:** 1.4.1
 **Release date:** October 26, 2026
 
 Leditor brings text editing and file organization together in a clean, minimalist workspace. Write, edit, and browse your files with independent tabs, an integrated file explorer, and a distraction-free interface.
 
 Built with **Rust and GTK4**, Leditor works entirely offline and is growing step by step into a versatile editor for everyday writing and development.
 
-## New in 1.4.0
+## New in 1.4.1
+
+This maintenance release continues the GTK 1.4.0 codebase. No Qt migration or alpha relabeling is included.
+
+- Removed Always on top completely, including its menu item and dedicated platform bindings.
+- System default selects the existing light or dark palette from the OS preference, instead of a separate third style.
+- Ctrl+F toggles the search bar. Shift+Enter navigates backward while it is visible; inserting a line above resumes after closing it.
+- Indentation guides are dashed, half a character before the text, and continue through blank lines.
+- The supplied Leditor icon appears in About, Linux application launchers and the Windows executable resource.
+
+## Retained from 1.4.0
 
 - **Clickable minimap:** enable View → Minimap to see a compact overview at the right. Click to move the caret and viewport to a logical line. Off by default; your choice is remembered.
-- **Find and replace:** Ctrl+F opens the two-row search bar and focuses Find. Matches are yellow; the active match is green. Navigate with ↑/↓ or Enter/Shift+Enter in Find. Tab switches between Find and Replace. Replace one or all with Undo/Redo support.
+- **Find and replace:** Ctrl+F toggles the two-row search bar and focuses Find. Matches are yellow; the active match is green. Navigate with ↑/↓ or Enter in Find or Shift+Enter while the bar is visible. Tab switches between Find and Replace. Replace one or all with Undo/Redo support.
 - **Case-sensitive search:** optional for each search session, reset whenever Find is invoked; never saved.
 - **Focus mode:** Shift+F11 enters fullscreen and hides menus, tabs, explorer, line numbers and footer. Move to the top edge to reveal menus/tabs. Shift+F11 or Esc restores the previous layout. Never saved.
-- **Always on top:** available on Windows and Linux/X11, off each launch. On native Wayland the option is disabled; use your compositor's window menu/rules instead.
 
 Search is literal and applies to the active document. Empty searches produce no matches. Navigation wraps at the beginning/end. Esc also closes the search bar outside Focus mode.
 
@@ -88,7 +97,7 @@ Leditor's roadmap focuses on richer editing, broader file support, and a more cu
 - **Additional interface languages** and localization.
 - **Support for more text encodings.**
 
-These features are planned for future releases and are not included in version 1.4.0.
+These features are planned for future releases and are not included in version 1.4.1.
 
 ## Get Started
 

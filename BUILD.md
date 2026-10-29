@@ -1,6 +1,90 @@
-# Build and Run — Leditor 1.5.0
+# Build and Run — Leditor 1.5.1
 
-Use a Rust 1.88+ (current stable recommended) and GTK **4.10 or later**. Keep Cargo.lock and use `--locked`. The source archive does not include installers or Windows DLLs.
+## Automated installation / update
+
+Supported targets: Linux x86_64 with glibc and Windows 10/11 x64. ARM, 32-bit,
+macOS and musl/Alpine are rejected. Internet and several GB of free space are
+required to download and compile the toolchain. Initial downloads can exceed
+500 MB when no development tools are present. Close Leditor before updating.
+
+For this **unpublished source ZIP**, extract it and run from its directory:
+
+```sh
+bash install.sh --source .
+```
+
+On Windows, use 64-bit PowerShell from the extracted directory:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .
+```
+
+ExecutionPolicy Bypass applies only to this invocation. Organizational policy
+may still prohibit execution; the script does not circumvent it.
+
+Both scripts ask for user or system installation. User installation never calls
+sudo or requests UAC. Linux system installation uses `/usr/local/bin` and
+`/usr/local/lib/leditor`, not distribution-owned `/usr/bin`; Windows uses Program
+Files. Run the Linux installer as a normal user even for system installation.
+The Linux user installation uses `$XDG_DATA_HOME/leditor-install` and
+`~/.local/bin/leditor`; Windows uses `%LOCALAPPDATA%\Programs\Leditor`.
+
+Once 1.5.1 is published, omit `--source .` / `-Source .` to clone main. A specific
+branch/tag can be selected with `--ref REF` / `-Ref REF`. Do not assume a release
+tag exists. Until publication, main is still 1.5.0 and lacks these scripts.
+Re-running against the same Git revision does not rebuild; a changed revision
+creates a new generation. Local source mode always rebuilds.
+
+After tests pass, the installer reports preparation of the application files.
+At the end (also after a failure), it reports removal of temporary build files
+and tools; large folders can take several minutes. Windows lists each temporary
+top-level item as it is removed. Linux also reports removal of the temporary
+Python bootstrap when one was needed. Wait for the shell prompt to return.
+The existing `.leditor-managed` marker is not rewritten during updates.
+
+Linux reuses GTK >= 4.10, GtkSourceView 5 and build tools when available.
+Otherwise micromamba 2.5.0 obtains a private GTK runtime from conda-forge; Rust
+and missing build tools are installed temporarily. This avoids apt/pacman and
+admin access in user mode. A working Python >= 3.9 is reused. Without Python,
+the shell bootstrap needs curl, tar and bzip2 to provision it; those basic OS
+utilities are prerequisites and are not bootstrapped from nothing.
+
+Windows reuses a complete UCRT64 environment at `LEDITOR_MSYS2` or `C:\msys64`
+without changing its packages. Otherwise a temporary MSYS2 environment provides
+Rust, GCC, Python, GTK and GtkSourceView. Windows tar.exe and PowerShell are
+bootstrap prerequisites. DLLs, GTK data and PDFium remain in the installed
+generation after the temporary MSYS2 environment is removed.
+
+The build uses `cargo build --locked --release`, followed by non-GUI document
+and filesystem tests. PDFium 7881 downloads are SHA-256 checked. Exact Rust
+licenses and native runtime notices are installed with the application.
+Previously installed tools are not removed. You are asked whether to delete the
+temporary source copy or retain it in a new `leditor-source-*` directory under
+your home. Your original `--source` directory is never deleted.
+
+Failed builds do not replace the active generation. Old successful generations
+are retained for recovery and are removed by uninstall. Close the application
+before uninstalling; Windows may refuse to remove files in use.
+
+```sh
+bash uninstall.sh --scope user
+# or: bash uninstall.sh --scope system
+```
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1 -Scope user
+# or: -Scope system
+```
+
+Uninstall requires typing REMOVE, then asks separately whether to discard the
+current account's settings and recovered/unsaved documents. Other accounts,
+original sources and shared system packages are never automatically removed.
+The installed copy of uninstall.sh is in `leditor-install/current/`; on Windows,
+uninstall.ps1 is in the Leditor installation root.
+
+## Manual compilation and dependencies (fallback)
+
+Use Rust 1.88+ and GTK **4.10 or later**. Keep Cargo.lock and use `--locked`. The source archive includes scripts, but not Windows DLLs or native runtime binaries.
 
 ## Linux
 

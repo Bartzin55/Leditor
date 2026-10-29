@@ -1,4 +1,9 @@
-# Dependency licenses — Leditor 1.5.0
+# Dependency licenses — Leditor 1.5.1
+
+See LICENSES/ for collected texts and provenance. Native PDFium notices are
+included; installers also preserve exact GTK runtime package notices. The
+scripts use micromamba/conda-forge on Linux and MSYS2/UCRT64 on Windows; these are
+installation tools, not new linked Rust application dependencies.
 
 Leditor's source remains MIT. Its license does not replace licenses on linked libraries or bundled data. This source archive does not redistribute native GTK/PDFium binaries.
 

@@ -1,3 +1,23 @@
+# Release 1.5.1 — 2026-10-29
+
+- Fixed the Windows installer's redundant `.leditor-managed` write after tests;
+  existing markers are now preserved, as they already were on Linux.
+- Added post-test preparation and temporary-file cleanup messages on both
+  platforms, including the Linux Python bootstrap. Installation errors are
+  displayed before the potentially lengthy temporary-workspace cleanup.
+- Added Linux and Windows installation/update scripts with user/system scope,
+  temporary missing toolchains, native GTK/GtkSourceView provisioning and a
+  checksum-verified PDFium 7881 runtime.
+- Added uninstall scripts with confirmation and a separate opt-in to delete
+  preferences and recovered documents. Existing tools and other users are kept.
+- Added LICENSES with exact Cargo dependency legal texts and native-library
+  notices; installers retain notices for the runtime they actually install.
+- Script-managed Linux launches bypass the legacy automatic binary copy, keeping
+  the private runtime and launcher together.
+- Updated build/manual fallback documentation and version metadata. Keyboard
+  shortcuts and UI translations are unchanged; this release adds no GUI actions.
+- See VALIDATION.md for checks performed and platform limitations.
+
 # Release 1.5.0 — 2026-10-28
 
 - Integrated GtkSourceView 5 syntax highlighting, automatic extension/content-type detection, per-tab radio language selection and persisted enable preference.

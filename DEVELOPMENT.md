@@ -1,4 +1,32 @@
-# Development Notes — 1.4.0
+# Development Notes — 1.5.1
+
+The 1.5.1 installer is separate from the GTK application. Linux uses a small
+Bash bootstrap and a Python standard-library orchestrator. conda-forge supplies
+missing native packages privately, avoiding a custom GTK dependency builder.
+Windows uses PowerShell and UCRT64/MSYS2, copying runtime DLLs/data to a generation
+directory. No new Rust dependency was added.
+
+Installations use a marker and generation directories. Linux selects a generation
+through an atomic symlink replacement; Windows publishes a Start menu shortcut
+to the completed generation. Previous generations are retained for recovery.
+The scripts own only their private tool caches; pre-existing toolchains are not
+uninstalled. Source retention is independent of temporary compiler cleanup.
+The marker is created only when absent. Windows acquires `.install-lock` before
+creating it and no longer rewrites it after tests. Cleanup messages surround
+temporary-directory removal; Windows additionally lists each top-level item.
+No claim is made that this prevents unrelated filesystem sharing conflicts.
+
+PDFium archives are version-pinned and SHA-256 checked. Cargo is locked. Native
+package solvers select compatible releases; installed conda metadata / MSYS2
+package lists record versions. This is not a fully reproducible offline build.
+Private conda prefixes must stay at their installation paths. Windows image
+loader caches also contain installation paths; rerun the installer after moving
+an installation rather than treating it as a portable ZIP.
+
+No new keyboard shortcut or menu item is introduced. About reads Cargo's package
+version automatically. Locale files carry release-review comments only.
+
+## Previous implementation notes (historical)
 
 This release updates the existing 1.0.0 Rust/GTK4 project. No dependency was added.
 

@@ -105,6 +105,10 @@ pub fn install(source: &Path, data: &Path, home: &Path) -> io::Result<()> {
     Ok(())
 }
 pub fn integrate() -> io::Result<()> {
+    // Script-managed installations need their runtime launcher, not a bare EXE copy.
+    if std::env::var_os("LEDITOR_MANAGED_INSTALL").is_some() {
+        return Ok(());
+    }
     let home = gtk::glib::home_dir();
     // A system installation is managed by its administrator/package manager.
     let source = std::env::current_exe()?;

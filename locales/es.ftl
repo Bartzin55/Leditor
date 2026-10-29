@@ -30,6 +30,7 @@ copy = Copiar
 paste = Pegar
 cut = Cortar
 select-all = Seleccionar todo
+# 1.5.1: actualización de instaladores; sin nuevas etiquetas ni atajos gráficos.
 version = Versión:
 release-date = Fecha de lanzamiento:
 repository = Repositorio:

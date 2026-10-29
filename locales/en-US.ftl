@@ -30,6 +30,7 @@ copy = Copy
 paste = Paste
 cut = Cut
 select-all = Select all
+# 1.5.1: installer-only release; no new GUI labels or keyboard shortcuts.
 version = Version:
 release-date = Release date:
 repository = Repo:

@@ -30,6 +30,7 @@ copy = Copiar
 paste = Colar
 cut = Recortar
 select-all = Selecionar tudo
+# 1.5.1: atualização dos instaladores; sem novos rótulos ou atalhos na interface.
 version = Versão:
 release-date = Data de lançamento:
 repository = Repositório:

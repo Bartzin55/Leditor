@@ -17,6 +17,12 @@ function Initialize-InstallationMarker([string]$Directory) {
         Set-Content -LiteralPath $marker 'leditor-installer-v1'
     }
 }
+function Copy-PdfiumLicenses([string]$ArchiveDirectory, [string]$Destination) {
+    # Bundled notices already exist; merge notices from the actual runtime.
+    New-Item -ItemType Directory -Force $Destination | Out-Null
+    Get-ChildItem -LiteralPath $ArchiveDirectory | Where-Object { $_.Name -match '^(LICENSE|NOTICE)' } |
+        Copy-Item -Destination $Destination -Recurse -Force
+}
 function Remove-TemporaryBuildFiles([string]$Directory) {
     Write-Host 'Removing temporary build files and tools. Large folders may take several minutes.'
     foreach ($item in Get-ChildItem -LiteralPath $Directory -Force) {
@@ -127,8 +133,7 @@ try {
         if ((Get-FileHash "$work\pdfium.tgz" -Algorithm SHA256).Hash -ne '73cc0de638ac2095e7445bf56a38200a5b7c7ca0e9f4ba144598f2457377ac08') { throw 'PDFium checksum mismatch' }
         Invoke-Checked 'tar.exe' @('-xf',"$work\pdfium.tgz",'-C',$pdf)
         Copy-Item "$pdf\bin\pdfium.dll" $generation
-        New-Item -ItemType Directory "$generation\LICENSES\pdfium" | Out-Null
-        Get-ChildItem $pdf | Where-Object { $_.Name -match '^(LICENSE|NOTICE)' } | Copy-Item -Destination "$generation\LICENSES\pdfium" -Recurse
+        Copy-PdfiumLicenses $pdf "$generation\LICENSES\pdfium"
         # Launcher paths are relative, so moving the installation does not break GTK data lookup.
         $launch = "@echo off`r`nset `"XDG_DATA_DIRS=%~dp0share`"`r`nset `"GSETTINGS_SCHEMA_DIR=%~dp0share\glib-2.0\schemas`"`r`n"
         if (Test-Path "$generation\loaders.cache") { $launch += "set `"GDK_PIXBUF_MODULE_FILE=%~dp0loaders.cache`"`r`n" }

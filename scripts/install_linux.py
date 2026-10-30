@@ -209,7 +209,12 @@ def install(args):
                 if path.name.lower().startswith(('license', 'notice')):
                     target = licenses / 'pdfium' / path.name
                     target.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copytree(path, target) if path.is_dir() else shutil.copy2(path, target)
+                    # The source bundle already contains PDFium notices. Merge the
+                    # downloaded runtime's notices into this new generation only.
+                    if path.is_dir():
+                        shutil.copytree(path, target, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(path, target)
             launcher = '#!/bin/sh\n# Leditor managed launcher\nexport LEDITOR_MANAGED_INSTALL=1\n'
             if not native:
                 launcher += 'export LD_LIBRARY_PATH=' + shlex.quote(str(runtime / 'lib')) + '\n'

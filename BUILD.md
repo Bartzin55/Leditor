@@ -7,7 +7,7 @@ macOS and musl/Alpine are rejected. Internet and several GB of free space are
 required to download and compile the toolchain. Initial downloads can exceed
 500 MB when no development tools are present. Close Leditor before updating.
 
-For this **unpublished source ZIP**, extract it and run from its directory:
+To test this **corrected source ZIP**, extract it and run from its directory:
 
 ```sh
 bash install.sh --source .
@@ -29,9 +29,10 @@ Files. Run the Linux installer as a normal user even for system installation.
 The Linux user installation uses `$XDG_DATA_HOME/leditor-install` and
 `~/.local/bin/leditor`; Windows uses `%LOCALAPPDATA%\Programs\Leditor`.
 
-Once 1.5.1 is published, omit `--source .` / `-Source .` to clone main. A specific
+Omit `--source .` / `-Source .` to clone published main. A specific
 branch/tag can be selected with `--ref REF` / `-Ref REF`. Do not assume a release
-tag exists. Until publication, main is still 1.5.0 and lacks these scripts.
+tag exists. The 1.5.1 release is published, but the PDFium notice-directory
+correction in this ZIP has not been pushed: use local source mode to test it.
 Re-running against the same Git revision does not rebuild; a changed revision
 creates a new generation. Local source mode always rebuilds.
 

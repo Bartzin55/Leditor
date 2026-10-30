@@ -15,6 +15,9 @@ The marker is created only when absent. Windows acquires `.install-lock` before
 creating it and no longer rewrites it after tests. Cleanup messages surround
 temporary-directory removal; Windows additionally lists each top-level item.
 No claim is made that this prevents unrelated filesystem sharing conflicts.
+PDFium notice directories are merged inside the new installation generation:
+runtime-archive files replace same-name bundled notices, other notices remain,
+and the original source tree is not modified.
 
 PDFium archives are version-pinned and SHA-256 checked. Cargo is locked. Native
 package solvers select compatible releases; installed conda metadata / MSYS2

@@ -11,6 +11,8 @@ for prerequisites, updates, uninstall, and manual fallback instructions.
 
 The revised 1.5.1 scripts preserve an existing installation marker and report
 temporary-file cleanup, including cleanup after a failed installation.
+PDFium notices from the downloaded runtime are merged with the bundled notices,
+including when their directories already exist.
 
 Third-party texts are included in [LICENSES](LICENSES/README.md); Leditor remains
 MIT. See [VALIDATION.md](VALIDATION.md) for the actual validation limits.

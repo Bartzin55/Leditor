@@ -7,7 +7,7 @@ $errors = $null
 $ast = [System.Management.Automation.Language.Parser]::ParseFile(
     (Join-Path $root 'install.ps1'), [ref]$tokens, [ref]$errors)
 if ($errors.Count) { throw ($errors | Out-String) }
-foreach ($name in @('Initialize-InstallationMarker', 'Remove-TemporaryBuildFiles')) {
+foreach ($name in @('Initialize-InstallationMarker', 'Remove-TemporaryBuildFiles', 'Copy-PdfiumLicenses')) {
     $definition = $ast.Find({ param($node)
         $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name
     }, $true)
@@ -28,6 +28,27 @@ try {
     try { Initialize-InstallationMarker $base } finally { $reader.Dispose() }
     if ([IO.File]::GetLastWriteTimeUtc($marker) -ne $before) { throw 'Existing marker was rewritten' }
     Write-Host 'PASS: existing marker is not rewritten'
+    $pdf = Join-Path $temporary 'pdfium-archive'
+    $notices = Join-Path $base 'LICENSES\pdfium'
+    New-Item -ItemType Directory (Join-Path $pdf 'licenses\nested') -Force | Out-Null
+    New-Item -ItemType Directory (Join-Path $notices 'licenses') -Force | Out-Null
+    Set-Content (Join-Path $notices 'licenses\component.txt') 'bundled notice'
+    Set-Content (Join-Path $notices 'licenses\bundled-only.txt') 'preserve notice'
+    Set-Content (Join-Path $pdf 'LICENSE') 'PDFium license'
+    Set-Content (Join-Path $pdf 'licenses\component.txt') 'archive notice'
+    Set-Content (Join-Path $pdf 'licenses\nested\component.txt') 'nested notice'
+    Copy-PdfiumLicenses $pdf $notices
+    Copy-PdfiumLicenses $pdf $notices
+    foreach ($entry in @(
+        @('LICENSE', 'PDFium license'),
+        @('licenses\component.txt', 'archive notice'),
+        @('licenses\bundled-only.txt', 'preserve notice'),
+        @('licenses\nested\component.txt', 'nested notice')
+    )) {
+        if ((Get-Content (Join-Path $notices $entry[0]) -Raw).Trim() -ne $entry[1]) { throw "Incorrect PDFium notice: $($entry[0])" }
+    }
+    if (Test-Path (Join-Path $notices 'licenses\licenses')) { throw 'PDFium license directory was nested twice' }
+    Write-Host 'PASS: PDFium notices merge into existing directories without losing notices'
     $work = Join-Path $temporary 'build [temporary]'
     New-Item -ItemType Directory (Join-Path $work 'source\target') -Force | Out-Null
     Set-Content -LiteralPath (Join-Path $work 'source\target\binary') 'temporary'

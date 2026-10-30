@@ -5,6 +5,30 @@ Date: 2026-10-29. Base: `a01cddeed5db882fb8ad95ca3a54d860c2b8b3da`
 
 ## Checks performed for 1.5.1
 
+### PDFium notice-directory correction (2026-10-30)
+
+- Based on published 1.5.1 commit `4630c1c7f084b2f66f59377eaa0bee88cf00d481`;
+  `git pull --ff-only` found no additional changes. This correction is not pushed.
+- Reproduced the reported `FileExistsError` before changing the installer by
+  including both bundled and archive PDFium notice directories in the existing
+  installation-flow test. The earlier fixture omitted that directory, which
+  explains why previous tests did not catch the failure.
+- After the fix, **16 Python tests passed**. Checks cover archive notices
+  replacing same-name bundled notices, preservation of other notices, nested
+  files, unchanged original source, and publication of the completed generation.
+- **4 PowerShell helper checks passed** with PowerShell 7.5.4 on Linux,
+  including merging PDFium notices twice into an existing directory.
+- Actual pinned PDFium Linux and Windows archives were checked against their
+  SHA-256 values. Each platform's license-copy code was exercised twice against
+  the bundled notice directory; **16 files per archive matched byte for byte**.
+  The Windows copy ran under PowerShell on Linux, not native Windows.
+- The Windows-archive test harness initially failed because Linux tar tried to
+  restore unavailable owner IDs in this container. Rerunning that harness with
+  `--no-same-owner` passed; Windows installer extraction was not changed.
+- Bash syntax, Python module compilation and `git diff --check` passed. No Rust
+  source, dependencies or version changed. No full compilation or native
+  system-wide/Windows installation was rerun for this targeted script fix.
+
 ### Installer correction, same version (2026-10-29)
 
 - Python installer suite: **16 passed**, including cleanup on success/failure,

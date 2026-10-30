@@ -1,5 +1,8 @@
 # Release 1.5.1 — 2026-10-29
 
+- Installer correction (2026-10-30): merge downloaded PDFium notices with the
+  bundled notices instead of failing when `LICENSES/pdfium/licenses` already
+  exists. Also allow the existing PDFium notice directory on Windows.
 - Fixed the Windows installer's redundant `.leditor-managed` write after tests;
   existing markers are now preserved, as they already were on Linux.
 - Added post-test preparation and temporary-file cleanup messages on both

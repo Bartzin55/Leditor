@@ -128,7 +128,10 @@ class InstallationFlowTests(unittest.TestCase):
             (base / 'current').symlink_to(old)
             source = home / 'original'
             (source / 'assets').mkdir(parents=True)
-            (source / 'LICENSES').mkdir()
+            bundled_notices = source / 'LICENSES/pdfium/licenses'
+            bundled_notices.mkdir(parents=True)
+            (bundled_notices / 'component.txt').write_bytes(b'bundled notice')
+            (bundled_notices / 'bundled-only.txt').write_bytes(b'preserve notice')
             (source / 'Cargo.toml').write_text('version = "1.5.1"')
             (source / 'Cargo.lock').write_text('test lock')
             (source / 'assets/leditor.png').write_bytes(b'icon')
@@ -154,9 +157,14 @@ class InstallationFlowTests(unittest.TestCase):
 
             def fake_fetch(url, dest):
                 with tarfile.open(dest, 'w:gz') as tar:
-                    for name in ('lib/libpdfium.so', 'LICENSE'):
+                    for name, content in (
+                        ('lib/libpdfium.so', b'pdfium'), ('LICENSE', b'PDFium license'),
+                        ('licenses/component.txt', b'archive notice'),
+                        ('licenses/nested/component.txt', b'nested notice'),
+                    ):
                         entry = tarfile.TarInfo(name)
-                        tar.addfile(entry, io.BytesIO())
+                        entry.size = len(content)
+                        tar.addfile(entry, io.BytesIO(content))
 
             class Hash:
                 def hexdigest(self):
@@ -180,6 +188,12 @@ class InstallationFlowTests(unittest.TestCase):
                     self.assertNotEqual((base / 'current').resolve(), old)
                     self.assertIn('LEDITOR_MANAGED_INSTALL=1', (base / 'current/launch').read_text())
                     self.assertTrue((home / '.local/bin/leditor').is_symlink())
+                    notices = base / 'current/LICENSES/pdfium'
+                    self.assertEqual((notices / 'licenses/component.txt').read_bytes(), b'archive notice')
+                    self.assertEqual((notices / 'licenses/bundled-only.txt').read_bytes(), b'preserve notice')
+                    self.assertEqual((notices / 'licenses/nested/component.txt').read_bytes(), b'nested notice')
+                    self.assertEqual((notices / 'LICENSE').read_bytes(), b'PDFium license')
+                    self.assertEqual((bundled_notices / 'component.txt').read_bytes(), b'bundled notice')
                 self.assertTrue((source / 'Cargo.toml').exists())
                 self.assertFalse((base / '.install-lock').exists())
                 self.assertTrue((old / 'leditor').exists())

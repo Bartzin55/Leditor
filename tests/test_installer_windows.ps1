@@ -7,7 +7,7 @@ $errors = $null
 $ast = [System.Management.Automation.Language.Parser]::ParseFile(
     (Join-Path $root 'install.ps1'), [ref]$tokens, [ref]$errors)
 if ($errors.Count) { throw ($errors | Out-String) }
-foreach ($name in @('Initialize-InstallationMarker', 'Remove-TemporaryBuildFiles', 'Copy-PdfiumLicenses')) {
+foreach ($name in @('Initialize-InstallationMarker', 'Remove-TemporaryBuildFiles', 'Copy-PdfiumLicenses', 'Get-WindowsTar')) {
     $definition = $ast.Find({ param($node)
         $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name
     }, $true)
@@ -16,6 +16,27 @@ foreach ($name in @('Initialize-InstallationMarker', 'Remove-TemporaryBuildFiles
 $temporary = Join-Path ([IO.Path]::GetTempPath()) ('leditor-script-test-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory $temporary | Out-Null
 try {
+    $originalSystemRoot = $env:SystemRoot
+    $originalPath = $env:PATH
+    try {
+        $env:SystemRoot = Join-Path $temporary 'Windows'
+        $systemTar = Join-Path $env:SystemRoot 'System32\tar.exe'
+        $msysBin = Join-Path $temporary 'msys64\usr\bin'
+        New-Item -ItemType Directory (Split-Path $systemTar), $msysBin -Force | Out-Null
+        Set-Content -LiteralPath $systemTar 'native tar placeholder'
+        Set-Content -LiteralPath (Join-Path $msysBin 'tar.exe') 'MSYS tar placeholder'
+        $env:PATH = $msysBin + [IO.Path]::PathSeparator + $originalPath
+        if ((Get-WindowsTar) -ne $systemTar) { throw 'MSYS PATH shadowed the Windows extractor' }
+        Write-Host 'PASS: Windows tar is selected even with MSYS first in PATH'
+        Remove-Item -LiteralPath $systemTar
+        $rejected = $false
+        try { Get-WindowsTar | Out-Null } catch { $rejected = $true }
+        if (!$rejected) { throw 'Missing Windows tar silently fell back to PATH' }
+        Write-Host 'PASS: missing Windows tar is rejected before compilation'
+    } finally {
+        $env:SystemRoot = $originalSystemRoot
+        $env:PATH = $originalPath
+    }
     $base = Join-Path $temporary 'app'
     New-Item -ItemType Directory $base | Out-Null
     Initialize-InstallationMarker $base

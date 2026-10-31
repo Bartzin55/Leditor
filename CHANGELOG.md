@@ -1,5 +1,10 @@
 # Release 1.5.1 — 2026-10-29
 
+- Windows correction (2026-10-31): explicitly use the built-in Windows tar for
+  both extractions, preventing MSYS2 PATH changes from selecting GNU tar and
+  interpreting drive-letter paths as remote hosts. Check its presence early.
+- Compile the Linux theme-portal field only on Linux, avoiding the unused-field
+  warning on Windows.
 - Installer correction (2026-10-30): merge downloaded PDFium notices with the
   bundled notices instead of failing when `LICENSES/pdfium/licenses` already
   exists. Also allow the existing PDFium notice directory on Windows.

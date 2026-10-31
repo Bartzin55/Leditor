@@ -18,6 +18,10 @@ No claim is made that this prevents unrelated filesystem sharing conflicts.
 PDFium notice directories are merged inside the new installation generation:
 runtime-archive files replace same-name bundled notices, other notices remain,
 and the original source tree is not modified.
+Both Windows archive extractions use the absolute built-in tar path, checked
+before creating the build workspace. MSYS2 PATH changes cannot replace it.
+The theme portal member and initializer share the Linux-only configuration of
+their consumer in `ui/theme.rs`.
 
 PDFium archives are version-pinned and SHA-256 checked. Cargo is locked. Native
 package solvers select compatible releases; installed conda metadata / MSYS2

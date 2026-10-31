@@ -11,6 +11,13 @@ function Download([string]$Url, [string]$Destination) {
     Write-Host "Downloading $Url"
     Invoke-WebRequest -UseBasicParsing -Uri $Url -OutFile $Destination
 }
+function Get-WindowsTar {
+    $program = Join-Path $env:SystemRoot 'System32\tar.exe'
+    if (!(Test-Path -LiteralPath $program -PathType Leaf)) {
+        throw "Windows tar.exe was not found: $program. Windows 10/11 with the built-in tar utility is required."
+    }
+    return $program
+}
 function Initialize-InstallationMarker([string]$Directory) {
     $marker = Join-Path $Directory '.leditor-managed'
     if (!(Test-Path -LiteralPath $marker)) {
@@ -35,6 +42,7 @@ function Remove-TemporaryBuildFiles([string]$Directory) {
 if ([Environment]::OSVersion.Platform -ne 'Win32NT' -or $env:PROCESSOR_ARCHITECTURE -ne 'AMD64') {
     throw 'Supported: Windows 10/11 x64, running 64-bit PowerShell.'
 }
+$windowsTar = Get-WindowsTar
 if (!$Scope) { $Scope = if ((Read-Host 'Install for [1] current user (default) or [2] all users') -eq '2') {'system'} else {'user'} }
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if ($Scope -eq 'system' -and !$isAdmin) {
@@ -79,7 +87,7 @@ try {
     if (!$msys) {
         $archive = Join-Path $work 'msys.tar.xz'
         Download 'https://repo.msys2.org/distrib/x86_64/msys2-base-x86_64-20260927.tar.xz' $archive
-        Invoke-Checked 'tar.exe' @('-xf', $archive, '-C', $work)
+        Invoke-Checked $windowsTar @('-xf', $archive, '-C', $work)
         $msys = Join-Path $work 'msys64'
         $env:MSYSTEM = 'UCRT64'
         $env:CHERE_INVOKING = '1'
@@ -131,7 +139,7 @@ try {
         New-Item -ItemType Directory $pdf | Out-Null
         Download 'https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7881/pdfium-win-x64.tgz' "$work\pdfium.tgz"
         if ((Get-FileHash "$work\pdfium.tgz" -Algorithm SHA256).Hash -ne '73cc0de638ac2095e7445bf56a38200a5b7c7ca0e9f4ba144598f2457377ac08') { throw 'PDFium checksum mismatch' }
-        Invoke-Checked 'tar.exe' @('-xf',"$work\pdfium.tgz",'-C',$pdf)
+        Invoke-Checked $windowsTar @('-xf',"$work\pdfium.tgz",'-C',$pdf)
         Copy-Item "$pdf\bin\pdfium.dll" $generation
         Copy-PdfiumLicenses $pdf "$generation\LICENSES\pdfium"
         # Launcher paths are relative, so moving the installation does not break GTK data lookup.

@@ -31,8 +31,9 @@ The Linux user installation uses `$XDG_DATA_HOME/leditor-install` and
 
 Omit `--source .` / `-Source .` to clone published main. A specific
 branch/tag can be selected with `--ref REF` / `-Ref REF`. Do not assume a release
-tag exists. The 1.5.1 release is published, but the PDFium notice-directory
-correction in this ZIP has not been pushed: use local source mode to test it.
+tag exists. The 1.5.1 release and PDFium notice-directory fix are published,
+but the Windows tar-selection correction in this ZIP has not been pushed:
+use local source mode to test it.
 Re-running against the same Git revision does not rebuild; a changed revision
 creates a new generation. Local source mode always rebuilds.
 

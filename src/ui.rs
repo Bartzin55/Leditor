@@ -47,6 +47,7 @@ struct Editor {
     footer: gtk::CenterBox,
     system_dark: Cell<bool>,
     applying_theme: Cell<bool>,
+    #[cfg(target_os = "linux")]
     portal: RefCell<Option<gio::DBusProxy>>,
     window: gtk::ApplicationWindow,
     explorer: Explorer,
@@ -195,6 +196,7 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         footer,
         system_dark: Cell::new(false),
         applying_theme: Cell::new(false),
+        #[cfg(target_os = "linux")]
         portal: RefCell::new(None),
         footer_left,
         footer_right,

@@ -5,6 +5,24 @@ Date: 2026-10-29. Base: `a01cddeed5db882fb8ad95ca3a54d860c2b8b3da`
 
 ## Checks performed for 1.5.1
 
+### Windows extractor correction (2026-10-31)
+
+- Base: published commit `1c8eb38aac4ae13f6f9cd306e2adecf5c7adfd8a`;
+  pull found no additional changes. This correction has not been pushed.
+- The reported `/usr/bin/tar: Cannot connect to C` corresponds to selecting
+  MSYS GNU tar after prepending its directories to PATH. Both extraction calls
+  now use the checked absolute `%SystemRoot%\System32\tar.exe` path.
+- **6 PowerShell helper checks passed** on Linux with PowerShell 7.5.4.
+  Added tests put an MSYS tar placeholder first in PATH and verify the native
+  path is selected; a missing native tar fails without falling back to MSYS.
+  These tests check selection, not execution of a Windows tar binary.
+- **16 Python installer tests passed**; PowerShell AST parsing for both scripts
+  and the helper tests, extraction-call inspection and `git diff --check` passed.
+- The `portal` field and initializer are now Linux-only, matching the existing
+  Linux-only DBus consumer. No compiler is available in this current environment;
+  Rust compilation and Windows execution were not rerun. The reported warning
+  did not cause installation failure; the tar exit code did.
+
 ### PDFium notice-directory correction (2026-10-30)
 
 - Based on published 1.5.1 commit `4630c1c7f084b2f66f59377eaa0bee88cf00d481`;

@@ -1,3 +1,16 @@
+# Development Notes — 1.5.2
+
+The Windows resize workaround selects GSK_RENDERER=cairo at the very start of
+main, before GTK initialization and application-created threads. The selection
+is process-local, Windows-only, and respects explicit environment overrides.
+The video shows rendering trails but does not establish the exact driver/GTK
+root cause. Cairo bypasses GPU rendering; native Windows retesting is necessary.
+No resize handlers, layout reconstruction or new dependencies were added.
+
+The icon is enlarged within its canvas rather than changing OS icon-slot sizes.
+The embedded GTK resource, Linux installer and About reuse the PNG; Windows
+executable resources use the matching multi-size ICO. No new shortcuts exist.
+
 # Development Notes — 1.5.1
 
 The 1.5.1 installer is separate from the GTK application. Linux uses a small

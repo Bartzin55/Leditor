@@ -1,3 +1,39 @@
+# Validation — Leditor 1.5.2
+
+Date: 2026-10-31. Base: published commit
+`7eeab9056ff8fc19c5e224af5e06e5ddb06ec55e`. Pull found no new changes.
+No push performed for 1.5.2.
+
+## Evidence and checks
+
+- Inspected the supplied 38.4-second Windows recording via sampled frames.
+  Visible trails include the title bar during resizing. The video does not
+  prove whether the root cause is GTK, a GPU driver or desktop composition.
+- Selected Cairo as a Windows-only compatibility workaround, before GTK
+  initialization. Existing explicit GSK_RENDERER values are respected.
+  GTK documents this renderer selection and its software fallback:
+  https://docs.gtk.org/gtk4/running.html
+- Python installer suite: **16 passed**, with downloads/compilation mocked as
+  documented in the earlier sections. Bash syntax and git diff --check passed.
+- PNG exported at 512x512 RGBA. Visible artwork (alpha >=128) spans 452 pixels
+  vertically (88.3%), versus about 60% in the prior canvas.
+- ICO verified at 16, 24, 32, 48, 64, 128 and 256 pixels, using the same artwork.
+- Version manifests, About release date, locale comments and packaging reviewed.
+  Dependency versions and license inventory are unchanged.
+
+## Limits / required local testing
+
+- Rust, Cargo, pkg-config and GTK development packages are unavailable in this
+  environment. No new compilation, Rust test or GUI run is claimed for 1.5.2.
+- Native Windows resize retesting is required; this is a rendering workaround,
+  not a confirmed diagnosis or a verified elimination of the reported bug.
+- Cairo can increase CPU use when rendering large windows or PDF pages. Linux
+  keeps its existing renderer selection.
+- Verify PNG/ICO appearance in the launcher, taskbar and About on both systems.
+  Shell icon caches may require restarting the app or repinning its shortcut.
+
+## Earlier validation (historical, not rerun unless stated above)
+
 # Validation — Leditor 1.5.1
 
 Date: 2026-10-29. Base: `a01cddeed5db882fb8ad95ca3a54d860c2b8b3da`

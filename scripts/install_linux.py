@@ -42,7 +42,7 @@ def run(*args, **kwargs):
 
 def fetch(url, dest):
     print('Downloading:', url, flush=True)
-    req = urllib.request.Request(url, headers={'User-Agent': 'Leditor-installer/1.5.1'})
+    req = urllib.request.Request(url, headers={'User-Agent': 'Leditor-installer/1.5.2'})
     with urllib.request.urlopen(req, timeout=120) as response, open(dest, 'wb') as out:
         shutil.copyfileobj(response, out)
 

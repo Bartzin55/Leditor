@@ -633,7 +633,7 @@ dependencies = [
 
 [[package]]
 name = "leditor"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "fluent-bundle",
  "gtk4",

@@ -12,6 +12,13 @@ mod ui;
 mod viewer;
 use gtk::prelude::*;
 fn main() -> gtk::glib::ExitCode {
+    // Set before GTK initialization or any application threads are started.
+    // The software renderer avoids GPU composition artifacts during Win32 resize.
+    // Respect an explicit renderer override for troubleshooting/performance tests.
+    #[cfg(target_os = "windows")]
+    if std::env::var_os("GSK_RENDERER").is_none() {
+        std::env::set_var("GSK_RENDERER", "cairo");
+    }
     #[cfg(target_os = "linux")]
     if let Err(error) = linux_install::integrate() {
         eprintln!("Leditor: desktop integration failed: {error}");

@@ -1,6 +1,6 @@
 # Leditor
 
-## 1.5.1 — installation scripts
+## 1.5.2 — Windows rendering and icon sizing
 
 Build/install from the extracted source with `bash install.sh --source .` on
 Linux or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .`
@@ -21,8 +21,8 @@ MIT. See [VALIDATION.md](VALIDATION.md) for the actual validation limits.
 
 ### A modern text editor for Linux and Windows.
 
-**Version:** 1.5.1
-**Release date:** October 28, 2026
+**Version:** 1.5.2
+**Release date:** October 31, 2026
 
 Leditor brings text editing and file organization together in a clean, minimalist workspace. Write, edit, and browse your files with independent tabs, an integrated file explorer, and a distraction-free interface.
 

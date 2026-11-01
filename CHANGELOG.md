@@ -1,3 +1,13 @@
+# Release 1.5.2 — 2026-10-31
+
+- Default to the GTK Cairo renderer on Windows to work around visual trails
+  during window resizing. Preserve explicit GSK_RENDERER overrides and Linux
+  renderer selection. Native Windows validation remains pending.
+- Enlarge the document symbol within the application icon canvas for Linux,
+  Windows, launchers and About; update PNG and multi-size ICO assets together.
+- Update version/About metadata and documentation. No new shortcuts or menu
+  labels; reviewed English, Portuguese and Spanish catalogs.
+
 # Release 1.5.1 — 2026-10-29
 
 - Windows correction (2026-10-31): explicitly use the built-in Windows tar for

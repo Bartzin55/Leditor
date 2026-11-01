@@ -118,3 +118,5 @@ indentation-options = Opciones de sangría
 syntax-highlighting = Resaltado de sintaxis
 syntax-enable = Activar
 syntax-detect = Detectar lenguaje
+
+# 1.5.2: Actualización de renderizado e icono; sin nuevas etiquetas ni atajos.

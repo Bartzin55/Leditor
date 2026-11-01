@@ -1,4 +1,4 @@
-# Build and Run — Leditor 1.5.1
+# Build and Run — Leditor 1.5.2
 
 ## Automated installation / update
 
@@ -31,9 +31,8 @@ The Linux user installation uses `$XDG_DATA_HOME/leditor-install` and
 
 Omit `--source .` / `-Source .` to clone published main. A specific
 branch/tag can be selected with `--ref REF` / `-Ref REF`. Do not assume a release
-tag exists. The 1.5.1 release and PDFium notice-directory fix are published,
-but the Windows tar-selection correction in this ZIP has not been pushed:
-use local source mode to test it.
+tag exists. Version 1.5.2 in this ZIP has not been pushed: use local source mode
+to test it. Published main still contains 1.5.1.
 Re-running against the same Git revision does not rebuild; a changed revision
 creates a new generation. Local source mode always rebuilds.
 
@@ -218,3 +217,14 @@ Run the new UI integration suite separately with a display and PDFium installed:
 ```sh
 cargo test --locked --bin leditor ui::tests::version_150_syntax_media_and_save_all -- --ignored --exact
 ```
+
+## Windows rendering in 1.5.2
+
+On Windows, Leditor selects GTK's Cairo software renderer before GTK starts,
+unless GSK_RENDERER is already set. This is a compatibility workaround for
+resize artifacts reported with the GPU rendering path; native Windows retesting
+is required. Software rendering may use more CPU with large windows or PDFs.
+Linux keeps GTK's normal renderer selection. No global environment setting is
+changed. The application icon now occupies more of its square canvas; PNG and
+ICO are updated together. Existing pinned Windows shortcuts may need repinning
+if the shell keeps a cached icon.

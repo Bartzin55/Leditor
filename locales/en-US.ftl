@@ -122,4 +122,4 @@ syntax-highlighting = Syntax highlighting
 syntax-enable = Enable
 syntax-detect = Detect language
 
-# 1.5.2: Window rendering and icon update; no new UI labels or shortcuts.
+# 1.5.2 (2026-11-01): Native Windows frame revision; no new labels or shortcuts.

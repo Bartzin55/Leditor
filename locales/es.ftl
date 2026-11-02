@@ -119,4 +119,4 @@ syntax-highlighting = Resaltado de sintaxis
 syntax-enable = Activar
 syntax-detect = Detectar lenguaje
 
-# 1.5.2: Actualización de renderizado e icono; sin nuevas etiquetas ni atajos.
+# 1.5.2 (2026-11-01): Marco nativo en Windows; sin nuevas etiquetas ni atajos.

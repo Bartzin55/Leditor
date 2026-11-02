@@ -1,8 +1,13 @@
 # Release 1.5.2 — 2026-10-31
 
-- Default to the GTK Cairo renderer on Windows to work around visual trails
-  during window resizing. Preserve explicit GSK_RENDERER overrides and Linux
-  renderer selection. Native Windows validation remains pending.
+- Resize correction revised on 2026-11-01: use native Windows title bars and
+  resize borders (`GTK_CSD=0` by default). The prior Cairo-only workaround did
+  not resolve the reported trails and has been removed. Explicit environment
+  overrides are retained; Linux decoration and renderer selection are unchanged.
+- Add a separate GUI regression test for resizing, maximizing/restoring and
+  entering/leaving Focus mode while preserving document text and caret position.
+  See VALIDATION.md for the distinction between checks run here and Windows
+  checks still required on the affected machine.
 - Enlarge the document symbol within the application icon canvas for Linux,
   Windows, launchers and About; update PNG and multi-size ICO assets together.
 - Update version/About metadata and documentation. No new shortcuts or menu
@@ -263,3 +268,8 @@ The initial MVP and its maintenance corrections were delivered under version 0.1
 The Windows x64 packages for versions 0.2.1 and 1.0.0 were cross-compiled on Linux. Their test executables were compiled, but execution through Wine was blocked before tests could start by `wineserver: socket: Operation not permitted`. No successful native Windows execution is claimed. These packaging updates did not change the editor's source version.
 
 
+
+Windows resize follow-up (1.5.2): default to native frame + Cairo +
+DirectComposition, the best of the user-tested configurations. Blank areas
+during live resize remain a known issue; this is a mitigation, not a complete
+fix. Existing environment overrides take precedence. See RESIZE.md.

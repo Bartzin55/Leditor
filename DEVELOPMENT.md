@@ -1,11 +1,21 @@
 # Development Notes — 1.5.2
 
-The Windows resize workaround selects GSK_RENDERER=cairo at the very start of
-main, before GTK initialization and application-created threads. The selection
-is process-local, Windows-only, and respects explicit environment overrides.
-The video shows rendering trails but does not establish the exact driver/GTK
-root cause. Cairo bypasses GPU rendering; native Windows retesting is necessary.
-No resize handlers, layout reconstruction or new dependencies were added.
+The 2026-11-01 resize revision replaces the failed Cairo-only workaround with
+native Windows decoration. `configure_platform()` runs at the start of main,
+before GTK initialization or application-created threads. On Windows it sets
+`GTK_CSD=0` only when not explicitly configured. The main window has no custom
+titlebar, so GTK delegates the frame to Win32. Linux is unchanged. We no longer
+force a renderer: Cairo can still present through DirectComposition on current
+GTK, and selecting it alone does not change the decoration/drag-resize path.
+
+This changes the Windows frame's appearance to the OS style; the editor's CSS
+and themes remain unchanged. No native message hooks, redraw timers, forced
+layout reconstruction or new dependency is introduced. The reason for choosing
+this path and the limits of the diagnosis are in [RESIZE.md](RESIZE.md).
+`src/ui_resize_tests.rs` exercises size changes, maximize/restore and Focus mode
+in a separate process, including a native-frame assertion on Windows. This
+checks state/layout; it is not proof that a particular GPU/compositor is free
+of visual trails during a real mouse drag.
 
 The icon is enlarged within its canvas rather than changing OS icon-slot sizes.
 The embedded GTK resource, Linux installer and About reuse the PNG; Windows
@@ -141,3 +151,8 @@ Reference: https://docs.gtk.org/gtk4/property.Settings.gtk-interface-color-schem
 - Save All holds the existing busy guard, snapshots the ordered tab list, and awaits the existing Save/Save as path once per text tab. Cancel/failure stops subsequent saves, without dropping unsaved tabs.
 - The syntax toggle is a saved global preference. Language choices are per document; optional recovery preserves them. Opening with highlighting disabled does not guess a language; enabling it detects tabs that have no earlier selection. Save as with a new path re-detects language when highlighting is enabled.
 - Rust minimum metadata is 1.88 because the resolved libloading dependency requires it. No source is pushed as part of ZIP delivery.
+
+Windows resize follow-up (1.5.2): default to native frame + Cairo +
+DirectComposition, the best of the user-tested configurations. Blank areas
+during live resize remain a known issue; this is a mitigation, not a complete
+fix. Existing environment overrides take precedence. See RESIZE.md.

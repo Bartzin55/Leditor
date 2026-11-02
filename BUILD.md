@@ -32,7 +32,7 @@ The Linux user installation uses `$XDG_DATA_HOME/leditor-install` and
 Omit `--source .` / `-Source .` to clone published main. A specific
 branch/tag can be selected with `--ref REF` / `-Ref REF`. Do not assume a release
 tag exists. Version 1.5.2 in this ZIP has not been pushed: use local source mode
-to test it. Published main still contains 1.5.1.
+to test it. Published main contains the earlier 1.5.2 revision.
 Re-running against the same Git revision does not rebuild; a changed revision
 creates a new generation. Local source mode always rebuilds.
 
@@ -220,11 +220,38 @@ cargo test --locked --bin leditor ui::tests::version_150_syntax_media_and_save_a
 
 ## Windows rendering in 1.5.2
 
-On Windows, Leditor selects GTK's Cairo software renderer before GTK starts,
-unless GSK_RENDERER is already set. This is a compatibility workaround for
-resize artifacts reported with the GPU rendering path; native Windows retesting
-is required. Software rendering may use more CPU with large windows or PDFs.
-Linux keeps GTK's normal renderer selection. No global environment setting is
-changed. The application icon now occupies more of its square canvas; PNG and
-ICO are updated together. Existing pinned Windows shortcuts may need repinning
-if the shell keeps a cached icon.
+The 2026-11-01 revision uses native Windows title bars and resize borders,
+setting `GTK_CSD=0` for this process before GTK starts when it has not been
+explicitly configured. No global environment setting is changed. The previous
+forced Cairo renderer was ineffective on the reported system and is removed;
+GTK now selects its renderer normally. Explicit `GTK_CSD` and `GSK_RENDERER`
+overrides are respected. Remove any manually set overrides for a default-path
+test. The title bar follows Windows' appearance; the editor keeps its own themes.
+Linux is unchanged. See [RESIZE.md](RESIZE.md) for research and the Windows
+manual test checklist.
+
+To test this ZIP before publication, extract it, close the old Leditor, open
+PowerShell in that directory, and use the local source explicitly:
+
+```powershell
+powershell.exe -NoProfile -NoExit -ExecutionPolicy Bypass -File .\install.ps1 -Source .
+```
+
+Without `-Source .`, the installer clones the published repository, which may
+still contain the earlier 1.5.2 attempt. For a system installation, open the
+terminal as administrator first to keep the output in that window. The normal
+installer tests do not simulate interactive window resizing.
+
+The separate GUI regression test requires a graphical display and window manager:
+
+```sh
+cargo test --locked --bin leditor ui::resize_tests::resize_maximize_and_focus_preserve_editor -- --ignored --exact
+```
+
+The icon remains the enlarged PNG/ICO delivered in 1.5.2. Existing pinned Windows
+shortcuts may need repinning if the shell keeps a cached icon.
+
+Windows resize follow-up (1.5.2): default to native frame + Cairo +
+DirectComposition, the best of the user-tested configurations. Blank areas
+during live resize remain a known issue; this is a mitigation, not a complete
+fix. Existing environment overrides take precedence. See RESIZE.md.

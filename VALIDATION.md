@@ -1,36 +1,74 @@
-# Validation — Leditor 1.5.2
+# Validation — Leditor 1.5.2, resize revision
 
-Date: 2026-10-31. Base: published commit
-`7eeab9056ff8fc19c5e224af5e06e5ddb06ec55e`. Pull found no new changes.
-No push performed for 1.5.2.
+Date: 2026-11-01. Base: published commit
+`78af4daaa7954456231654fd7b464930bbb09a03`. `git pull --ff-only` found no
+new changes. Version remains 1.5.2. This revision has not been pushed.
 
-## Evidence and checks
+## Diagnosis and implementation
 
-- Inspected the supplied 38.4-second Windows recording via sampled frames.
-  Visible trails include the title bar during resizing. The video does not
-  prove whether the root cause is GTK, a GPU driver or desktop composition.
-- Selected Cairo as a Windows-only compatibility workaround, before GTK
-  initialization. Existing explicit GSK_RENDERER values are respected.
-  GTK documents this renderer selection and its software fallback:
-  https://docs.gtk.org/gtk4/running.html
-- Python installer suite: **16 passed**, with downloads/compilation mocked as
-  documented in the earlier sections. Bash syntax and git diff --check passed.
-- PNG exported at 512x512 RGBA. Visible artwork (alpha >=128) spans 452 pixels
-  vertically (88.3%), versus about 60% in the prior canvas.
-- ICO verified at 16, 24, 32, 48, 64, 128 and 256 pixels, using the same artwork.
-- Version manifests, About release date, locale comments and packaging reviewed.
-  Dependency versions and license inventory are unchanged.
+- The user confirmed that the initial Cairo-only workaround did not fix the
+  Windows resize trails. That workaround is removed.
+- Reviewed the supplied 38.4-second recording, application layout/drawing code,
+  GTK documentation and GTK 4.24.1 Win32/decoration/Cairo source. See RESIZE.md
+  for source links, observations, inference and the affected-machine checklist.
+- Windows now defaults to native decoration (`GTK_CSD=0`) before GTK starts,
+  changing the frame/interactive-resize path. Explicit environment overrides
+  remain respected. Renderer selection is returned to GTK. Linux is unchanged.
+- The enlarged PNG/ICO assets are unchanged from the published 1.5.2.
 
-## Limits / required local testing
+## Checks completed in this revision
 
-- Rust, Cargo, pkg-config and GTK development packages are unavailable in this
-  environment. No new compilation, Rust test or GUI run is claimed for 1.5.2.
-- Native Windows resize retesting is required; this is a rendering workaround,
-  not a confirmed diagnosis or a verified elimination of the reported bug.
-- Cairo can increase CPU use when rendering large windows or PDF pages. Linux
-  keeps its existing renderer selection.
-- Verify PNG/ICO appearance in the launcher, taskbar and About on both systems.
-  Shell icon caches may require restarting the app or repinning its shortcut.
+Environment: Linux x86_64, Rust/Cargo 1.99.1, GTK 4.14.5, GtkSourceView 5.12.0,
+Xvfb 1920x1080 with Openbox, Cairo for the headless test runs, PDFium 7881.
+Test dependencies were provisioned in temporary directories; project manifests
+and lockfile were not changed.
+
+- `cargo check --locked`: passed.
+- `cargo build --locked` (debug executable): passed.
+- Windows-target Rust type checking (`cargo check --locked --target
+  x86_64-pc-windows-gnu --all-targets`): passed, including the Windows startup
+  branch and native-frame test assertions. This used cross pkg-config metadata
+  from the Linux development packages; **it does not validate Windows DLL
+  linkage, ABI compatibility or execution**. Native Windows building remains
+  required. The only warning concerns existing media-test helpers unused by the
+  Windows test target (`page_count`, `rendered_pages`); production check is clean.
+- `cargo test --locked -- --test-threads=1`: 34 passed, 0 failed, 3 GUI tests
+  intentionally ignored in that invocation; 0 doctests.
+- Ran each ignored GUI test separately: all 3 passed. Total: **37 Rust tests**.
+  - New resize test: eight size changes across light/dark themes, with search
+    visible; maximize/restore; Focus fullscreen/restore; document text, caret,
+    zoom and surrounding UI state preserved.
+  - Existing find/replace, Focus and minimap integration test.
+  - Existing syntax, image/PDF and Save all integration test.
+- Python installer suite: **16 passed**. Downloads and compilation are mocked
+  by that existing suite; it does not simulate Windows desktop interaction.
+- `bash -n install.sh uninstall.sh` and `git diff --check`: passed.
+- Rustfmt applied to changed/new Rust implementation/test files. No whole-project
+  reformat or new dependency was introduced.
+- Resource compilation succeeded for the existing seven-size Windows ICO
+  (x86_64 COFF object). Icon artwork remains identical to the published ZIP.
+
+The initial test-environment setup had package-cache permissions, development
+symlink and runtime search-path problems. Those were resolved in temporary
+paths before the successful build/test runs; no product changes were needed.
+Headless runs emitted non-fatal EGL/DRI3 warnings because Xvfb has no accelerated
+GPU. The Python suite emitted its existing tarfile future-default warning.
+
+## Limits
+
+- No native Windows machine/GPU/compositor is available here. Linux GUI tests
+  validate layout/state, not Win32 interactive dragging or disappearance of the
+  user's visual trails. Windows-native frame assertions are included for a
+  local run, but are not executed by the Linux suite.
+- This is a targeted compatibility correction supported by source inspection,
+  not a proven diagnosis of a specific upstream GTK or graphics-driver defect.
+- A Windows release executable and Windows end-to-end installer run were not
+  produced/tested in this revision. No new release/LTO Linux build was run.
+- Test the revised ZIP with `install.ps1 -Source .`; otherwise the installer
+  can clone the previously published 1.5.2 instead. Close the old instance first.
+- The native Windows title bar follows the system style; editor themes and
+  the enlarged icon are preserved. Check resizing at the affected display scale,
+  all edges/corners, maximize/restore, snapping and Focus as listed in RESIZE.md.
 
 ## Earlier validation (historical, not rerun unless stated above)
 
@@ -190,3 +228,39 @@ An initial PDF scrolling test found that a newly visible page was not invalidate
 - Installed GtkSourceView language/style data and GdkPixbuf PNG/JPEG loaders are required. Language labels come from that native catalog; low-level library/OS error details may remain in English.
 
 See BUILD.md for the repeatable commands and runtime setup. No tests justify claiming the application is bug-free.
+
+## Follow-up: user report, 2026-11-01
+
+Windows 11 build 26200, GTK 4.24.1, AMD RX 6600, 180 Hz. Windows already
+enables showing contents while dragging. All three cases exited successfully
+but the user reported blank exposed client areas during resize in all of them.
+The recording confirms a native frame growing beyond the old client drawing.
+
+The default renderer already fell back to Cairo: GL and Vulkan reported that
+they require DirectComposition. Case 2 rejected GDK_DISABLE=dcomp; it is not
+a validated independent disable test. Case 3 accepted GDK_DEBUG=dcomp and
+selected Cairo, with no reported initialization failure. These logs do not
+independently prove which presentation path every frame used.
+
+Frame-clock logs contain maximum inter-frame intervals of 3068.1, 2411.1 and
+1411.1 ms respectively. Idle applications need not paint continuously, so
+these maxima alone are NOT resize-stall measurements or a performance benchmark.
+CSV traces observed native move/resize in 92/154, 196/289 and 221/278 samples.
+They measure HWND client geometry, not GTK widget allocations. Exact root cause
+remains unresolved: these records cannot separate frame scheduling, layout and
+presentation conclusively. There is no evidence sufficient to blame the GPU
+driver, GtkSourceView or missing D-Bus.
+
+User-authorized mitigation: native frame + Cairo + DirectComposition on Windows.
+Set GTK_CSD=0, GSK_RENDERER=cairo and GDK_DEBUG=dcomp before GTK initializes,
+only when each variable is absent. No frame-debug logging is enabled. Explicit
+overrides remain respected. Linux and version 1.5.2 are unchanged.
+This supersedes the renderer-default policy described above. No guaranteed
+fix or native Windows validation of this source revision is claimed.
+
+Validation for the DirectComposition default change: git diff --check and ZIP
+integrity/license inventory passed. A fresh cargo check was attempted but could
+not start: the temporary Rust/native build environment from the previous turn
+is no longer present. The earlier 37 Rust and 16 Python passes apply to the
+preceding native-frame revision, not to a Windows execution of this change.
+No native Windows build or live-resize test was performed here.

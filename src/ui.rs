@@ -20,6 +20,9 @@ mod syntax;
 #[path = "ui/tab_actions.rs"]
 mod tab_actions;
 mod theme;
+#[cfg(test)]
+#[path = "ui_resize_tests.rs"]
+mod resize_tests;
 use std::{
     cell::{Cell, RefCell},
     collections::BTreeMap,

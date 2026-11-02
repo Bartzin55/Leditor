@@ -2,6 +2,12 @@
 
 ## 1.5.2 — Windows rendering and icon sizing
 
+The revised resize fix uses Windows' own title bar and resize borders, replacing
+the unsuccessful Cairo-only workaround. The editor keeps its light/dark palettes
+and enlarged icon; the Windows title bar follows the system appearance. Linux
+is unaffected by this platform-specific change. See [VALIDATION.md](VALIDATION.md)
+for testing results and remaining Windows validation.
+
 Build/install from the extracted source with `bash install.sh --source .` on
 Linux or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .`
 on Windows. Choose a per-user installation without administrator requests or a
@@ -140,3 +146,8 @@ See [BUILD.md](BUILD.md) for Linux and Windows build instructions, [DEVELOPMENT.
 Most of Leditor's code is generated with the assistance of artificial intelligence, under human supervision.
 
 
+
+Windows resize follow-up (1.5.2): default to native frame + Cairo +
+DirectComposition, the best of the user-tested configurations. Blank areas
+during live resize remain a known issue; this is a mitigation, not a complete
+fix. Existing environment overrides take precedence. See RESIZE.md.

@@ -119,4 +119,4 @@ syntax-highlighting = Realce de sintaxe
 syntax-enable = Ativar
 syntax-detect = Detectar linguagem
 
-# 1.5.2: Atualização de renderização e ícone; sem novos rótulos ou atalhos.
+# 1.5.2 (2026-11-01): Moldura nativa no Windows; sem novos rótulos ou atalhos.

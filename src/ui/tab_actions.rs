@@ -1,5 +1,21 @@
 use super::*;
 impl Editor {
+    pub(super) fn cycle_tab(&self, step: isize) {
+        let next = {
+            let tabs = self.tabs.borrow();
+            if tabs.is_empty() {
+                return;
+            }
+            let index = tabs
+                .iter()
+                .position(|tab| Some(tab.id) == self.active.get())
+                .unwrap_or(0);
+            let next = (index as isize + step).rem_euclid(tabs.len() as isize) as usize;
+            tabs[next].id
+        };
+        self.select(next);
+    }
+
     pub(super) fn setup_tab_actions(self: &Rc<Self>, tab: &Rc<Tab>) {
         let focus = gtk::EventControllerFocus::new();
         let weak = Rc::downgrade(self);

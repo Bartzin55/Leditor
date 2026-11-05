@@ -1,4 +1,32 @@
 use super::*;
+
+// GtkSourceView 5.12 discovers resource URIs but its style parser requires real
+// files. Keep embedded overrides in a private temporary directory for the GUI
+// thread's lifetime; no installation paths or extra runtime assets are needed.
+thread_local! {
+    static STYLE_DIRECTORY: Option<tempfile::TempDir> = {
+        let create = || -> std::io::Result<tempfile::TempDir> {
+            let dir = tempfile::Builder::new().prefix("leditor-styles-").tempdir()?;
+            for (name, data) in [
+                ("leditor-light.xml", include_str!("../../assets/leditor-light.xml")),
+                ("leditor-dark.xml", include_str!("../../assets/leditor-dark.xml")),
+            ] {
+                std::fs::write(dir.path().join(name), data)?;
+            }
+            sourceview5::StyleSchemeManager::default()
+                .append_search_path(&dir.path().to_string_lossy());
+            Ok(dir)
+        };
+        match create() {
+            Ok(dir) => Some(dir),
+            Err(error) => {
+                eprintln!("Leditor: could not prepare editor styles: {error}");
+                None
+            }
+        }
+    };
+}
+
 impl Editor {
     pub(super) fn detect_syntax(&self, tab: &Tab) {
         if !tab.is_text() {
@@ -36,9 +64,15 @@ impl Editor {
         let theme = self.theme.borrow();
         let light =
             theme.as_str() == "light" || (theme.as_str() == "system" && !self.system_dark.get());
+        STYLE_DIRECTORY.with(|_| {});
         let manager = sourceview5::StyleSchemeManager::default();
         let scheme = manager
-            .scheme(if light { "Adwaita" } else { "Adwaita-dark" })
+            .scheme(if light {
+                "leditor-light"
+            } else {
+                "leditor-dark"
+            })
+            .or_else(|| manager.scheme(if light { "Adwaita" } else { "Adwaita-dark" }))
             .or_else(|| manager.scheme(if light { "classic" } else { "oblivion" }));
         buffer.set_style_scheme(scheme.as_ref());
     }

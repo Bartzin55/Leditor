@@ -1,12 +1,22 @@
 # Leditor
 
-## 1.5.2 — Windows rendering and icon sizing
+## 1.5.3 — Native GtkSourceView editing
 
-The revised resize fix uses Windows' own title bar and resize borders, replacing
-the unsuccessful Cairo-only workaround. The editor keeps its light/dark palettes
-and enlarged icon; the Windows title bar follows the system appearance. Linux
-is unaffected by this platform-specific change. See [VALIDATION.md](VALIDATION.md)
-for testing results and remaining Windows validation.
+- Native GtkSourceMap at the right, sharing syntax colors and scroll navigation.
+- Native logical line numbers, preserving the yellow current-line number.
+- Native Tab/Shift+Tab indentation and configurable tab stops/spaces.
+- Native GtkSourceBuffer case conversion, preserving first-letter-only commands.
+- Word Wrap and Undo/Redo continue through the native GTK/GtkSourceView APIs.
+- Ctrl+Tab / Ctrl+Shift+Tab navigate tabs in display order, wrapping at the ends.
+- Ctrl+Shift+O opens a folder; Ctrl+Shift+W closes it; Ctrl+Shift+N creates one.
+
+Use `bash install.sh --source .` or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .` from this extracted ZIP. This release is not yet pushed.
+See BUILD.md, DEVELOPMENT.md and VALIDATION.md for setup, design and test results.
+
+
+Windows retains the 1.5.2 compatibility profile: native title bar/borders,
+Cairo and DirectComposition. It reduced the reported artifacts but did not fully
+resolve live resizing. See RESIZE.md and VALIDATION.md.
 
 Build/install from the extracted source with `bash install.sh --source .` on
 Linux or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .`
@@ -27,7 +37,7 @@ MIT. See [VALIDATION.md](VALIDATION.md) for the actual validation limits.
 
 ### A modern text editor for Linux and Windows.
 
-**Version:** 1.5.2
+**Version:** 1.5.3
 **Release date:** October 31, 2026
 
 Leditor brings text editing and file organization together in a clean, minimalist workspace. Write, edit, and browse your files with independent tabs, an integrated file explorer, and a distraction-free interface.
@@ -56,7 +66,7 @@ This maintenance release continues the GTK 1.4.0 codebase. No Qt migration or al
 
 ## Retained from 1.4.0
 
-- **Clickable minimap:** enable Window → Minimap to see a compact overview at the right. Click to move the caret and viewport to a logical line. Off by default; your choice is remembered.
+- **Clickable minimap:** enable Window → Minimap to see a compact overview at the right. Click or drag to navigate the viewport using GtkSourceMap. Off by default; your choice is remembered.
 - **Find and replace:** Ctrl+F toggles the two-row search bar and focuses Find. Matches are yellow; the active match is green. Navigate with ↑/↓ or Enter in Find or Shift+Enter while the bar is visible. Tab switches between Find and Replace. Replace one or all with Undo/Redo support.
 - **Case-sensitive search:** optional for each search session, reset whenever Find is invoked; never saved.
 - **Focus mode:** Shift+F11 enters fullscreen and hides menus, tabs, explorer, line numbers and footer. Move to the top edge to reveal menus/tabs. Shift+F11 or Esc restores the previous layout. Never saved.

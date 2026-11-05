@@ -505,18 +505,14 @@ mod tests {
         );
         e.search.find.set_text("value");
         pump();
-        let controllers = tab.minimap.observe_controllers();
-        let click = (0..controllers.n_items())
-            .find_map(|i| {
-                controllers
-                    .item(i)
-                    .unwrap()
-                    .downcast::<gtk::GestureClick>()
-                    .ok()
-            })
-            .unwrap();
-        click.emit_by_name::<()>("pressed", &[&1i32, &20.0f64, &100.0f64]);
-        assert!(b.iter_at_offset(b.cursor_position()).line() > 0);
+        // GtkSourceMap shares the buffer and follows the source scroll position.
+        use sourceview5::prelude::MapExt;
+        assert_eq!(tab.minimap.view().unwrap(), tab.view.clone().upcast::<sourceview5::View>());
+        assert_eq!(tab.minimap.buffer(), b);
+        assert!(!tab.minimap.is_editable());
+        tab.view.scroll_to_iter(&mut b.end_iter(), 0.0, true, 0.0, 1.0);
+        pump();
+        assert!(tab.scroll.vadjustment().value() > 0.0);
         e.open_search();
         e.theme.replace("system".into());
         if let Some(settings) = gtk::Settings::default()

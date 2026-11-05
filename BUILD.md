@@ -1,4 +1,4 @@
-# Build and Run — Leditor 1.5.2
+# Build and Run — Leditor 1.5.3
 
 ## Automated installation / update
 
@@ -31,8 +31,8 @@ The Linux user installation uses `$XDG_DATA_HOME/leditor-install` and
 
 Omit `--source .` / `-Source .` to clone published main. A specific
 branch/tag can be selected with `--ref REF` / `-Ref REF`. Do not assume a release
-tag exists. Version 1.5.2 in this ZIP has not been pushed: use local source mode
-to test it. Published main contains the earlier 1.5.2 revision.
+tag exists. Version 1.5.3 in this ZIP has not been pushed: use local source mode
+to test it. Published main contains 1.5.2.
 Re-running against the same Git revision does not rebuild; a changed revision
 creates a new generation. Local source mode always rebuilds.
 
@@ -223,8 +223,8 @@ cargo test --locked --bin leditor ui::tests::version_150_syntax_media_and_save_a
 The 2026-11-01 revision uses native Windows title bars and resize borders,
 setting `GTK_CSD=0` for this process before GTK starts when it has not been
 explicitly configured. No global environment setting is changed. The previous
-forced Cairo renderer was ineffective on the reported system and is removed;
-GTK now selects its renderer normally. Explicit `GTK_CSD` and `GSK_RENDERER`
+Cairo-only workaround was insufficient; the current mitigation combines native
+decoration with `GSK_RENDERER=cairo` and `GDK_DEBUG=dcomp`. Explicit environment
 overrides are respected. Remove any manually set overrides for a default-path
 test. The title bar follows Windows' appearance; the editor keeps its own themes.
 Linux is unchanged. See [RESIZE.md](RESIZE.md) for research and the Windows
@@ -255,3 +255,15 @@ Windows resize follow-up (1.5.2): default to native frame + Cairo +
 DirectComposition, the best of the user-tested configurations. Blank areas
 during live resize remain a known issue; this is a mitigation, not a complete
 fix. Existing environment overrides take precedence. See RESIZE.md.
+
+
+## 1.5.3 dependency and behavior notes
+
+No new dependency or installer download is needed: GtkSourceMap, line numbers,
+indentation and case conversion are part of the existing GtkSourceView 5 runtime.
+Both installers already install GtkSourceView and its style/language data.
+The Leditor light/dark style overrides are embedded in the executable and loaded from a private temporary directory,
+so no extra runtime file copying is required. Cargo.lock retains dependency versions.
+Tab with spaces enabled advances to the native indentation stop; inside a line this
+can insert fewer than the configured width. New keyboard shortcuts are listed in
+Other > Keyboard Shortcuts. Native Windows testing is still required; see VALIDATION.md.

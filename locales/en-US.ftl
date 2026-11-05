@@ -123,3 +123,6 @@ syntax-enable = Enable
 syntax-detect = Detect language
 
 # 1.5.2 (2026-11-01): Native Windows frame revision; no new labels or shortcuts.
+
+next-tab = Next tab
+previous-tab = Previous tab

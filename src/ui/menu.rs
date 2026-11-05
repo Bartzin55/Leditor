@@ -160,5 +160,11 @@ pub(super) fn build(
         }
         model.append_submenu(Some(&strings.text(menu_name)), &submenu);
     }
+    // Navigation actions have shortcuts without adding new menu entries.
+    for name in ["next-tab", "previous-tab"] {
+        let action = gio::SimpleAction::new(name, None);
+        window.add_action(&action);
+        actions.insert(name, action);
+    }
     (model, actions)
 }

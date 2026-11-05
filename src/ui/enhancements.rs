@@ -163,13 +163,44 @@ impl Editor {
         if start == end {
             return;
         }
-        let text = buffer.text(&start, &end, true);
-        let output = crate::text_ops::convert(&text, name);
-        let offset = start.offset();
+        // Marks keep the original range selected when Unicode changes its length.
+        let start_mark = buffer.create_mark(None, &start, true);
+        let end_mark = buffer.create_mark(None, &end, false);
+        let source = tab.source_buffer();
+        use sourceview5::ChangeCaseType;
         buffer.begin_user_action();
-        buffer.delete(&mut start, &mut end);
-        buffer.insert(&mut start, &output);
-        buffer.select_range(&buffer.iter_at_offset(offset), &start);
+        match name {
+            "case-upper" => source.change_case(ChangeCaseType::Upper, &mut start, &mut end),
+            "case-lower" => source.change_case(ChangeCaseType::Lower, &mut start, &mut end),
+            _ => {
+                // Preserve the existing first-letter commands: unlike Title case,
+                // they leave the other letters untouched (including acronyms).
+                let text = buffer.text(&start, &end, true);
+                let mut first = true;
+                let mut offsets = Vec::new();
+                for (index, ch) in text.chars().enumerate() {
+                    if first && ch.is_alphabetic() {
+                        offsets.push(start.offset() + index as i32);
+                        first = false;
+                    } else if name == "case-words" && !ch.is_alphanumeric() && ch != '_' {
+                        first = true;
+                    }
+                }
+                for offset in offsets.into_iter().rev() {
+                    source.change_case(
+                        ChangeCaseType::Upper,
+                        &mut buffer.iter_at_offset(offset),
+                        &mut buffer.iter_at_offset(offset + 1),
+                    );
+                }
+            }
+        }
+        buffer.select_range(
+            &buffer.iter_at_mark(&start_mark),
+            &buffer.iter_at_mark(&end_mark),
+        );
+        buffer.delete_mark(&start_mark);
+        buffer.delete_mark(&end_mark);
         buffer.end_user_action();
     }
 }

@@ -120,3 +120,6 @@ syntax-enable = Activar
 syntax-detect = Detectar lenguaje
 
 # 1.5.2 (2026-11-01): Marco nativo en Windows; sin nuevas etiquetas ni atajos.
+
+next-tab = Pestaña siguiente
+previous-tab = Pestaña anterior

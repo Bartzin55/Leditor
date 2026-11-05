@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<style-scheme id="leditor-dark" name="leditor-dark" version="1.0" parent-scheme="Adwaita-dark">
+  <style name="text" foreground="#eeeeee" background="#111111"/>
+  <style name="line-numbers" foreground="#949494" background="#161616"/>
+  <style name="current-line-number" foreground="#ffd41f" background="#161616" bold="false"/>
+</style-scheme>

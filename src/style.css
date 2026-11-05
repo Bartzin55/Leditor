@@ -5,7 +5,7 @@ textview.editor-surface text {
     color: #eeeeee;
 }
 textview.editor-surface { font-family: monospace; font-size: 14px; }
-.line-numbers { background-color: #161616; border-right: 1px solid #454545; }
+textview.editor-surface border.left { background-color: #161616; border-right: 1px solid #454545; }
 .tab-bar { background-color: #242424; min-height: 34px; }
 .document-tab { border: 1px solid #484848; background-color: #202020; }
 .document-tab.active { background-color: #363636; border-bottom-color: #969696; }

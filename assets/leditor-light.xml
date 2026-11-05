@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<style-scheme id="leditor-light" name="leditor-light" version="1.0" parent-scheme="Adwaita">
+  <style name="text" foreground="#202020" background="#ffffff"/>
+  <style name="line-numbers" foreground="#949494" background="#f3f3f3"/>
+  <style name="current-line-number" foreground="#ffd41f" background="#f3f3f3" bold="false"/>
+</style-scheme>

@@ -1,5 +1,24 @@
 # Release 1.5.2 — 2026-10-31
 
+## [1.5.3] — 2026-11-05
+
+### Changed
+- Replace the custom minimap and line-number drawing with GtkSourceMap and the native GtkSourceView gutter; preserve location, visibility settings, themes and yellow current-line number.
+- Delegate Tab/Shift+Tab to GtkSourceView, including selection indentation, configurable tab width and spaces to the next indentation stop.
+- Delegate Unicode case conversion to GtkSourceBuffer; keep first-letter commands from altering the rest of each word and group each conversion into one undo action.
+- Retain native Word Wrap and Undo/Redo on the source view/buffer, with regression coverage.
+
+### Added
+- Ctrl+Tab / Ctrl+Shift+Tab: next/previous tab, wrapping in visual order.
+- Ctrl+Shift+O / Ctrl+Shift+W / Ctrl+Shift+N: open/close/new folder.
+- English, Portuguese and Spanish shortcut descriptions; new entries in the Keyboard Shortcuts dialog.
+
+### Compatibility
+- No new application dependencies. Existing Linux and Windows installers already provision GTK 4 and GtkSourceView 5.
+- MIT application license and dynamic GTK/GtkSourceView linking retained.
+- Existing Windows native-frame + Cairo + DirectComposition mitigation retained; live-resize defect remains pending.
+
+
 - Resize correction revised on 2026-11-01: use native Windows title bars and
   resize borders (`GTK_CSD=0` by default). The prior Cairo-only workaround did
   not resolve the reported trails and has been removed. Explicit environment

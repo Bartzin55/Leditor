@@ -1,4 +1,4 @@
-# Dependency licenses — Leditor 1.5.1
+# Dependency licenses — Leditor 1.5.3
 
 See LICENSES/ for collected texts and provenance. Native PDFium notices are
 included; installers also preserve exact GTK runtime package notices. The
@@ -10,7 +10,7 @@ Leditor's source remains MIT. Its license does not replace licenses on linked li
 | Component | License | Role |
 |---|---|---|
 | sourceview5 Rust bindings | MIT | GtkSourceView interface |
-| GtkSourceView native library | LGPL-2.1-or-later | Syntax definitions, highlighting and editor widget |
+| GtkSourceView native library | LGPL-2.1-or-later | Editing, minimap, gutter, indentation, case conversion and syntax highlighting |
 | gtk-rs Rust bindings | MIT | GTK/GLib/GIO bindings |
 | GTK native libraries | LGPL family; see component notices | Native GUI |
 | pdfium-render | MIT OR Apache-2.0 (MIT selected) | PDFium Rust bindings |

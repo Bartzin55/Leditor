@@ -7,6 +7,36 @@ pub struct Shortcut {
 }
 pub const SHORTCUTS: &[Shortcut] = &[
     Shortcut {
+        action: "next-tab",
+        label: "next-tab",
+        accelerators: &["<Primary>Tab"],
+        display: "Ctrl+Tab",
+    },
+    Shortcut {
+        action: "previous-tab",
+        label: "previous-tab",
+        accelerators: &["<Primary><Shift>Tab", "<Primary><Shift>ISO_Left_Tab"],
+        display: "Ctrl+Shift+Tab",
+    },
+    Shortcut {
+        action: "open-folder",
+        label: "open-folder",
+        accelerators: &["<Primary><Shift>o"],
+        display: "Ctrl+Shift+O",
+    },
+    Shortcut {
+        action: "close-folder",
+        label: "close-folder",
+        accelerators: &["<Primary><Shift>w"],
+        display: "Ctrl+Shift+W",
+    },
+    Shortcut {
+        action: "new-folder",
+        label: "new-folder",
+        accelerators: &["<Primary><Shift>n"],
+        display: "Ctrl+Shift+N",
+    },
+    Shortcut {
         action: "find-replace",
         label: "find-toggle-shortcut",
         accelerators: &["<Primary>f"],

@@ -120,3 +120,6 @@ syntax-enable = Ativar
 syntax-detect = Detectar linguagem
 
 # 1.5.2 (2026-11-01): Moldura nativa no Windows; sem novos rótulos ou atalhos.
+
+next-tab = Próxima aba
+previous-tab = Aba anterior

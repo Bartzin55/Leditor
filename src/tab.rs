@@ -1,4 +1,4 @@
-use crate::editor_view::NumberedView;
+use crate::editor_view::EditorView;
 use gtk::prelude::*;
 use leditor::{document::Document, i18n::I18n};
 use std::{
@@ -16,10 +16,10 @@ pub struct Tab {
     pub syntax_detected: Cell<bool>,
     pub display_name: RefCell<Option<String>>,
     pub document: RefCell<Document>,
-    pub view: NumberedView,
+    pub view: EditorView,
     pub scroll: gtk::ScrolledWindow,
     pub content: gtk::Box,
-    pub minimap: gtk::DrawingArea,
+    pub minimap: sourceview5::Map,
     pub header: gtk::Box,
     pub select: gtk::Button,
     pub title: gtk::Label,
@@ -28,7 +28,7 @@ pub struct Tab {
 }
 impl Tab {
     pub fn new(id: u64, document: Document, strings: &I18n) -> Rc<Self> {
-        let view = NumberedView::new(&document.text);
+        let view = EditorView::new(&document.text);
         let scroll = gtk::ScrolledWindow::builder()
             .hexpand(true)
             .vexpand(true)
@@ -37,7 +37,7 @@ impl Tab {
             .overlay_scrolling(false)
             .child(&view)
             .build();
-        let minimap = crate::minimap::create(&view, &scroll);
+        let minimap = crate::minimap::create(&view);
         let content = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         content.append(&scroll);
         content.append(&minimap);

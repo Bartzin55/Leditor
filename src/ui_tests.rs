@@ -1,5 +1,6 @@
 use super::*;
 use crate::session;
+use sourceview5::prelude::ViewExt;
 use std::time::{Duration, Instant};
 
 #[track_caller]
@@ -248,22 +249,10 @@ fn tabs_history_layout_dialogs_and_file_safety() {
             >= after
     );
     toggle(&editor, "line-numbers");
-    assert!(!c
-        .view
-        .gutter(gtk::TextWindowType::Left)
-        .unwrap()
-        .is_visible());
-    assert!(!b
-        .view
-        .gutter(gtk::TextWindowType::Left)
-        .unwrap()
-        .is_visible());
+    assert!(!c.view.shows_line_numbers());
+    assert!(!b.view.shows_line_numbers());
     toggle(&editor, "line-numbers");
-    assert!(c
-        .view
-        .gutter(gtk::TextWindowType::Left)
-        .unwrap()
-        .is_visible());
+    assert!(c.view.shows_line_numbers());
     toggle(&editor, "word-wrap");
     assert_eq!(c.scroll.hscrollbar_policy(), gtk::PolicyType::Automatic);
     assert!(
@@ -276,11 +265,7 @@ fn tabs_history_layout_dialogs_and_file_safety() {
     run(&editor, Intent::New);
     let d = editor.current().unwrap();
     assert_eq!(d.view.wrap_mode(), gtk::WrapMode::WordChar);
-    assert!(!d
-        .view
-        .gutter(gtk::TextWindowType::Left)
-        .unwrap()
-        .is_visible());
+    assert!(!d.view.shows_line_numbers());
     assert!(!d.view.buffer().can_undo());
     run(&editor, Intent::Close(d.id));
     // Popups share the package version and shortcut definitions with the app.
@@ -618,7 +603,10 @@ fn version_one_one_features(application: &gtk::Application, root: &std::path::Pa
     let buffer = tab.view.buffer();
     buffer.set_text("    alpha\n\tbeta\n  gamma\nend");
     buffer.select_range(&buffer.start_iter(), &buffer.iter_at_line(3).unwrap());
-    tab.view.indent(true);
+    tab.view.unindent_lines(
+        &mut buffer.start_iter(),
+        &mut buffer.iter_at_line(3).unwrap(),
+    );
     assert_eq!(tab.document.borrow().text, "alpha\nbeta\ngamma\nend");
     buffer.undo();
     assert_eq!(
@@ -629,8 +617,9 @@ fn version_one_one_features(application: &gtk::Application, root: &std::path::Pa
     toggle(&editor, "convert-tabs");
     editor.spaces_input.set_value(2.0);
     buffer.place_cursor(&buffer.end_iter());
-    tab.view.indent(false);
-    assert!(tab.document.borrow().text.ends_with("end  "));
+    tab.view
+        .indent_lines(&mut buffer.iter_at_line(3).unwrap(), &mut buffer.end_iter());
+    assert!(tab.document.borrow().text.ends_with("  end"));
     buffer.undo();
     assert!(tab.document.borrow().text.ends_with("end"));
     editor.set_zoom(800.0);
@@ -837,9 +826,9 @@ fn version_150_syntax_media_and_save_all() {
         assert_eq!(
             buffer.style_scheme().unwrap().id(),
             if theme == "light" {
-                "Adwaita"
+                "leditor-light"
             } else {
-                "Adwaita-dark"
+                "leditor-dark"
             }
         );
     }
@@ -1038,4 +1027,223 @@ fn test_pdf() -> Vec<u8> {
         format!("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").as_bytes(),
     );
     pdf
+}
+
+#[test]
+#[ignore = "Run separately with a graphical display"]
+fn source_engine_and_tab_navigation() {
+    use sourceview5::prelude::MapExt;
+    let temp = tempfile::tempdir().unwrap();
+    std::env::set_var("XDG_CONFIG_HOME", temp.path());
+    std::env::set_var("XDG_DATA_HOME", temp.path());
+    std::env::set_var("GSETTINGS_BACKEND", "memory");
+    let _ = std::fs::remove_dir_all(session::directory());
+    gtk::init().unwrap();
+    let app = gtk::Application::builder()
+        .application_id("io.github.leditor.EngineTest")
+        .flags(gio::ApplicationFlags::NON_UNIQUE)
+        .build();
+    app.register(gio::Cancellable::NONE).unwrap();
+    let e = create(&app);
+    let first = e.current().unwrap();
+    let b = first.source_buffer();
+    assert!(!e.actions["next-tab"].is_enabled());
+    assert_eq!(
+        first.minimap.buffer(),
+        b.clone().upcast::<gtk::TextBuffer>()
+    );
+    assert_eq!(
+        first.minimap.view().unwrap(),
+        first.view.clone().upcast::<sourceview5::View>()
+    );
+    for (mode, input, expected) in [
+        ("case-upper", "ação Straße", "AÇÃO STRASSE"),
+        ("case-lower", "AÇÃO ESPAÑOLA", "ação española"),
+        ("case-first", "  éCOLE Straße", "  ÉCOLE Straße"),
+        (
+            "case-words",
+            " olá-mundo API mañana",
+            " Olá-Mundo API Mañana",
+        ),
+    ] {
+        b.set_text(input);
+        b.select_range(&b.start_iter(), &b.end_iter());
+        e.edit_transform(mode);
+        assert_eq!(first.document.borrow().text, expected);
+        let (start, end) = b.selection_bounds().unwrap();
+        assert_eq!(b.text(&start, &end, true), expected);
+        e.actions["undo"].activate(None);
+        assert_eq!(first.document.borrow().text, input);
+        e.actions["redo"].activate(None);
+        assert_eq!(first.document.borrow().text, expected);
+    }
+    e.actions["convert-tabs"].activate(None);
+    for width in [2, 4, 8] {
+        e.spaces_input.set_value(width as f64);
+        assert_eq!(first.view.tab_width(), width);
+        assert!(first.view.is_insert_spaces_instead_of_tabs());
+        b.set_text("alpha\nbeta\nuntouched");
+        first
+            .view
+            .indent_lines(&mut b.start_iter(), &mut b.iter_at_line(2).unwrap());
+        assert_eq!(
+            first.document.borrow().text,
+            format!("{0}alpha\n{0}beta\nuntouched", " ".repeat(width as usize))
+        );
+        b.undo();
+        assert_eq!(first.document.borrow().text, "alpha\nbeta\nuntouched");
+    }
+    for light in [true, false] {
+        e.theme.replace(if light { "light" } else { "dark" }.into());
+        e.apply_theme();
+        let scheme = b.style_scheme().unwrap();
+        assert_eq!(
+            scheme.id(),
+            if light {
+                "leditor-light"
+            } else {
+                "leditor-dark"
+            }
+        );
+        assert_eq!(
+            scheme
+                .style("current-line-number")
+                .unwrap()
+                .foreground()
+                .as_deref(),
+            Some("#ffd41f")
+        );
+    }
+    let second = e.add_tab(Document::default());
+    let third = e.add_tab(Document::default());
+    e.actions["next-tab"].activate(None);
+    assert_eq!(e.active.get(), Some(first.id));
+    e.actions["previous-tab"].activate(None);
+    assert_eq!(e.active.get(), Some(third));
+    e.actions["previous-tab"].activate(None);
+    assert_eq!(e.active.get(), Some(second));
+    // Navigation follows the same vector used by drag reorder.
+    e.tabs.borrow_mut().swap(0, 1);
+    e.actions["next-tab"].activate(None);
+    assert_eq!(e.active.get(), Some(first.id));
+    e.open_search();
+    e.search.find.grab_focus();
+    e.actions["next-tab"].activate(None);
+    assert_eq!(e.active.get(), Some(third));
+    assert!(!first.document.borrow().text.is_empty());
+    e.close_search();
+    for shortcut in SHORTCUTS {
+        assert!(!app
+            .accels_for_action(&format!("win.{}", shortcut.action))
+            .is_empty());
+        assert_ne!(e.strings.text(shortcut.label), shortcut.label);
+    }
+    e.window.destroy();
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore = "Run separately under X11 with xdotool and a window manager"]
+fn native_keyboard_and_map_input() {
+    fn key(value: &str) {
+        assert!(std::process::Command::new("xdotool")
+            .args(["key", "--clearmodifiers", value])
+            .status()
+            .unwrap()
+            .success());
+        drain();
+    }
+    let temp = tempfile::tempdir().unwrap();
+    std::env::set_var("XDG_CONFIG_HOME", temp.path());
+    std::env::set_var("XDG_DATA_HOME", temp.path());
+    std::env::set_var("GSETTINGS_BACKEND", "memory");
+    let _ = std::fs::remove_dir_all(session::directory());
+    gtk::init().unwrap();
+    let app = gtk::Application::builder()
+        .application_id("io.github.leditor.InputTest")
+        .flags(gio::ApplicationFlags::NON_UNIQUE)
+        .build();
+    app.register(gio::Cancellable::NONE).unwrap();
+    let e = create(&app);
+    let tab = e.current().unwrap();
+    let b = tab.source_buffer();
+    pump_until(|| e.window.is_active());
+    tab.view.grab_focus();
+    e.actions["convert-tabs"].activate(None);
+    b.set_text("a");
+    b.place_cursor(&b.end_iter());
+    key("Tab");
+    assert_eq!(tab.document.borrow().text, "a   ");
+    key("ctrl+z");
+    assert_eq!(tab.document.borrow().text, "a");
+    key("ctrl+shift+z");
+    assert_eq!(tab.document.borrow().text, "a   ");
+    b.set_text("one\ntwo\nthree");
+    b.select_range(&b.start_iter(), &b.iter_at_line(2).unwrap());
+    key("Tab");
+    assert_eq!(tab.document.borrow().text, "    one\n    two\nthree");
+    key("shift+Tab");
+    assert_eq!(tab.document.borrow().text, "one\ntwo\nthree");
+    let second = e.add_tab(Document::default());
+    key("ctrl+Tab");
+    assert_eq!(e.active.get(), Some(tab.id));
+    key("ctrl+shift+Tab");
+    assert_eq!(e.active.get(), Some(second));
+    e.open_search();
+    e.search.find.grab_focus();
+    key("ctrl+Tab");
+    assert_eq!(e.active.get(), Some(tab.id));
+    e.close_search();
+    e.load_folder(temp.path().to_owned());
+    key("ctrl+shift+w");
+    pump_until(|| !e.busy.get());
+    assert!(e.explorer.root.borrow().is_none());
+    // Native map input scrolls the source view and leaves document contents intact.
+    b.set_text(&"fn example() {\n    let value = 42;\n    println!(\"Olá\");\n}\n".repeat(100));
+    e.choose_syntax("rust");
+    b.place_cursor(&b.start_iter());
+    tab.view
+        .scroll_to_iter(&mut b.start_iter(), 0.0, true, 0.0, 0.0);
+    e.actions["minimap"].activate(None);
+    drain();
+    let map_width = tab.minimap.width();
+    for (theme, name) in [
+        ("dark", "153-native-dark.png"),
+        ("light", "153-native-light.png"),
+    ] {
+        e.theme.replace(theme.into());
+        e.apply_theme();
+        capture(&e, name);
+    }
+    e.set_zoom(150.0);
+    drain();
+    assert_eq!(tab.minimap.width(), map_width);
+    let point = tab
+        .minimap
+        .compute_point(&e.window, &gtk::graphene::Point::new(35.0, 160.0))
+        .unwrap();
+    let id = std::process::Command::new("xdotool")
+        .arg("getactivewindow")
+        .output()
+        .unwrap();
+    let id = String::from_utf8(id.stdout).unwrap();
+    assert!(std::process::Command::new("xdotool")
+        .args([
+            "mousemove",
+            "--window",
+            id.trim(),
+            &(point.x() as i32).to_string(),
+            &(point.y() as i32).to_string(),
+            "click",
+            "1"
+        ])
+        .status()
+        .unwrap()
+        .success());
+    pump_until(|| tab.scroll.vadjustment().value() > 0.0);
+    assert_eq!(
+        tab.document.borrow().text,
+        "fn example() {\n    let value = 42;\n    println!(\"Olá\");\n}\n".repeat(100)
+    );
+    e.window.destroy();
 }

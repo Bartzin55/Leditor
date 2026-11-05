@@ -315,6 +315,8 @@ impl Editor {
             return;
         }
         match name {
+            "next-tab" => self.cycle_tab(1),
+            "previous-tab" => self.cycle_tab(-1),
             "find-replace" => {
                 if self.search.bar.is_visible() {
                     self.close_search();
@@ -413,7 +415,7 @@ impl Editor {
             }
             "undo" | "redo" => {
                 if let Some(tab) = self.current() {
-                    let buffer = tab.view.buffer();
+                    let buffer = tab.source_buffer();
                     if name == "undo" && buffer.can_undo() {
                         buffer.undo();
                     }
@@ -591,6 +593,7 @@ impl Editor {
                 "line-numbers" | "show-explorer" if self.focus_mode.get() => false,
                 "restore-session" => self.autosave.get(),
                 "close" => current.is_some(),
+                "next-tab" | "previous-tab" => self.tabs.borrow().len() > 1,
                 "cut" | "copy" | "paste" if self.explorer.focused.get() => {
                     self.explorer.selected.borrow().is_some()
                 }

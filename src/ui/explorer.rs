@@ -573,6 +573,7 @@ impl Editor {
             }
             if self.active.get() == Some(id) && !tab.is_text() {
                 self.close_search();
+                self.close_goto();
             }
             self.refresh();
         }

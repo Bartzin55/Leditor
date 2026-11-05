@@ -1,10 +1,10 @@
-# Windows resize investigation — 1.5.2, revised 2026-11-01
+# Windows resize investigation — 1.5.2-alpha, revised 2026-11-01
 
 ## Evidence and scope
 
 The supplied Windows recording shows trails covering the whole window, including
 its GTK-drawn title bar, when dragging the borders of an almost empty document.
-The user retested the initial 1.5.2 Cairo workaround and reported no improvement.
+The user retested the initial 1.5.2-alpha Cairo workaround and reported no improvement.
 Neither observation identifies the precise failing GTK/driver/compositor code.
 There is no evidence here that GtkSourceView's text layout is the cause.
 
@@ -41,7 +41,7 @@ Windows launches now default to native title bars/borders before GTK starts.
 This avoids GTK's custom decoration drag path and uses the native Windows frame.
 The ineffective forced renderer selection is removed. Explicit diagnostic
 environment overrides are respected. There are no new dependencies, timers or
-Win32 message hooks. The version stays 1.5.2 and the enlarged icon is retained.
+Win32 message hooks. The version stays 1.5.2-alpha and the enlarged icon is retained.
 
 The internal editor layout, shortcuts and light/dark palettes remain unchanged;
 the outer Windows title bar uses the system's styling. Linux remains unchanged.
@@ -93,6 +93,6 @@ driver, GtkSourceView or missing D-Bus.
 User-authorized mitigation: native frame + Cairo + DirectComposition on Windows.
 Set GTK_CSD=0, GSK_RENDERER=cairo and GDK_DEBUG=dcomp before GTK initializes,
 only when each variable is absent. No frame-debug logging is enabled. Explicit
-overrides remain respected. Linux and version 1.5.2 are unchanged.
+overrides remain respected. Linux and version 1.5.2-alpha are unchanged.
 This supersedes the renderer-default policy described above. No guaranteed
 fix or native Windows validation of this source revision is claimed.

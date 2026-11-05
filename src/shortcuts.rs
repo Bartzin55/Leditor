@@ -7,6 +7,12 @@ pub struct Shortcut {
 }
 pub const SHORTCUTS: &[Shortcut] = &[
     Shortcut {
+        action: "go-to-line",
+        label: "go-to-line",
+        accelerators: &["<Primary>g"],
+        display: "Ctrl+G",
+    },
+    Shortcut {
         action: "next-tab",
         label: "next-tab",
         accelerators: &["<Primary>Tab"],
@@ -123,6 +129,9 @@ pub const SHORTCUTS: &[Shortcut] = &[
 ];
 pub const TEXT_SHORTCUTS: &[(&str, &str)] = &[
     ("Esc", "exit-focus-search"),
+    ("Home / End", "smart-home-end"),
+    ("Shift+Home / Shift+End", "smart-home-end-selection"),
+    ("Enter", "go-to-line-confirm"),
     ("Enter / Shift+Enter", "search-navigation"),
     ("Tab / Shift+Tab", "search-fields"),
     ("Enter", "insert-below"),

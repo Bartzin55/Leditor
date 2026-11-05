@@ -1,4 +1,32 @@
-# Development Notes — Leditor 1.5.3
+# Development Notes — Leditor 1.6.0-alpha
+
+## 1.6.0-alpha integration
+
+- `editor_view.rs`: native SmartHomeEndType::Before and SpaceDrawer spaces/tabs.
+  Typed-delimiter pairing groups edits in the native undo stack. Selection wrapping,
+  escaped quotes and word apostrophes are handled. Pairing is bypassed during IME
+  preedit/overwrite mode; composed/dead-key and Ctrl/Alt input stays literal.
+- `ui/editing.rs`: native Buffer::sort_lines with preservation of an absent final
+  newline (GtkSourceView 5.12 adds one). Character sorting uses GLib casefold and
+  CollationKey, retaining all Unicode scalar values. Checkboxes execute once and
+  reset rather than mutating future selections. Sorting requires a text selection.
+- `text_ops.rs`: trailing whitespace ranges in GTK character offsets. Delete them
+  backwards in a single undo group in the live buffer before the write snapshot.
+  Save As cancellation does not trim. Failed saves retain edits and undo history.
+  Autosave excludes the focused line so an idle pause cannot erase a typed space.
+- `ui/goto.rs`: bottom navigation bar, numeric validation, cursor and viewport.
+  Search mutual exclusion is in `ui/search.rs`; Escape handling in `ui/focus.rs`.
+  Tab changes refresh the valid range; media/unsupported tabs hide navigation.
+- `ui/preferences.rs`: four persistent booleans in the existing settings file.
+  Bracket matching defaults on; whitespace, auto-close and trim default off.
+  Smart Home/End is always enabled. Sorting and navigation state are not saved.
+- `ui/syntax.rs`: matching brackets independently of syntax-color visibility,
+  using native language contexts. No new session format, undo stack or dependency.
+
+Native API references:
+- https://gnome.pages.gitlab.gnome.org/gtksourceview/gtksourceview5/method.Buffer.sort_lines.html
+- https://gnome.pages.gitlab.gnome.org/gtksourceview/gtksourceview5/enum.SmartHomeEndType.html
+- https://gnome.pages.gitlab.gnome.org/gtksourceview/gtksourceview5/method.SpaceDrawer.set_types_for_locations.html
 
 ## Editing engine
 
@@ -72,11 +100,11 @@ as an independent unsaved tab. Undo history is still not persisted across launch
 
 ## Build, installers and licensing
 
-Cargo.lock retains the same dependency versions; only Leditor becomes 1.5.3.
+Cargo.lock retains the same dependency versions; only Leditor becomes 1.6.0-alpha.
 Both install.sh (through scripts/install_linux.py) and install.ps1 already provide
 GtkSourceView 5 and its native data. No new packages or asset-copy steps are
 required. About reads Cargo's package version. The Linux installer User-Agent
-was updated to 1.5.3.
+was updated to 1.6.0-alpha.
 
 The application remains MIT. Native GTK/GtkSourceView are dynamically linked
 LGPL libraries; their notices and redistribution obligations remain applicable.

@@ -11,18 +11,20 @@ use std::path::PathBuf;
 #[path = "ui/explorer.rs"]
 mod explorer;
 use explorer::{Explorer, Operation};
+mod editing;
 mod enhancements;
 mod focus;
+mod goto;
 mod menu;
 mod preferences;
+#[cfg(test)]
+#[path = "ui_resize_tests.rs"]
+mod resize_tests;
 mod search;
 mod syntax;
 #[path = "ui/tab_actions.rs"]
 mod tab_actions;
 mod theme;
-#[cfg(test)]
-#[path = "ui_resize_tests.rs"]
-mod resize_tests;
 use std::{
     cell::{Cell, RefCell},
     collections::BTreeMap,
@@ -42,6 +44,11 @@ enum Intent {
 }
 struct Editor {
     search: search::SearchBar,
+    goto: goto::GoToBar,
+    bracket_matching: Cell<bool>,
+    whitespace: Cell<bool>,
+    auto_close: Cell<bool>,
+    trim_trailing: Cell<bool>,
     syntax_enabled: Cell<bool>,
     minimap: Cell<bool>,
     focus_mode: Cell<bool>,
@@ -182,6 +189,8 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
     footer.set_end_widget(Some(&footer_right));
     let search = search::SearchBar::new(&strings);
     editor_area.append(&search.bar);
+    let goto = goto::GoToBar::new(&strings);
+    editor_area.append(&goto.bar);
     root.append(&footer);
     let notice = gtk::Label::new(None);
     notice.set_wrap(true);
@@ -191,6 +200,11 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
     window.set_child(Some(&root));
     let editor = Rc::new(Editor {
         search,
+        goto,
+        bracket_matching: Cell::new(true),
+        whitespace: Cell::new(false),
+        auto_close: Cell::new(false),
+        trim_trailing: Cell::new(false),
         syntax_enabled: Cell::new(true),
         minimap: Cell::new(false),
         focus_mode: Cell::new(false),
@@ -284,6 +298,7 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         }
     });
     editor.setup_search();
+    editor.setup_goto();
     editor.setup_focus(&root);
     editor.setup_explorer();
     editor.setup_preferences();
@@ -323,6 +338,30 @@ impl Editor {
                 } else {
                     self.open_search();
                 }
+            }
+            "go-to-line" => {
+                if self.goto.bar.is_visible() {
+                    self.close_goto();
+                } else {
+                    self.open_goto();
+                }
+            }
+            "bracket-matching" | "whitespace" | "auto-close" | "trim-trailing" => {
+                let setting = match name {
+                    "bracket-matching" => &self.bracket_matching,
+                    "whitespace" => &self.whitespace,
+                    "auto-close" => &self.auto_close,
+                    _ => &self.trim_trailing,
+                };
+                setting.set(!setting.get());
+                action.set_state(&setting.get().to_variant());
+                self.apply_text_options();
+                self.save_settings();
+            }
+            "sort-lines" | "sort-characters" => {
+                action.set_state(&true.to_variant());
+                self.sort_selection(name == "sort-lines");
+                action.set_state(&false.to_variant());
             }
             "focus" => self.toggle_focus(),
             "minimap" => {
@@ -461,6 +500,7 @@ impl Editor {
                 tab.view.grab_focus();
             } else {
                 self.close_search();
+                self.close_goto();
                 tab.scroll.grab_focus();
             }
         }
@@ -473,6 +513,8 @@ impl Editor {
             .configure(self.spaces.get(), self.convert.get(), self.zoom.get());
         tab.view
             .set_indentation_options(self.auto_indent.get(), self.indent_guides.get());
+        tab.view
+            .set_editing_options(self.auto_close.get(), self.whitespace.get());
         let scroll = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::VERTICAL);
         scroll.set_propagation_phase(gtk::PropagationPhase::Capture);
         let weak = Rc::downgrade(self);
@@ -534,6 +576,7 @@ impl Editor {
             if let Some(e) = weak.upgrade() {
                 e.update_footer();
                 e.search_cursor_changed();
+                e.refresh_sort_actions();
             }
         });
         self.setup_tab_actions(&tab);
@@ -568,6 +611,7 @@ impl Editor {
         self.refresh();
     }
     fn refresh(&self) {
+        self.refresh_goto();
         self.update_footer();
         self.sync_syntax_action();
         self.pending.set(Some(std::time::Instant::now()));
@@ -601,10 +645,9 @@ impl Editor {
                 "syntax-detect" | "syntax-language" => {
                     self.syntax_enabled.get() && current.as_ref().is_some_and(|t| t.is_text())
                 }
-                "find-replace" | "insert-above" | "insert-below" | "case-first" | "case-words"
-                | "case-upper" | "case-lower" | "save" | "save-as" | "cut" | "copy" | "paste" => {
-                    current.as_ref().is_some_and(|t| t.is_text())
-                }
+                "go-to-line" | "find-replace" | "insert-above" | "insert-below" | "case-first"
+                | "case-words" | "case-upper" | "case-lower" | "save" | "save-as" | "cut"
+                | "copy" | "paste" => current.as_ref().is_some_and(|t| t.is_text()),
                 "undo" => current
                     .as_ref()
                     .is_some_and(|tab| tab.view.buffer().can_undo()),
@@ -615,6 +658,8 @@ impl Editor {
             };
             action.set_enabled(!self.busy.get() && enabled);
         }
+        self.refresh_sort_actions();
+        self.goto.go.set_sensitive(!self.busy.get());
         self.tab_bar.set_sensitive(!self.busy.get());
         self.search
             .replace
@@ -814,6 +859,7 @@ impl Editor {
         }
         self.saving.borrow_mut().insert(tab.id);
         self.update_footer();
+        self.trim_for_save(tab, false);
         let mut snapshot = tab.document.borrow().clone();
         let result = gio::spawn_blocking(move || {
             snapshot.save_to(&path)?;

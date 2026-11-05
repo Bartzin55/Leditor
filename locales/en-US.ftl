@@ -30,7 +30,7 @@ copy = Copy
 paste = Paste
 cut = Cut
 select-all = Select all
-# 1.5.1: installer-only release; no new GUI labels or keyboard shortcuts.
+# 1.5.1-alpha: installer-only release; no new GUI labels or keyboard shortcuts.
 version = Version:
 release-date = Release date:
 repository = Repo:
@@ -108,7 +108,7 @@ match-count = { $current } of { $total } matches
 one-replaced = A match has been replaced
 all-replaced = All { $total } matches have been replaced
 focus = Focus
-exit-focus-search = Exit Focus / close search
+exit-focus-search = Exit Focus / close Find or Go to Line
 search-navigation = Next match (Find) / previous match (search open)
 search-fields = Switch Find / Replace fields
 
@@ -122,7 +122,23 @@ syntax-highlighting = Syntax highlighting
 syntax-enable = Enable
 syntax-detect = Detect language
 
-# 1.5.2 (2026-11-01): Native Windows frame revision; no new labels or shortcuts.
+# 1.5.2-alpha (2026-11-01): Native Windows frame revision; no new labels or shortcuts.
 
 next-tab = Next tab
 previous-tab = Previous tab
+
+# 1.6.0-alpha
+bracket-matching = Match brackets
+whitespace = Show spaces and tabs
+auto-close = Auto-close brackets and quotes
+trim-trailing = Trim trailing spaces on save
+sort-lines = Sort selected lines (once)
+sort-characters = Sort selected characters (once)
+go-to-line = Go to line
+line-number = Line number
+close-go-to-line = Close Go to Line
+go-to-line-range = Line 1 to { $total }. Press Enter to go.
+go-to-line-invalid = Enter a whole number from 1 to { $total }.
+go-to-line-confirm = Go to the entered line (in Go to Line)
+smart-home-end = First/last text, then beginning/end of line
+smart-home-end-selection = Select to first/last text or line edge

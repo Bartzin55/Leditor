@@ -5,6 +5,10 @@ use std::time::{Duration, Instant};
 impl Editor {
     pub(super) fn apply_text_options(&self) {
         for tab in self.tabs.borrow().iter() {
+            tab.view
+                .set_editing_options(self.auto_close.get(), self.whitespace.get());
+            tab.source_buffer()
+                .set_highlight_matching_brackets(self.bracket_matching.get() && tab.is_text());
             if let Some(viewer) = tab.viewer.borrow().as_ref() {
                 viewer.set_zoom(self.zoom.get());
             }
@@ -75,6 +79,14 @@ impl Editor {
     }
     pub(super) fn save_settings(&self) {
         let key = glib::KeyFile::new();
+        for (name, value) in [
+            ("bracket-matching", self.bracket_matching.get()),
+            ("whitespace", self.whitespace.get()),
+            ("auto-close", self.auto_close.get()),
+            ("trim-trailing", self.trim_trailing.get()),
+        ] {
+            key.set_boolean("settings", name, value);
+        }
         key.set_boolean("settings", "wrap", self.wrap.get());
         key.set_boolean("settings", "numbers", self.line_numbers.get());
         key.set_boolean(
@@ -120,6 +132,14 @@ impl Editor {
         self.explorer.panel.set_visible(false);
         self.explorer.reveal.set_visible(true);
         if let Some(key) = settings {
+            for (name, setting, default) in [
+                ("bracket-matching", &self.bracket_matching, true),
+                ("whitespace", &self.whitespace, false),
+                ("auto-close", &self.auto_close, false),
+                ("trim-trailing", &self.trim_trailing, false),
+            ] {
+                setting.set(key.boolean("settings", name).unwrap_or(default));
+            }
             self.syntax_enabled
                 .set(key.boolean("settings", "syntax").unwrap_or(true));
             self.minimap
@@ -179,6 +199,10 @@ impl Editor {
         self.actions["enable-autosave"].set_state(&self.autosave.get().to_variant());
         self.actions["restore-session"].set_state(&self.restore.get().to_variant());
         for (name, value) in [
+            ("bracket-matching", self.bracket_matching.get()),
+            ("whitespace", self.whitespace.get()),
+            ("auto-close", self.auto_close.get()),
+            ("trim-trailing", self.trim_trailing.get()),
             ("minimap", self.minimap.get()),
             ("syntax-enable", self.syntax_enabled.get()),
             ("auto-indent", self.auto_indent.get()),
@@ -244,17 +268,25 @@ impl Editor {
         if let Err(error) = self.save_recovery() {
             self.show_background_error(&error.to_string());
         }
-        let jobs: Vec<_> = self
+        let tabs: Vec<_> = self
             .tabs
             .borrow()
             .iter()
-            .filter_map(|tab| {
+            .filter(|tab| {
                 let doc = tab.document.borrow();
-                (doc.is_dirty()
+                doc.is_dirty()
                     && doc.path.is_some()
                     && tab.is_text()
-                    && !self.autosave_failed.borrow().contains(&tab.id))
-                .then(|| (tab.id, doc.clone()))
+                    && !self.autosave_failed.borrow().contains(&tab.id)
+            })
+            .cloned()
+            .collect();
+        let jobs: Vec<_> = tabs
+            .into_iter()
+            .map(|tab| {
+                self.trim_for_save(&tab, true);
+                let doc = tab.document.borrow().clone();
+                (tab.id, doc)
             })
             .collect();
         if jobs.is_empty() {

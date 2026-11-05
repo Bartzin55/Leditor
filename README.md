@@ -1,6 +1,33 @@
 # Leditor
 
-## 1.5.3 — Native GtkSourceView editing
+## 1.6.0-alpha — Editing and navigation tools
+
+- View → Match brackets: native highlighting for `()`, `[]`, `{}` (on by default).
+- Smart Home/End: first press goes to the first/last text, the second to the line
+  edge. Shift extends selection using the same native GtkSourceView behavior.
+- View → Show spaces and tabs: native whitespace markers (off by default).
+- Edit → Auto-close brackets and quotes: pairs `()`, `[]`, `{}`, `''`, `""`, wraps
+  selected text and skips an existing closing delimiter. Escaped quotes and
+  apostrophes in words remain literal. Off by default; paste is unchanged.
+- Edit → Trim trailing spaces on save: removes ASCII spaces/tabs at line ends
+  on Save, Save As, Save All and autosave (off by default). Autosave preserves the
+  focused line so pausing between words does not erase the current space.
+  Explicit saves trim every line. Cleanup is undoable; BOM/line endings are retained.
+- Edit → Sort selected lines: native GtkSourceView sorting of whole touched lines.
+  A selection ending at the next line's column zero excludes that next line.
+- Edit → Sort selected characters: GLib locale collation of all selected Unicode
+  scalar characters, including whitespace. Both sorts ignore case and retain
+  duplicates. The checkboxes execute once and reset; each sort is undoable.
+  Combining marks are separate characters; collation follows the OS locale.
+- View → Go to line / Ctrl+G: bottom bar with a 1-based logical line number.
+  Enter or Go to line moves the cursor/view. Invalid input leaves the cursor
+  unchanged. Esc closes the bar; Go to Line and Find/Replace hide one another.
+- Permanent options are remembered and apply to existing/new text tabs.
+
+All historical application version labels now use `-alpha`. Existing Git
+commits/tags and third-party versions are unchanged. No push was performed.
+
+## Retained from 1.5.3-alpha — Native GtkSourceView editing
 
 - Native GtkSourceMap at the right, sharing syntax colors and scroll navigation.
 - Native logical line numbers, preserving the yellow current-line number.
@@ -10,11 +37,11 @@
 - Ctrl+Tab / Ctrl+Shift+Tab navigate tabs in display order, wrapping at the ends.
 - Ctrl+Shift+O opens a folder; Ctrl+Shift+W closes it; Ctrl+Shift+N creates one.
 
-Use `bash install.sh --source .` or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .` from this extracted ZIP. This release is not yet pushed.
+Use `bash install.sh --source .` or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .` from this extracted ZIP. This ZIP contains the unpublished 1.6.0-alpha update.
 See BUILD.md, DEVELOPMENT.md and VALIDATION.md for setup, design and test results.
 
 
-Windows retains the 1.5.2 compatibility profile: native title bar/borders,
+Windows retains the 1.5.2-alpha compatibility profile: native title bar/borders,
 Cairo and DirectComposition. It reduced the reported artifacts but did not fully
 resolve live resizing. See RESIZE.md and VALIDATION.md.
 
@@ -25,7 +52,7 @@ system installation. Native dependencies and temporary missing build tools are
 prepared automatically on supported x86_64 platforms. See [BUILD.md](BUILD.md)
 for prerequisites, updates, uninstall, and manual fallback instructions.
 
-The revised 1.5.1 scripts preserve an existing installation marker and report
+The revised 1.5.1-alpha scripts preserve an existing installation marker and report
 temporary-file cleanup, including cleanup after a failed installation.
 PDFium notices from the downloaded runtime are merged with the bundled notices,
 including when their directories already exist.
@@ -37,14 +64,14 @@ MIT. See [VALIDATION.md](VALIDATION.md) for the actual validation limits.
 
 ### A modern text editor for Linux and Windows.
 
-**Version:** 1.5.3
-**Release date:** October 31, 2026
+**Version:** 1.6.0-alpha
+**Release date:** November 5, 2026
 
 Leditor brings text editing and file organization together in a clean, minimalist workspace. Write, edit, and browse your files with independent tabs, an integrated file explorer, and a distraction-free interface.
 
 Built with **Rust and GTK4**, Leditor works entirely offline and is growing step by step into a versatile editor for everyday writing and development.
 
-## New in 1.5.0
+## New in 1.5.0-alpha
 
 - **Syntax highlighting:** View → Syntax highlighting enables/disables GtkSourceView highlighting (enabled by default). Detect language uses the filename and GIO content metadata. Plain Text is first; all installed GtkSourceView language definitions follow alphabetically, with a radio indicator for the active tab. The enable preference is saved; per-tab selections are included in optional session recovery.
 - **PDF viewer:** open PDFs in read-only tabs, with continuous vertical pages and the existing 5–800% zoom controls. Requires the PDFium runtime described in BUILD.md.
@@ -54,9 +81,9 @@ Built with **Rust and GTK4**, Leditor works entirely offline and is growing step
 
 PDF and image tabs are viewers only: no text editing, Save/Save as, find/replace or duplication-as-text. Renaming, closing and reordering still work. PDFs requiring passwords are not supported in this basic viewer. Syntax names come from the installed GtkSourceView catalog; the surrounding UI is translated into English, Portuguese and Spanish.
 
-## Retained from 1.4.1
+## Retained from 1.4.1-alpha
 
-This maintenance release continues the GTK 1.4.0 codebase. No Qt migration or alpha relabeling is included.
+This maintenance release continues the GTK 1.4.0-alpha codebase. The GTK codebase is retained; historical application versions now carry the alpha suffix.
 
 - Removed Always on top completely, including its menu item and dedicated platform bindings.
 - System default selects the existing light or dark palette from the OS preference, instead of a separate third style.
@@ -64,7 +91,7 @@ This maintenance release continues the GTK 1.4.0 codebase. No Qt migration or al
 - Indentation guides are dashed, half a character before the text, and continue through blank lines.
 - The supplied Leditor icon appears in About, Linux application launchers and the Windows executable resource.
 
-## Retained from 1.4.0
+## Retained from 1.4.0-alpha
 
 - **Clickable minimap:** enable Window → Minimap to see a compact overview at the right. Click or drag to navigate the viewport using GtkSourceMap. Off by default; your choice is remembered.
 - **Find and replace:** Ctrl+F toggles the two-row search bar and focuses Find. Matches are yellow; the active match is green. Navigate with ↑/↓ or Enter in Find or Shift+Enter while the bar is visible. Tab switches between Find and Replace. Replace one or all with Undo/Redo support.
@@ -73,7 +100,7 @@ This maintenance release continues the GTK 1.4.0 codebase. No Qt migration or al
 
 Search is literal and applies to the active document. Empty searches produce no matches. Navigation wraps at the beginning/end. Esc also closes the search bar outside Focus mode.
 
-## Included since 1.3.0
+## Included since 1.3.0-alpha
 
 - **Linux integration:** running the built app (including `cargo run`) installs a per-user launcher and a stable executable, accessible through `~/.local/bin/leditor`.
 - **Automatic indentation:** Enter and Edit → Insert line below preserve leading spaces and tabs. Enabled by default; toggle Edit → Indentation options → Automatic indentation.
@@ -141,7 +168,7 @@ Leditor's roadmap focuses on richer editing, broader file support, and a more cu
 - **Additional interface languages** and localization.
 - **Support for more text encodings.**
 
-These features are planned for future releases and are not included in version 1.5.1.
+These features are planned for future releases and are not included in version 1.6.0-alpha.
 
 ## Get Started
 
@@ -157,7 +184,7 @@ Most of Leditor's code is generated with the assistance of artificial intelligen
 
 
 
-Windows resize follow-up (1.5.2): default to native frame + Cairo +
+Windows resize follow-up (1.5.2-alpha): default to native frame + Cairo +
 DirectComposition, the best of the user-tested configurations. Blank areas
 during live resize remain a known issue; this is a mitigation, not a complete
 fix. Existing environment overrides take precedence. See RESIZE.md.

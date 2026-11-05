@@ -30,6 +30,10 @@ pub(super) fn build(
                 "undo",
                 "redo",
                 "find-replace",
+                "auto-close",
+                "trim-trailing",
+                "sort-lines",
+                "sort-characters",
                 "auto-indent",
                 "convert-tabs",
                 "number-spaces",
@@ -44,6 +48,9 @@ pub(super) fn build(
         (
             "view",
             vec![
+                "bracket-matching",
+                "whitespace",
+                "go-to-line",
                 "word-wrap",
                 "indent-guides",
                 "zoom",
@@ -82,10 +89,12 @@ pub(super) fn build(
                     &if name == "theme" { "system" } else { "plain" }.to_variant(),
                 ),
                 "minimap" | "focus" | "indent-guides" | "word-wrap" | "convert-tabs"
-                | "enable-autosave" | "restore-session" => {
+                | "enable-autosave" | "restore-session" | "whitespace" | "go-to-line"
+                | "auto-close" | "trim-trailing" | "sort-lines" | "sort-characters" => {
                     gio::SimpleAction::new_stateful(name, None, &false.to_variant())
                 }
-                "auto-indent" | "line-numbers" | "show-explorer" | "syntax-enable" => {
+                "auto-indent" | "line-numbers" | "show-explorer" | "syntax-enable"
+                | "bracket-matching" => {
                     gio::SimpleAction::new_stateful(name, None, &true.to_variant())
                 }
                 _ => gio::SimpleAction::new(name, None),

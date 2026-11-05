@@ -30,7 +30,7 @@ copy = Copiar
 paste = Colar
 cut = Recortar
 select-all = Selecionar tudo
-# 1.5.1: atualização dos instaladores; sem novos rótulos ou atalhos na interface.
+# 1.5.1-alpha: atualização dos instaladores; sem novos rótulos ou atalhos na interface.
 version = Versão:
 release-date = Data de lançamento:
 repository = Repositório:
@@ -105,7 +105,7 @@ match-count = { $current } de { $total } ocorrências
 one-replaced = Uma ocorrência foi substituída
 all-replaced = Todas as { $total } ocorrências foram substituídas
 focus = Foco
-exit-focus-search = Sair do Foco / fechar busca
+exit-focus-search = Sair do foco / fechar busca ou Ir para linha
 search-navigation = Próxima ocorrência (Localizar) / anterior (busca aberta)
 search-fields = Alternar campos Localizar / Substituir
 
@@ -119,7 +119,23 @@ syntax-highlighting = Realce de sintaxe
 syntax-enable = Ativar
 syntax-detect = Detectar linguagem
 
-# 1.5.2 (2026-11-01): Moldura nativa no Windows; sem novos rótulos ou atalhos.
+# 1.5.2-alpha (2026-11-01): Moldura nativa no Windows; sem novos rótulos ou atalhos.
 
 next-tab = Próxima aba
 previous-tab = Aba anterior
+
+# 1.6.0-alpha
+bracket-matching = Destacar pares de delimitadores
+whitespace = Mostrar espaços e tabulações
+auto-close = Fechar delimitadores e aspas automaticamente
+trim-trailing = Remover espaços finais ao salvar
+sort-lines = Ordenar linhas selecionadas (uma vez)
+sort-characters = Ordenar caracteres selecionados (uma vez)
+go-to-line = Ir para linha
+line-number = Número da linha
+close-go-to-line = Fechar Ir para linha
+go-to-line-range = Linha de 1 a { $total }. Pressione Enter para ir.
+go-to-line-invalid = Digite um número inteiro de 1 a { $total }.
+go-to-line-confirm = Ir para a linha informada (em Ir para linha)
+smart-home-end = Primeiro/último texto, depois início/fim da linha
+smart-home-end-selection = Selecionar até o primeiro/último texto ou limite da linha

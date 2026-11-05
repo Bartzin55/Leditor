@@ -1,3 +1,4 @@
+# Leditor 1.6.0-alpha: existing GTK 4 / GtkSourceView 5 dependencies cover this release.
 #Requires -Version 5.1
 [CmdletBinding()]
 param([ValidateSet('user','system')][string]$Scope, [string]$Source, [string]$Ref = 'main')

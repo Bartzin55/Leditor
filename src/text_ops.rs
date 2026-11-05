@@ -69,3 +69,42 @@ mod guide_tests {
         assert_eq!(super::guide_columns("\n  text\n", 2), vec![2, 2, 2]);
     }
 }
+
+/// GTK character offsets of ASCII spaces/tabs at line ends. Preserve newlines.
+pub fn trailing_ranges(text: &str, skip_line: Option<i32>) -> Vec<(i32, i32)> {
+    let mut ranges = Vec::new();
+    let mut offset = 0;
+    for (line, value) in text.split('\n').enumerate() {
+        let length = value.chars().count() as i32;
+        // Mixed LF/CRLF documents are intentionally not normalized by Document.
+        let content = value.strip_suffix('\r').unwrap_or(value);
+        let content_length = content.chars().count() as i32;
+        let count = content
+            .chars()
+            .rev()
+            .take_while(|c| matches!(c, ' ' | '\t'))
+            .count() as i32;
+        if count > 0 && skip_line != Some(line as i32) {
+            ranges.push((offset + content_length - count, offset + content_length));
+        }
+        offset += length + 1;
+    }
+    ranges
+}
+#[cfg(test)]
+mod trailing_tests {
+    #[test]
+    fn unicode_offsets_and_preserved_line_endings() {
+        assert_eq!(
+            super::trailing_ranges("ação \t\n \t\nx\u{a0}\nlast  ", None),
+            vec![(4, 6), (7, 9), (17, 19)]
+        );
+        assert_eq!(super::trailing_ranges("a \nb\t\n", Some(0)), vec![(4, 5)]);
+        assert_eq!(
+            super::trailing_ranges("a \r\nb\t\n", None),
+            vec![(1, 2), (5, 6)]
+        );
+        assert!(super::trailing_ranges("", None).is_empty());
+        assert!(super::trailing_ranges("a\nb\n", None).is_empty());
+    }
+}

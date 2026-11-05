@@ -1,6 +1,21 @@
-# Release 1.5.2 — 2026-10-31
+# Changelog
 
-## [1.5.3] — 2026-11-05
+## [1.6.0-alpha] — 2026-11-05
+
+- Add native bracket matching, Smart Home/End and whitespace rendering.
+- Add View checkboxes for matching brackets and rendering spaces/tabs.
+- Add Edit options for automatic bracket/quote pairs and trailing-space cleanup
+  on save, with native undo grouping and focused-line protection during autosave.
+- Add one-shot sorting checkboxes: selected whole lines through GtkSourceView,
+  selected Unicode scalar characters through GLib collation. Preserve duplicates.
+- Add bottom Go to Line bar, View toggle, Ctrl+G, validated logical line numbers
+  and mutual exclusion with Find/Replace.
+- Persist permanent options; update shortcuts and English/Portuguese/Spanish labels.
+- Suffix current/historical application version metadata with -alpha.
+  Existing Git objects/tags and third-party version numbers remain unchanged.
+- No new dependency; existing installer provisions and MIT license retained.
+
+## [1.5.3-alpha] — 2026-11-05
 
 ### Changed
 - Replace the custom minimap and line-number drawing with GtkSourceMap and the native GtkSourceView gutter; preserve location, visibility settings, themes and yellow current-line number.
@@ -19,6 +34,8 @@
 - Existing Windows native-frame + Cairo + DirectComposition mitigation retained; live-resize defect remains pending.
 
 
+## [1.5.2-alpha] — 2026-10-31
+
 - Resize correction revised on 2026-11-01: use native Windows title bars and
   resize borders (`GTK_CSD=0` by default). The prior Cairo-only workaround did
   not resolve the reported trails and has been removed. Explicit environment
@@ -32,7 +49,7 @@
 - Update version/About metadata and documentation. No new shortcuts or menu
   labels; reviewed English, Portuguese and Spanish catalogs.
 
-# Release 1.5.1 — 2026-10-29
+# Release 1.5.1-alpha — 2026-10-29
 
 - Windows correction (2026-10-31): explicitly use the built-in Windows tar for
   both extractions, preventing MSYS2 PATH changes from selecting GNU tar and
@@ -60,7 +77,7 @@
   shortcuts and UI translations are unchanged; this release adds no GUI actions.
 - See VALIDATION.md for checks performed and platform limitations.
 
-# Release 1.5.0 — 2026-10-28
+# Release 1.5.0-alpha — 2026-10-28
 
 - Integrated GtkSourceView 5 syntax highlighting, automatic extension/content-type detection, per-tab radio language selection and persisted enable preference.
 - Added read-only PDF tabs using PDFium and PNG/JPG/JPEG tabs using GTK/GdkPixbuf. Existing zoom controls work with both; media footers contain only zoom and omit minimap/line numbers.
@@ -71,9 +88,9 @@
 - Updated About metadata, existing zoom shortcut descriptions, EN/PT-BR/ES catalogs and Linux/Windows build documentation. No new keyboard binding was introduced.
 - Added sourceview5 (MIT), pdfium-render (MIT OR Apache-2.0); native GtkSourceView is LGPL-2.1-or-later and PDFium is BSD-style with third-party notices. Leditor remains MIT.
 
-# Release 1.4.1 — 2026-10-27
+# Release 1.4.1-alpha — 2026-10-27
 
-GTK maintenance release based on 1.4.0. Historical versions and Git tags are unchanged.
+GTK maintenance release based on 1.4.0-alpha. Historical application version labels were subsequently suffixed with -alpha in 1.6.0-alpha; Git tags remain unchanged.
 
 ### Changes
 - Removed Always on top, its menu action, translations and exclusive X11/Win32 bindings.
@@ -85,7 +102,7 @@ GTK maintenance release based on 1.4.0. Historical versions and Git tags are unc
 - Indentation guides are dashed and offset from text; blank lines continue adjacent indentation levels.
 - Updated shortcuts, English/Portuguese/Spanish catalogs and build instructions.
 
-# Release 1.4.0 — 2026-10-26
+# Release 1.4.0-alpha — 2026-10-26
 
 - Added an optional clickable minimap following the active theme; its visibility preference is saved.
 - Added Ctrl+F / Edit → Find and replace, a two-row bar matching the supplied mockups, yellow/green match tags, wrapping navigation, replacement messages and grouped undo for Replace/Replace all.
@@ -94,7 +111,7 @@ GTK maintenance release based on 1.4.0. Historical versions and Git tags are unc
 - Added Always on top through native Windows and X11 window-manager requests. Native Wayland does not expose a portable GTK equivalent; the option is disabled there. Focus and Always on top never persist.
 - Updated all three catalogs, shortcuts, package/About version, documentation and Linux graphical tests.
 
-# Release 1.3.0 — 2026-10-26
+# Release 1.3.0-alpha — 2026-10-26
 
 - Added Linux-only automatic per-user executable/launcher installation, atomic updates and conflict protection. Optional global installation is documented.
 - Moved preferences to the XDG config directory with legacy fallback; recovery stays in the user data directory.
@@ -105,11 +122,11 @@ GTK maintenance release based on 1.4.0. Historical versions and Git tags are unc
 
 # Changelog
 
-All notable changes to Leditor from version 0.1.0 through version 1.2.0 are recorded below, newest first. Changes are grouped into **Major Additions**, **Minor Changes**, and **Bug Fixes**.
+All notable changes to Leditor from version 0.1.0-alpha through version 1.2.0-alpha are recorded below, newest first. Changes are grouped into **Major Additions**, **Minor Changes**, and **Bug Fixes**.
 
-Dates use `YYYY-MM-DD`. Versions 0.2.0, 0.2.1, and 1.0.0 use the release dates recorded in their README and About metadata. Version 0.1.0 has no explicit release-date field; retained filesystem and archive timestamps span 2026-10-21 and 2026-10-22, so its exact release date remains unconfirmed. Maintenance changes delivered without a version increment are included under their existing version.
+Dates use `YYYY-MM-DD`. Versions 0.2.0-alpha, 0.2.1-alpha, and 1.0.0-alpha use the release dates recorded in their README and About metadata. Version 0.1.0-alpha has no explicit release-date field; retained filesystem and archive timestamps span 2026-10-21 and 2026-10-22, so its exact release date remains unconfirmed. Maintenance changes delivered without a version increment are included under their existing version.
 
-## [1.2.0] — 2026-10-25
+## [1.2.0-alpha] — 2026-10-25
 
 Pre-publication UI revision, 2026-10-26: replaced language buttons with grouped radio-style choices, preselected the configured language, and added an explicit label identifying the currently running interface language. Restart remains required.
 
@@ -133,7 +150,7 @@ Pre-publication UI revision, 2026-10-26: replaced language buttons with grouped 
 - Moved manual document writes to a worker so the footer can animate while saving.
 - Made current-line shading translucent for legibility in both themes.
 
-## [1.1.0] — 2026-10-24
+## [1.1.0-alpha] — 2026-10-24
 
 ### Major Additions
 
@@ -151,9 +168,9 @@ Pre-publication UI revision, 2026-10-26: replaced language buttons with grouped 
 
 ### Bug Fixes
 
-- No separately reported 1.0.0 defect is claimed as fixed in this release. New autosave safeguards preserve dirty content on write failure and refuse detected external file conflicts.
+- No separately reported 1.0.0-alpha defect is claimed as fixed in this release. New autosave safeguards preserve dirty content on write failure and refuse detected external file conflicts.
 
-## [1.0.0] — 2026-10-23
+## [1.0.0-alpha] — 2026-10-23
 
 ### Major Additions
 
@@ -188,7 +205,7 @@ Pre-publication UI revision, 2026-10-26: replaced language buttons with grouped 
 - Synchronized the explorer after operations performed by the application. Changes made by external programs can be loaded with Refresh.
 - Disabled text saving and duplication for unsupported-file tabs.
 - Refactored filesystem operations and explorer/tab interactions into dedicated modules, retaining the existing Rust/GTK codebase and adding no dependencies.
-- Updated About to version **1.0.0**, with release date **2026-10-23**, and expanded the Keyboard Shortcuts dialog and English Fluent catalog.
+- Updated About to version **1.0.0-alpha**, with release date **2026-10-23**, and expanded the Keyboard Shortcuts dialog and English Fluent catalog.
 - Added filesystem and GTK integration coverage. The Linux suite contains **19 passing tests**: nine document tests, nine filesystem-operation tests, and one GTK integration test covering multiple workflows.
 - Produced a Windows x64 release package containing the executable, GTK runtime dependencies, resources, licenses, source archive, launcher, and compiled document/filesystem test executables.
 - Documented operational limits: cross-volume moves requiring copy/delete are rejected; recursive copies containing symbolic links are rejected; symbolic-link folders are not recursively expanded; deletion is permanent and filesystem failures can leave a partial deletion.
@@ -197,7 +214,7 @@ Pre-publication UI revision, 2026-10-26: replaced language buttons with grouped 
 
 - Corrected the native GTK clipboard-action integration so Cut and Copy remain available without a selection, enabling the requested whole-line behavior in the existing context menu.
 
-## [0.2.1] — 2026-10-22
+## [0.2.1-alpha] — 2026-10-22
 
 ### Major Additions
 
@@ -208,7 +225,7 @@ Pre-publication UI revision, 2026-10-26: replaced language buttons with grouped 
 - Opened a blank, immediately editable `Untitled` tab at startup.
 - Removed the **Open or create a file** empty screen.
 - Changed the default new-document display name from `Untitled.txt` to `Untitled`.
-- Updated About to version **0.2.1**, retaining release date **2026-10-22**, and extended the existing GTK tests for the new lifecycle behavior.
+- Updated About to version **0.2.1-alpha**, retaining release date **2026-10-22**, and extended the existing GTK tests for the new lifecycle behavior.
 - Produced a Windows x64 release package with the executable, GTK runtime dependencies, resources, source archive, and a compiled document-test executable.
 
 ### Bug Fixes
@@ -217,7 +234,7 @@ Pre-publication UI revision, 2026-10-26: replaced language buttons with grouped 
 - Retained the original last tab when the user cancels its unsaved-changes warning. Replacement occurs only after closing is accepted.
 - Kept window shutdown separate from last-tab replacement, allowing the application to exit without creating another tab.
 
-## [0.2.0] — 2026-10-22
+## [0.2.0-alpha] — 2026-10-22
 
 ### Major Additions
 
@@ -241,16 +258,16 @@ Pre-publication UI revision, 2026-10-26: replaced language buttons with grouped 
 - Reused GTK text layout for gutter positioning so line numbers follow wrapping, resizing, and vertical scrolling.
 - Split tab widgets, line-number rendering, popups, and shortcut definitions into dedicated modules.
 - Updated the dark interface and English Fluent messages to support the new controls and supplied mockups.
-- Set About to version **0.2.0**, with release date **2026-10-22**. Shared shortcut definitions between action registration and the shortcuts table.
+- Set About to version **0.2.0-alpha**, with release date **2026-10-22**. Shared shortcut definitions between action registration and the shortcuts table.
 - Expanded validation to **10 passing Linux tests**: nine document tests and one GTK integration test covering multiple workflows.
 
 ### Bug Fixes
 
 - Corrected gutter iteration so a trailing empty logical line receives a line number instead of being skipped.
 
-## [0.1.0] — Release date unconfirmed
+## [0.1.0-alpha] — Release date unconfirmed
 
-The initial MVP and its maintenance corrections were delivered under version 0.1.0. Available timestamps span **2026-10-21–2026-10-22**; no authoritative release date was recorded in the project.
+The initial MVP and its maintenance corrections were delivered under version 0.1.0-alpha. Available timestamps span **2026-10-21–2026-10-22**; no authoritative release date was recorded in the project.
 
 ### Major Additions
 
@@ -284,11 +301,11 @@ The initial MVP and its maintenance corrections were delivered under version 0.1
 
 ## Windows Validation Note
 
-The Windows x64 packages for versions 0.2.1 and 1.0.0 were cross-compiled on Linux. Their test executables were compiled, but execution through Wine was blocked before tests could start by `wineserver: socket: Operation not permitted`. No successful native Windows execution is claimed. These packaging updates did not change the editor's source version.
+The Windows x64 packages for versions 0.2.1-alpha and 1.0.0-alpha were cross-compiled on Linux. Their test executables were compiled, but execution through Wine was blocked before tests could start by `wineserver: socket: Operation not permitted`. No successful native Windows execution is claimed. These packaging updates did not change the editor's source version.
 
 
 
-Windows resize follow-up (1.5.2): default to native frame + Cairo +
+Windows resize follow-up (1.5.2-alpha): default to native frame + Cairo +
 DirectComposition, the best of the user-tested configurations. Blank areas
 during live resize remain a known issue; this is a mitigation, not a complete
 fix. Existing environment overrides take precedence. See RESIZE.md.

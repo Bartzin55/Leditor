@@ -8,6 +8,8 @@ mod imp {
     pub struct EditorView {
         pub spaces: std::cell::Cell<u32>,
         pub auto_indent: std::cell::Cell<bool>,
+        pub auto_close: std::cell::Cell<bool>,
+        pub composing: std::cell::Cell<bool>,
         pub guides: std::cell::Cell<bool>,
         pub guide_columns: std::cell::RefCell<Vec<usize>>,
         pub css: gtk::CssProvider,
@@ -64,6 +66,85 @@ glib::wrapper! {
         @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Scrollable;
 }
 impl EditorView {
+    pub fn set_editing_options(&self, auto_close: bool, whitespace: bool) {
+        self.imp().auto_close.set(auto_close);
+        let drawer = self.space_drawer();
+        drawer.set_types_for_locations(
+            sourceview5::SpaceLocationFlags::ALL,
+            sourceview5::SpaceTypeFlags::SPACE | sourceview5::SpaceTypeFlags::TAB,
+        );
+        drawer.set_enable_matrix(whitespace);
+    }
+    /// Only typed delimiters are paired. Paste and programmatic changes remain literal.
+    pub(crate) fn type_delimiter(&self, ch: char) -> bool {
+        if !self.imp().auto_close.get()
+            || !self.is_editable()
+            || self.imp().composing.get()
+            || self.overwrites()
+        {
+            return false;
+        }
+        let b = self.buffer();
+        let cursor = b.iter_at_offset(b.cursor_position());
+        let selection = b.selection_bounds();
+        let mut previous = cursor;
+        let before = previous.backward_char().then(|| previous.char());
+        if matches!(ch, '\'' | '"') && selection.is_none() {
+            let mut iter = cursor;
+            let mut slashes = 0;
+            while iter.backward_char() && iter.char() == '\\' {
+                slashes += 1;
+            }
+            if slashes % 2 == 1 {
+                return false;
+            }
+        }
+        if selection.is_none() && matches!(ch, ')' | ']' | '}' | '\'' | '"') && cursor.char() == ch
+        {
+            let mut next = cursor;
+            next.forward_char();
+            b.place_cursor(&next);
+            self.scroll_mark_onscreen(&b.get_insert());
+            return true;
+        }
+        let close = match ch {
+            '(' => ')',
+            '[' => ']',
+            '{' => '}',
+            '\'' => '\'',
+            '"' => '"',
+            _ => return false,
+        };
+        if selection.is_none()
+            && matches!(ch, '\'' | '"')
+            && (before.is_some_and(|c| c.is_alphanumeric() || c == '_')
+                || cursor.char().is_alphanumeric()
+                || cursor.char() == '_')
+        {
+            return false;
+        }
+        b.begin_user_action();
+        if let Some((start, mut end)) = selection {
+            let (s, e) = (start.offset(), end.offset());
+            let reversed = b.cursor_position() == s;
+            b.insert(&mut end, &close.to_string());
+            b.insert(&mut b.iter_at_offset(s), &ch.to_string());
+            let (start, end) = (b.iter_at_offset(s + 1), b.iter_at_offset(e + 1));
+            if reversed {
+                b.select_range(&start, &end);
+            } else {
+                b.select_range(&end, &start);
+            }
+        } else {
+            let offset = cursor.offset();
+            b.insert_at_cursor(&format!("{ch}{close}"));
+            b.place_cursor(&b.iter_at_offset(offset + 1));
+        }
+        b.end_user_action();
+        self.scroll_mark_onscreen(&b.get_insert());
+        true
+    }
+
     pub fn set_indentation_options(&self, auto_indent: bool, guides: bool) {
         self.imp().auto_indent.set(auto_indent);
         self.imp().guides.set(guides);
@@ -217,6 +298,18 @@ impl EditorView {
         keys.set_propagation_phase(gtk::PropagationPhase::Capture);
         let weak = view.downgrade();
         keys.connect_key_pressed(move |_, key, _, state| {
+            if !state.intersects(
+                gtk::gdk::ModifierType::CONTROL_MASK
+                    | gtk::gdk::ModifierType::ALT_MASK
+                    | gtk::gdk::ModifierType::SUPER_MASK
+                    | gtk::gdk::ModifierType::META_MASK,
+            ) {
+                if let (Some(view), Some(ch)) = (weak.upgrade(), key.to_unicode()) {
+                    if view.type_delimiter(ch) {
+                        return glib::Propagation::Stop;
+                    }
+                }
+            }
             if (key == gtk::gdk::Key::Return || key == gtk::gdk::Key::KP_Enter)
                 && !state.intersects(
                     gtk::gdk::ModifierType::CONTROL_MASK
@@ -232,7 +325,11 @@ impl EditorView {
             glib::Propagation::Proceed
         });
         view.add_controller(keys);
+        view.connect_preedit_changed(|view, text| {
+            view.imp().composing.set(!text.is_empty());
+        });
         view.set_monospace(true);
+        view.set_smart_home_end(sourceview5::SmartHomeEndType::Before);
         view.set_left_margin(8);
         view.set_right_margin(8);
         view.set_top_margin(8);

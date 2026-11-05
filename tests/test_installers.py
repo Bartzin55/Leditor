@@ -132,7 +132,7 @@ class InstallationFlowTests(unittest.TestCase):
             bundled_notices.mkdir(parents=True)
             (bundled_notices / 'component.txt').write_bytes(b'bundled notice')
             (bundled_notices / 'bundled-only.txt').write_bytes(b'preserve notice')
-            (source / 'Cargo.toml').write_text('version = "1.5.1"')
+            (source / 'Cargo.toml').write_text('version = "1.5.1-alpha"')
             (source / 'Cargo.lock').write_text('test lock')
             (source / 'assets/leditor.png').write_bytes(b'icon')
             (source / 'uninstall.sh').write_text('test')

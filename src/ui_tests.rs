@@ -1169,6 +1169,42 @@ fn native_keyboard_and_map_input() {
     let b = tab.source_buffer();
     pump_until(|| e.window.is_active());
     tab.view.grab_focus();
+    b.set_text("    first  ");
+    b.place_cursor(&b.iter_at_offset(7));
+    key("Home");
+    assert_eq!(b.cursor_position(), 4);
+    key("Home");
+    assert_eq!(b.cursor_position(), 0);
+    key("End");
+    assert_eq!(b.cursor_position(), 9);
+    key("End");
+    assert_eq!(b.cursor_position(), 11);
+    key("shift+Home");
+    assert_eq!(
+        b.selection_bounds().map(|(s, e)| (s.offset(), e.offset())),
+        Some((4, 11))
+    );
+    b.set_text("");
+    e.actions["auto-close"].activate(None);
+    key("parenleft");
+    assert_eq!(tab.document.borrow().text, "()");
+    key("parenright");
+    assert_eq!(tab.document.borrow().text, "()");
+    key("ctrl+z");
+    assert_eq!(tab.document.borrow().text, "");
+    e.actions["auto-close"].activate(None);
+    key("parenleft");
+    assert_eq!(tab.document.borrow().text, "(");
+    key("ctrl+g");
+    assert!(e.goto.bar.is_visible());
+    key("ctrl+f");
+    assert!(e.search.bar.is_visible());
+    assert!(!e.goto.bar.is_visible());
+    key("ctrl+g");
+    assert!(e.goto.bar.is_visible());
+    assert!(!e.search.bar.is_visible());
+    key("Escape");
+    assert!(!e.goto.bar.is_visible());
     e.actions["convert-tabs"].activate(None);
     b.set_text("a");
     b.place_cursor(&b.end_iter());
@@ -1246,4 +1282,233 @@ fn native_keyboard_and_map_input() {
         "fn example() {\n    let value = 42;\n    println!(\"Olá\");\n}\n".repeat(100)
     );
     e.window.destroy();
+}
+
+#[test]
+#[ignore = "Run separately with a graphical display to keep GTK on one test thread"]
+fn version_160_editing_and_navigation() {
+    let temp = tempfile::tempdir().unwrap();
+    std::env::set_var("XDG_CONFIG_HOME", temp.path());
+    std::env::set_var("XDG_DATA_HOME", temp.path());
+    std::env::set_var("GSETTINGS_BACKEND", "memory");
+    gtk::init().unwrap();
+    let app = gtk::Application::builder()
+        .application_id("io.github.leditor.Features160Test")
+        .flags(gio::ApplicationFlags::NON_UNIQUE)
+        .build();
+    app.register(gio::Cancellable::NONE).unwrap();
+    let e = create(&app);
+    let tab = e.current().unwrap();
+    let b = tab.source_buffer();
+    assert_eq!(
+        tab.view.smart_home_end(),
+        sourceview5::SmartHomeEndType::Before
+    );
+    assert!(b.is_highlight_matching_brackets());
+    let matched = Rc::new(Cell::new(false));
+    let result = matched.clone();
+    b.connect_bracket_matched(move |_, _, kind| {
+        result.set(kind == sourceview5::BracketMatchType::Found)
+    });
+    e.choose_syntax("plain");
+    for text in ["(one)", "[two]", "{three}"] {
+        matched.set(false);
+        b.set_text(text);
+        b.place_cursor(&b.iter_at_offset(1));
+        pump_until(|| matched.get());
+    }
+    e.actions["bracket-matching"].activate(None);
+    assert!(!b.is_highlight_matching_brackets());
+    e.actions["syntax-enable"].activate(None);
+    e.actions["bracket-matching"].activate(None);
+    assert!(b.is_highlight_matching_brackets());
+    assert!(!b.is_highlight_syntax());
+    let drawer = tab.view.space_drawer();
+    assert!(!drawer.enables_matrix());
+    e.actions["whitespace"].activate(None);
+    assert!(drawer.enables_matrix());
+    assert_eq!(
+        drawer.types_for_locations(sourceview5::SpaceLocationFlags::ALL),
+        sourceview5::SpaceTypeFlags::SPACE | sourceview5::SpaceTypeFlags::TAB
+    );
+    e.actions["auto-close"].activate(None);
+    for (open, close) in [('(', ')'), ('[', ']'), ('{', '}'), ('\'', '\''), ('"', '"')] {
+        b.set_text("");
+        assert!(tab.view.type_delimiter(open));
+        assert_eq!(tab.document.borrow().text, format!("{open}{close}"));
+        assert_eq!(b.cursor_position(), 1);
+        assert!(tab.view.type_delimiter(close));
+        assert_eq!(b.cursor_position(), 2);
+        b.undo();
+        assert_eq!(tab.document.borrow().text, "");
+        b.redo();
+        assert_eq!(tab.document.borrow().text, format!("{open}{close}"));
+        b.set_text("ação");
+        b.select_range(&b.start_iter(), &b.end_iter());
+        assert!(tab.view.type_delimiter(open));
+        assert_eq!(tab.document.borrow().text, format!("{open}ação{close}"));
+        let (s, t) = b.selection_bounds().unwrap();
+        assert_eq!(b.text(&s, &t, true), "ação");
+        b.undo();
+        assert_eq!(tab.document.borrow().text, "ação");
+    }
+    b.set_text("can");
+    b.place_cursor(&b.end_iter());
+    assert!(!tab.view.type_delimiter('\''));
+    b.set_text("\\");
+    b.place_cursor(&b.end_iter());
+    assert!(!tab.view.type_delimiter('"'));
+    e.actions["auto-close"].activate(None);
+    assert!(!tab.view.type_delimiter('('));
+    e.actions["auto-close"].activate(None);
+    tab.view.set_overwrite(true);
+    assert!(!tab.view.type_delimiter('('));
+    tab.view.set_overwrite(false);
+    tab.view
+        .emit_by_name::<()>("preedit-changed", &[&"compose"]);
+    assert!(!tab.view.type_delimiter('('));
+    tab.view.emit_by_name::<()>("preedit-changed", &[&""]);
+    b.set_text("(");
+    assert_eq!(tab.document.borrow().text, "(");
+    for (input, start, end, expected) in [
+        (
+            "keep\nzebra\nbanana\napple\nlast",
+            6,
+            23,
+            "keep\napple\nbanana\nzebra\nlast",
+        ),
+        (
+            "keep\nzebra\napple\nlast",
+            6,
+            17,
+            "keep\napple\nzebra\nlast",
+        ),
+        ("zebra\napple", 0, 11, "apple\nzebra"),
+        ("zebra\napple\n", 0, 12, "apple\nzebra\n"),
+        ("b\na\nb", 0, 5, "a\nb\nb"),
+    ] {
+        b.set_text(input);
+        b.select_range(&b.iter_at_offset(start), &b.iter_at_offset(end));
+        assert!(e.actions["sort-lines"].is_enabled());
+        e.actions["sort-lines"].activate(None);
+        assert_eq!(tab.document.borrow().text, expected);
+        assert_eq!(
+            e.actions["sort-lines"].state().unwrap().get::<bool>(),
+            Some(false)
+        );
+        b.undo();
+        assert_eq!(tab.document.borrow().text, input);
+        b.redo();
+        assert_eq!(tab.document.borrow().text, expected);
+    }
+    b.set_text("prefix cbbaa suffix");
+    b.select_range(&b.iter_at_offset(7), &b.iter_at_offset(12));
+    e.actions["sort-characters"].activate(None);
+    assert_eq!(tab.document.borrow().text, "prefix aabbc suffix");
+    b.undo();
+    assert_eq!(tab.document.borrow().text, "prefix cbbaa suffix");
+    b.place_cursor(&b.start_iter());
+    assert!(!e.actions["sort-characters"].is_enabled());
+    b.set_text(&"    ação  \t\n".repeat(300));
+    e.actions["word-wrap"].activate(None);
+    e.open_search();
+    e.actions["go-to-line"].activate(None);
+    assert!(e.goto.bar.is_visible());
+    assert!(!e.search.bar.is_visible());
+    e.goto.entry.set_text("240");
+    e.goto.entry.emit_activate();
+    assert_eq!(b.iter_at_offset(b.cursor_position()).line(), 239);
+    drain();
+    assert!(tab.scroll.vadjustment().value() > 0.0);
+    let before = b.cursor_position();
+    for invalid in ["0", "-1", "302", "1.5", "hello", "", "9999999999999999999"] {
+        e.goto.entry.set_text(invalid);
+        e.go_to_line();
+        assert_eq!(b.cursor_position(), before);
+    }
+    for valid in ["1", "301", " 12 "] {
+        e.goto.entry.set_text(valid);
+        e.go_to_line();
+        assert_eq!(
+            b.iter_at_offset(b.cursor_position()).line(),
+            valid.trim().parse::<i32>().unwrap() - 1
+        );
+    }
+    e.open_search();
+    assert!(!e.goto.bar.is_visible());
+    assert!(e.search.bar.is_visible());
+    e.actions["go-to-line"].activate(None);
+    e.actions["go-to-line"].activate(None);
+    assert!(!e.goto.bar.is_visible());
+    assert!(!app.accels_for_action("win.go-to-line").is_empty());
+    let path = temp.path().join("trim.txt");
+    std::fs::write(&path, b"\xef\xbb\xbfbase\r\n").unwrap();
+    let id = e.add_tab(Document::open(&path).unwrap());
+    let saved = e.tab(id).unwrap();
+    let buffer = saved.source_buffer();
+    buffer.set_text("ação \t\n \t\nend\u{a0}  ");
+    e.actions["trim-trailing"].activate(None);
+    run(&e, Intent::Save(id));
+    assert_eq!(saved.document.borrow().text, "ação\n\nend\u{a0}");
+    assert_eq!(
+        std::fs::read(&path).unwrap(),
+        "\u{feff}ação\r\n\r\nend\u{a0}".as_bytes()
+    );
+    buffer.undo();
+    assert_eq!(saved.document.borrow().text, "ação \t\n \t\nend\u{a0}  ");
+    assert!(saved.document.borrow().is_dirty());
+    buffer.redo();
+    assert_eq!(saved.document.borrow().text, "ação\n\nend\u{a0}");
+    buffer.set_text("done \t\ncurrent ");
+    buffer.place_cursor(&buffer.end_iter());
+    saved.view.grab_focus();
+    drain();
+    e.autosave_now();
+    pump_until(|| !e.busy.get());
+    assert_eq!(saved.document.borrow().text, "done\ncurrent ");
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        "\u{feff}done\r\ncurrent "
+    );
+    buffer.set_text("keep  ");
+    e.file_choices.borrow_mut().push_back((true, None));
+    run(&e, Intent::SaveAs(id));
+    assert_eq!(saved.document.borrow().text, "keep  ");
+    let next = e.add_tab(Document::default());
+    let next = e.tab(next).unwrap();
+    assert!(next.view.space_drawer().enables_matrix());
+    assert!(next.view.type_delimiter('['));
+    e.save_settings();
+    let settings = session::load_settings().unwrap();
+    for option in [
+        "bracket-matching",
+        "whitespace",
+        "auto-close",
+        "trim-trailing",
+    ] {
+        assert!(settings.boolean("settings", option).unwrap());
+    }
+    assert!(!settings.has_key("settings", "sort-lines").unwrap());
+    e.open_goto();
+    next.mark_unsupported(&e.strings);
+    e.select(next.id);
+    assert!(!e.goto.bar.is_visible());
+    assert!(!e.actions["go-to-line"].is_enabled());
+    assert!(!e.actions["sort-lines"].is_enabled());
+    e.select(tab.id);
+    e.open_goto();
+    e.goto.entry.set_text("120");
+    e.go_to_line();
+    for theme in ["light", "dark"] {
+        e.theme.replace(theme.into());
+        e.apply_theme();
+        capture(&e, &format!("160-goto-{theme}.png"));
+    }
+    e.window.destroy();
+    let restored = create(&app);
+    assert!(restored.trim_trailing.get());
+    assert!(restored.auto_close.get());
+    assert!(restored.whitespace.get());
+    assert!(restored.bracket_matching.get());
+    restored.window.destroy();
 }

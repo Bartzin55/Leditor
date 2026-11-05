@@ -172,6 +172,9 @@ impl Editor {
         if !self.current().is_some_and(|t| t.is_text()) {
             return;
         }
+        if self.goto.bar.is_visible() {
+            self.close_goto();
+        }
         self.search.case.set_active(false);
         self.search.bar.set_visible(true);
         self.actions["insert-above"].set_enabled(false);
@@ -507,10 +510,14 @@ mod tests {
         pump();
         // GtkSourceMap shares the buffer and follows the source scroll position.
         use sourceview5::prelude::MapExt;
-        assert_eq!(tab.minimap.view().unwrap(), tab.view.clone().upcast::<sourceview5::View>());
+        assert_eq!(
+            tab.minimap.view().unwrap(),
+            tab.view.clone().upcast::<sourceview5::View>()
+        );
         assert_eq!(tab.minimap.buffer(), b);
         assert!(!tab.minimap.is_editable());
-        tab.view.scroll_to_iter(&mut b.end_iter(), 0.0, true, 0.0, 1.0);
+        tab.view
+            .scroll_to_iter(&mut b.end_iter(), 0.0, true, 0.0, 1.0);
         pump();
         assert!(tab.scroll.vadjustment().value() > 0.0);
         e.open_search();

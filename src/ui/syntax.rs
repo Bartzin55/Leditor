@@ -60,7 +60,7 @@ impl Editor {
     pub(super) fn apply_syntax(&self, tab: &Tab) {
         let buffer = tab.source_buffer();
         buffer.set_highlight_syntax(self.syntax_enabled.get() && tab.is_text());
-        buffer.set_highlight_matching_brackets(false);
+        buffer.set_highlight_matching_brackets(self.bracket_matching.get() && tab.is_text());
         let theme = self.theme.borrow();
         let light =
             theme.as_str() == "light" || (theme.as_str() == "system" && !self.system_dark.get());

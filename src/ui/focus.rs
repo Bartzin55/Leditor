@@ -31,6 +31,10 @@ impl Editor {
                         e.toggle_focus();
                         return glib::Propagation::Stop;
                     }
+                    if e.goto.bar.is_visible() {
+                        e.close_goto();
+                        return glib::Propagation::Stop;
+                    }
                     if e.search.bar.is_visible() {
                         e.close_search();
                         return glib::Propagation::Stop;

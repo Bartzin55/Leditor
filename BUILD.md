@@ -1,4 +1,4 @@
-# Build and Run — Leditor 1.5.3
+# Build and Run — Leditor 1.6.0-alpha
 
 ## Automated installation / update
 
@@ -31,8 +31,8 @@ The Linux user installation uses `$XDG_DATA_HOME/leditor-install` and
 
 Omit `--source .` / `-Source .` to clone published main. A specific
 branch/tag can be selected with `--ref REF` / `-Ref REF`. Do not assume a release
-tag exists. Version 1.5.3 in this ZIP has not been pushed: use local source mode
-to test it. Published main contains 1.5.2.
+tag exists. Version 1.6.0-alpha in this ZIP has not been pushed: use local source mode
+to test it. The source base is main commit `b7232ea`.
 Re-running against the same Git revision does not rebuild; a changed revision
 creates a new generation. Local source mode always rebuilds.
 
@@ -153,7 +153,7 @@ Alternatively set `LEDITOR_PDFIUM_LIBRARY` to the absolute `.so`/`.dll` path. Wi
 
 GtkSourceView's `language-specs` and `styles` data directories must accompany a portable GTK distribution (normally in `share/gtksourceview-5`); the native library alone is insufficient. PNG/JPEG need their GdkPixbuf loaders. Keep architecture and runtime ABI consistent across GTK, GtkSourceView, PDFium and the executable.
 
-## Linux integration (1.3.0)
+## Linux integration (1.3.0-alpha)
 
 On startup, including `cargo run --locked` or `cargo run --locked --release`, Leditor installs/updates these **per-user** files, without sudo:
 
@@ -218,7 +218,7 @@ Run the new UI integration suite separately with a display and PDFium installed:
 cargo test --locked --bin leditor ui::tests::version_150_syntax_media_and_save_all -- --ignored --exact
 ```
 
-## Windows rendering in 1.5.2
+## Windows rendering in 1.5.2-alpha
 
 The 2026-11-01 revision uses native Windows title bars and resize borders,
 setting `GTK_CSD=0` for this process before GTK starts when it has not been
@@ -238,7 +238,7 @@ powershell.exe -NoProfile -NoExit -ExecutionPolicy Bypass -File .\install.ps1 -S
 ```
 
 Without `-Source .`, the installer clones the published repository, which may
-still contain the earlier 1.5.2 attempt. For a system installation, open the
+still contain the earlier 1.5.2-alpha attempt. For a system installation, open the
 terminal as administrator first to keep the output in that window. The normal
 installer tests do not simulate interactive window resizing.
 
@@ -248,16 +248,16 @@ The separate GUI regression test requires a graphical display and window manager
 cargo test --locked --bin leditor ui::resize_tests::resize_maximize_and_focus_preserve_editor -- --ignored --exact
 ```
 
-The icon remains the enlarged PNG/ICO delivered in 1.5.2. Existing pinned Windows
+The icon remains the enlarged PNG/ICO delivered in 1.5.2-alpha. Existing pinned Windows
 shortcuts may need repinning if the shell keeps a cached icon.
 
-Windows resize follow-up (1.5.2): default to native frame + Cairo +
+Windows resize follow-up (1.5.2-alpha): default to native frame + Cairo +
 DirectComposition, the best of the user-tested configurations. Blank areas
 during live resize remain a known issue; this is a mitigation, not a complete
 fix. Existing environment overrides take precedence. See RESIZE.md.
 
 
-## 1.5.3 dependency and behavior notes
+## 1.5.3-alpha dependency and behavior notes
 
 No new dependency or installer download is needed: GtkSourceMap, line numbers,
 indentation and case conversion are part of the existing GtkSourceView 5 runtime.
@@ -267,3 +267,17 @@ so no extra runtime file copying is required. Cargo.lock retains dependency vers
 Tab with spaces enabled advances to the native indentation stop; inside a line this
 can insert fewer than the configured width. New keyboard shortcuts are listed in
 Other > Keyboard Shortcuts. Native Windows testing is still required; see VALIDATION.md.
+
+## 1.6.0-alpha compatibility
+
+No dependency was added. Both installers already provision GTK >= 4.10 and
+GtkSourceView 5 with the required language/style data. Use `--source .` on Linux
+or `-Source .` on Windows to install this extracted ZIP. For a manual build, after
+installing the prerequisites above, run these commands in Linux or MSYS2 UCRT64:
+
+```sh
+cargo build --locked --release
+cargo run --locked --release
+```
+
+PDFium 7881 is still required for PDFs. VALIDATION.md records actual test results.

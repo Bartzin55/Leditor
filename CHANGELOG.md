@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.7.0-alpha] — 2026-11-07
+
+- Add native GtkSourceCompletionWords with one vocabulary per document,
+  automatic suggestions and native Ctrl+Space, arrows, Tab/Enter and Esc controls.
+- Initialize GtkSourceView native CSS/resources explicitly for reliable completion
+  popup sizing. Preserve ordinary Enter indentation and native acceptance.
+- Reuse File Explorer's platform MIME icons to the left of tab titles.
+- Reserve title width so crowded tabs scroll instead of collapsing; use middle
+  ellipsis for long filenames and a full-name/path tooltip. Preserve dot/close space.
+- Add a bright light-green underline to the bold native bracket-match style,
+  in both light and dark themes; retain the existing enable/disable option.
+- Update metadata, build/development notes and English/Portuguese/Spanish shortcut
+  descriptions. Existing GTK/GtkSourceView dependencies and MIT license retained.
+- No source push or release publication performed for this ZIP.
+
 ## [1.6.0-alpha] — 2026-11-05
 
 - Add native bracket matching, Smart Home/End and whitespace rendering.

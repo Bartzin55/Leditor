@@ -1,6 +1,23 @@
 # Leditor
 
-## 1.6.0-alpha — Editing and navigation tools
+## 1.7.0-alpha — Word completion and readable tabs
+
+- Native GtkSourceView word completion suggests words already present in the
+  current document. Each tab has its own vocabulary; no online service is used.
+  Suggestions appear while typing. Ctrl+Space requests them manually; use ↑/↓
+  to choose, Tab or Enter to accept, and Esc to dismiss.
+- Native word indexing runs asynchronously. Newly opened or edited text may
+  take a few seconds to enter the suggestion list. This is word completion,
+  not language-aware or LSP completion.
+- Tabs show the same platform MIME icon as Leditor's File Explorer. Normal
+  filenames retain their width, including with many tabs open. Long names use
+  middle ellipsis; hovering shows the complete filename/path. The dirty dot and
+  close button retain their space, and horizontal scrolling handles overflow.
+- Matching brackets retain bold text and gain a bright light-green underline
+  in both themes. View → Match brackets still controls the feature.
+- No new dependency or change to document/session formats. Leditor remains MIT.
+
+## Retained from 1.6.0-alpha — Editing and navigation tools
 
 - View → Match brackets: native highlighting for `()`, `[]`, `{}` (on by default).
 - Smart Home/End: first press goes to the first/last text, the second to the line
@@ -25,7 +42,7 @@
 - Permanent options are remembered and apply to existing/new text tabs.
 
 All historical application version labels now use `-alpha`. Existing Git
-commits/tags and third-party versions are unchanged. No push was performed.
+commits/tags and third-party versions are unchanged.
 
 ## Retained from 1.5.3-alpha — Native GtkSourceView editing
 
@@ -37,7 +54,7 @@ commits/tags and third-party versions are unchanged. No push was performed.
 - Ctrl+Tab / Ctrl+Shift+Tab navigate tabs in display order, wrapping at the ends.
 - Ctrl+Shift+O opens a folder; Ctrl+Shift+W closes it; Ctrl+Shift+N creates one.
 
-Use `bash install.sh --source .` or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .` from this extracted ZIP. This ZIP contains the unpublished 1.6.0-alpha update.
+Use `bash install.sh --source .` or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .` from this extracted ZIP. This source contains the 1.7.0-alpha update.
 See BUILD.md, DEVELOPMENT.md and VALIDATION.md for setup, design and test results.
 
 
@@ -64,8 +81,8 @@ MIT. See [VALIDATION.md](VALIDATION.md) for the actual validation limits.
 
 ### A modern text editor for Linux and Windows.
 
-**Version:** 1.6.0-alpha
-**Release date:** November 5, 2026
+**Version:** 1.7.0-alpha
+**Release date:** November 7, 2026
 
 Leditor brings text editing and file organization together in a clean, minimalist workspace. Write, edit, and browse your files with independent tabs, an integrated file explorer, and a distraction-free interface.
 
@@ -168,7 +185,7 @@ Leditor's roadmap focuses on richer editing, broader file support, and a more cu
 - **Additional interface languages** and localization.
 - **Support for more text encodings.**
 
-These features are planned for future releases and are not included in version 1.6.0-alpha.
+These features are planned for future releases and are not included in version 1.7.0-alpha.
 
 ## Get Started
 

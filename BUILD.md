@@ -1,4 +1,4 @@
-# Build and Run — Leditor 1.6.0-alpha
+# Build and Run — Leditor 1.7.0-alpha
 
 ## Automated installation / update
 
@@ -31,8 +31,8 @@ The Linux user installation uses `$XDG_DATA_HOME/leditor-install` and
 
 Omit `--source .` / `-Source .` to clone published main. A specific
 branch/tag can be selected with `--ref REF` / `-Ref REF`. Do not assume a release
-tag exists. Version 1.6.0-alpha in this ZIP has not been pushed: use local source mode
-to test it. The source base is main commit `b7232ea`.
+tag exists. Use local source mode to build the extracted ZIP. The 1.7.0-alpha
+update is based on main commit `ce69188` (1.6.0-alpha).
 Re-running against the same Git revision does not rebuild; a changed revision
 creates a new generation. Local source mode always rebuilds.
 
@@ -281,3 +281,17 @@ cargo run --locked --release
 ```
 
 PDFium 7881 is still required for PDFs. VALIDATION.md records actual test results.
+
+## 1.7.0-alpha compatibility
+
+Autocomplete uses GtkSourceCompletionWords from the existing GtkSourceView 5
+runtime. Tab icons use the same GIO MIME icons as File Explorer. Bracket underline
+styles are embedded alongside the existing themes. No new package, Cargo dependency,
+license or runtime asset is required by this update; both installers were reviewed.
+The Linux and Windows commands above continue to apply. Ctrl+Space and completion
+acceptance/navigation shortcuts are listed in Other → Keyboard Shortcuts.
+
+Word indexing is asynchronous and may take a few seconds after loading/changing
+text. Suggestions are local to the active document. The native GTK icon theme and
+MIME database determine file icons, so exact artwork varies across systems.
+Refer to VALIDATION.md for tested native-library versions and platform limits.

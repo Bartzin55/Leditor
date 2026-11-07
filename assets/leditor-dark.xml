@@ -3,4 +3,5 @@
   <style name="text" foreground="#eeeeee" background="#111111"/>
   <style name="line-numbers" foreground="#949494" background="#161616"/>
   <style name="current-line-number" foreground="#ffd41f" background="#161616" bold="false"/>
+  <style name="bracket-match" bold="true" underline="single" underline-color="#86ee77"/>
 </style-scheme>

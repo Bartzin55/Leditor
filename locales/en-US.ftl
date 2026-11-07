@@ -142,3 +142,9 @@ go-to-line-invalid = Enter a whole number from 1 to { $total }.
 go-to-line-confirm = Go to the entered line (in Go to Line)
 smart-home-end = First/last text, then beginning/end of line
 smart-home-end-selection = Select to first/last text or line edge
+
+# 1.7.0-alpha
+completion-show = Show word suggestions from this document
+completion-select = Select a word suggestion (completion open)
+completion-accept = Accept the selected suggestion (completion open)
+completion-dismiss = Dismiss word suggestions

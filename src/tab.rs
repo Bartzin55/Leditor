@@ -22,6 +22,7 @@ pub struct Tab {
     pub minimap: sourceview5::Map,
     pub header: gtk::Box,
     pub select: gtk::Button,
+    pub icon: gtk::Image,
     pub title: gtk::Label,
     pub dirty: gtk::Label,
     pub close: gtk::Button,
@@ -46,11 +47,15 @@ impl Tab {
         let select = gtk::Button::new();
         select.add_css_class("flat");
         let header_content = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        let icon = gtk::Image::new();
+        icon.set_pixel_size(16);
         let title = gtk::Label::new(None);
         title.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
-        title.set_max_width_chars(26);
+        title.set_max_width_chars(32);
+        title.set_single_line_mode(true);
         let dirty = gtk::Label::new(Some("●"));
         dirty.add_css_class("dirty-dot");
+        header_content.append(&icon);
         header_content.append(&title);
         header_content.append(&dirty);
         select.set_child(Some(&header_content));
@@ -74,6 +79,7 @@ impl Tab {
             minimap,
             header,
             select,
+            icon,
             title,
             dirty,
             close,
@@ -111,7 +117,25 @@ impl Tab {
             })
     }
     pub fn refresh(&self, strings: &I18n) {
-        self.title.set_text(&self.name(strings));
+        let name = self.name(strings);
+        if self.title.text().as_str() != name {
+            self.title.set_text(&name);
+            // Ellipsized labels normally have a near-zero minimum width. In a
+            // scrolling tab strip each title needs its own reserved space.
+            // Measure the real glyphs, including wide Unicode characters, and
+            // cap unusually long titles at about 32 average font characters.
+            let natural = self.title.create_pango_layout(Some(&name)).pixel_size().0;
+            let metrics = self.title.pango_context().metrics(None, None);
+            let limit = (32 * metrics.approximate_char_width()) / gtk::pango::SCALE;
+            self.title.set_width_request(natural.min(limit.max(1)));
+            self.icon.set_from_gicon(&crate::file_icon::for_path(
+                self.document
+                    .borrow()
+                    .path
+                    .as_deref()
+                    .unwrap_or_else(|| Path::new(&name)),
+            ));
+        }
         // Opacity preserves the tab width while a saved document has no dot.
         self.dirty
             .set_opacity(if self.document.borrow().is_dirty() {
@@ -119,14 +143,10 @@ impl Tab {
             } else {
                 0.0
             });
-        self.header.set_tooltip_text(
-            self.document
-                .borrow()
-                .path
-                .as_ref()
-                .map(|p| p.to_string_lossy())
-                .as_deref(),
-        );
+        let document = self.document.borrow();
+        let tooltip = document.path.as_ref().map(|p| p.to_string_lossy());
+        self.header
+            .set_tooltip_text(Some(tooltip.as_deref().unwrap_or(&name)));
     }
     pub fn mark_unsupported(&self, strings: &I18n) {
         self.unsupported.set(true);

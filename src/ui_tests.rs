@@ -3,6 +3,9 @@ use crate::session;
 use sourceview5::prelude::ViewExt;
 use std::time::{Duration, Instant};
 
+#[path = "ui_170_tests.rs"]
+mod version170;
+
 #[track_caller]
 fn pump_until(mut condition: impl FnMut() -> bool) {
     let caller = std::panic::Location::caller();

@@ -139,3 +139,9 @@ go-to-line-invalid = Digite um número inteiro de 1 a { $total }.
 go-to-line-confirm = Ir para a linha informada (em Ir para linha)
 smart-home-end = Primeiro/último texto, depois início/fim da linha
 smart-home-end-selection = Selecionar até o primeiro/último texto ou limite da linha
+
+# 1.7.0-alpha
+completion-show = Mostrar sugestões de palavras deste documento
+completion-select = Selecionar sugestão de palavra (lista aberta)
+completion-accept = Aceitar a sugestão selecionada (lista aberta)
+completion-dismiss = Fechar sugestões de palavras

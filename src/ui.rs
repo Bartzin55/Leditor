@@ -106,6 +106,9 @@ pub fn build(application: &gtk::Application) {
     }
 }
 fn create(application: &gtk::Application) -> Rc<Editor> {
+    // Loads GtkSourceView's native CSS and translations, including the
+    // completion popover's sizing rules. GTK is initialized by this point.
+    sourceview5::init();
     crate::app_icon::register();
     let css = gtk::CssProvider::new();
     css.load_from_data(include_str!("style.css"));

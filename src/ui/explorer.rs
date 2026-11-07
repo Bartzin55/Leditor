@@ -202,10 +202,7 @@ impl Editor {
             if let Some(icon) = content.first_child() {
                 content.remove(&icon);
             }
-            let (content_type, _) = gio::content_type_guess(Some(path), None);
-            content.append(&gtk::Image::from_gicon(
-                &gio::content_type_get_symbolic_icon(&content_type),
-            ));
+            content.append(&gtk::Image::from_gicon(&crate::file_icon::for_path(path)));
         }
         let label = gtk::Label::new(Some(
             &path

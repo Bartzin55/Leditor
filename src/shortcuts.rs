@@ -128,6 +128,10 @@ pub const SHORTCUTS: &[Shortcut] = &[
     },
 ];
 pub const TEXT_SHORTCUTS: &[(&str, &str)] = &[
+    ("Ctrl+Space", "completion-show"),
+    ("↑ / ↓", "completion-select"),
+    ("Tab / Enter", "completion-accept"),
+    ("Esc", "completion-dismiss"),
     ("Esc", "exit-focus-search"),
     ("Home / End", "smart-home-end"),
     ("Shift+Home / Shift+End", "smart-home-end-selection"),

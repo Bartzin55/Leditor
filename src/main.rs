@@ -1,6 +1,7 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 mod app_icon;
 mod editor_view;
+mod file_icon;
 #[cfg(target_os = "linux")]
 mod linux_install;
 mod minimap;

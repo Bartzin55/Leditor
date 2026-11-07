@@ -1,6 +1,42 @@
-# Development Notes — Leditor 1.6.0-alpha
+# Development Notes — Leditor 1.7.0-alpha
 
-## 1.6.0-alpha integration
+## 1.7.0-alpha integration
+
+- `editor_view.rs`: one native CompletionWords provider per source view, registered
+  only against that view's buffer. GtkSourceView owns scanning, filtering, the
+  popup, keyboard selection/acceptance and the undoable replacement. The first
+  suggestion is selected on show. Providers are owned by native completion and
+  released with the view; no shared/global vocabulary or custom scanner exists.
+- `ui.rs` explicitly calls `sourceview5::init()` before constructing native source
+  objects. This loads the library's CSS, translations and internal icons. Without
+  it, repeated completion popups could have zero requested width and stay hidden.
+- The existing exact-whitespace Enter handler and typed-delimiter logic remain.
+  Native completion is attached after those handlers and consumes acceptance
+  keys while its popup is open; real keyboard tests cover both paths.
+- `file_icon.rs`: shared GIO filename-to-symbolic-icon function for Explorer and
+  tabs, using the platform MIME database without reading the file contents.
+- `tab.rs`: icon before the title; actual Pango text measurement reserves each
+  title's minimum width, capped at about 32 average font characters. Middle
+  ellipsis limits unusually long titles. Dot/close space remains reserved. Full
+  filename/path is available as a tooltip, including named unsaved documents.
+  Renames and Save As update the title/icon; ordinary text edits reuse them.
+- `assets/leditor-{light,dark}.xml`: native `bracket-match` style with bold text,
+  a single underline and `#86ee77` underline color. The matching algorithm and
+  existing View preference are unchanged, including native language contexts.
+- `shortcuts.rs`, `locales/`: native completion controls are documented in all
+  three UI languages. No new global accelerator, preference or menu is added.
+- `ui_170_tests.rs`: UI allocation/icon/style tests and native X11 completion
+  input tests. Existing regression suites remain in place.
+
+Native references:
+- https://gnome.pages.gitlab.gnome.org/gtksourceview/gtksourceview5/class.CompletionWords.html
+- https://gnome.pages.gitlab.gnome.org/gtksourceview/gtksourceview5/style-reference.html
+
+Completion follows the native asynchronous scanner (including its idle delay and
+word rules). Very short prefixes may yield no proposals. The vocabulary is not
+persisted and never aggregates other tabs. It does not understand language symbols.
+
+## Retained 1.6.0-alpha integration
 
 - `editor_view.rs`: native SmartHomeEndType::Before and SpaceDrawer spaces/tabs.
   Typed-delimiter pairing groups edits in the native undo stack. Selection wrapping,
@@ -59,7 +95,8 @@ and Shift+Tab are native GtkSourceView behavior.
 ## Appearance and compatibility
 
 `assets/leditor-light.xml` and `assets/leditor-dark.xml` inherit Adwaita syntax
-styles and override only editor/gutter colors and the yellow current-line number.
+styles and override editor/gutter colors, the yellow current-line number and
+the bold, light-green bracket underline.
 They are embedded with include_str and written once to a private TempDir retained
 by the GUI thread. This supports GtkSourceView 5.12, whose style parser requires
 filesystem paths. The directory is removed on normal thread shutdown; after an
@@ -100,13 +137,13 @@ as an independent unsaved tab. Undo history is still not persisted across launch
 
 ## Build, installers and licensing
 
-Cargo.lock retains the same dependency versions; only Leditor becomes 1.6.0-alpha.
+Cargo.lock retains the same dependency versions; only Leditor becomes 1.7.0-alpha.
 Both install.sh (through scripts/install_linux.py) and install.ps1 already provide
 GtkSourceView 5 and its native data. No new packages or asset-copy steps are
 required. About reads Cargo's package version. The Linux installer User-Agent
-was updated to 1.6.0-alpha.
+was updated to 1.7.0-alpha.
 
 The application remains MIT. Native GTK/GtkSourceView are dynamically linked
 LGPL libraries; their notices and redistribution obligations remain applicable.
 See THIRD_PARTY.md and LICENSES/. Build commands are in BUILD.md and measured
-validation results and limits in VALIDATION.md. No push was performed.
+validation results and limits in VALIDATION.md.

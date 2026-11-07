@@ -1,6 +1,6 @@
 //! GtkSourceView editor with Leditor clipboard, auto-indent and guide behavior.
 use gtk::{glib, prelude::*, subclass::prelude::*};
-use sourceview5::prelude::ViewExt;
+use sourceview5::prelude::{CompletionWordsExt, ViewExt};
 
 mod imp {
     use super::*;
@@ -341,6 +341,13 @@ impl EditorView {
         buffer.set_enable_undo(false);
         buffer.set_text(text);
         buffer.set_enable_undo(true);
+        // One provider per view, with only this document registered. No words
+        // from other tabs, external dictionaries or language servers are used.
+        let words = sourceview5::CompletionWords::new(None);
+        words.register(&buffer);
+        let completion = view.completion();
+        completion.set_select_on_show(true);
+        completion.add_provider(&words);
         view.configure(4, false, 100.0);
         view.set_indentation_options(true, false);
         let weak = view.downgrade();

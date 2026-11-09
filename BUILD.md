@@ -1,297 +1,343 @@
-# Build and Run — Leditor 1.7.0-alpha
+# Install, Update and Build Leditor
 
-## Automated installation / update
+Choose the first option unless you specifically want to install a downloaded
+source tree or manage the build yourself.
 
-Supported targets: Linux x86_64 with glibc and Windows 10/11 x64. ARM, 32-bit,
-macOS and musl/Alpine are rejected. Internet and several GB of free space are
-required to download and compile the toolchain. Initial downloads can exceed
-500 MB when no development tools are present. Close Leditor before updating.
+1. **Recommended: download only the installer.** It downloads the published code
+   from GitHub, prepares dependencies, builds and installs Leditor.
+2. **Install a local source folder.** Use this for an extracted project ZIP or a
+   checkout you want to test, including changes not yet published on GitHub.
+3. **Advanced: compile and install manually.** Manage the toolchain, native
+   libraries and installation yourself, without running the installers.
 
-To test this **corrected source ZIP**, extract it and run from its directory:
+## 1. Recommended — download only the installer
 
-```sh
-bash install.sh --source .
+You do **not** need to download the complete project or install Rust first.
+Internet access and several GB of free disk space are required. Initial downloads
+can exceed 500 MB, and compilation may take several minutes. Close Leditor before
+installing an update.
+
+Supported automatic-install targets: **Windows 10/11 x64** and **Linux x86_64
+with glibc**. ARM, 32-bit, macOS and musl/Alpine are not supported by these scripts.
+
+### Windows
+
+1. Download [install.ps1](https://raw.githubusercontent.com/Bartzin55/Leditor/main/install.ps1)
+   and save it as `install.ps1`, not `install.ps1.txt`.
+2. Open **64-bit PowerShell** in the folder where you saved it.
+3. Run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-On Windows, use 64-bit PowerShell from the extracted directory:
+**Do not add `-Source .` when you downloaded only the script.** Without `-Source`,
+Leditor's source code is downloaded from GitHub automatically.
+
+Choose the current-user installation when prompted unless you need an installation
+for all users. Open **Leditor** from the Start menu after installation succeeds.
+
+PowerShell and the built-in Windows `tar.exe` must be available. The installer
+prepares a temporary MSYS2/UCRT64 toolchain when a suitable existing installation
+is unavailable. You do not need to configure MSYS2 yourself for this option.
+`ExecutionPolicy Bypass` applies to this invocation only; organizational policy
+may still prohibit running the script.
+
+### Linux
+
+1. Download [install.sh](https://raw.githubusercontent.com/Bartzin55/Leditor/main/install.sh)
+   and save it as `install.sh`.
+2. Open a terminal in that folder.
+3. Run as your normal user:
+
+```sh
+bash install.sh
+```
+
+**Do not add `--source .` when you downloaded only the script.** The standalone
+script downloads its Python installer helper into a temporary directory; that
+helper downloads the project from GitHub. No manual download of `scripts/` is
+needed. Use the updated `install.sh` accompanying this guide; older bootstraps
+required that directory beside the script.
+
+Choose the current-user installation when prompted. Open **Leditor** from your
+application menu afterward, or run `~/.local/bin/leditor` for a user installation.
+
+Bash and curl are required for the standalone download. Python 3.9+ is reused
+when present; otherwise tar and bzip2 are also needed to prepare temporary Python.
+Missing build tools and GTK libraries are prepared automatically. Do not run the
+installer with `sudo`; it asks for elevation only if you choose system installation.
+
+### Updating an automatic installation
+
+Close Leditor, download the latest installer again, and run the same command
+above. The default source is the published `main` branch. The installer skips
+rebuilding an already installed Git revision.
+
+Wait until the terminal reports success and finishes removing temporary files.
+Cleanup also runs after an error and can take several minutes. A cleanup message
+alone does **not** mean installation succeeded. Existing toolchains are not deleted.
+
+## 2. Install a downloaded ZIP or local checkout
+
+Download and extract the **complete project**, or clone it. Open a terminal in
+its root folder: `Cargo.toml`, `Cargo.lock`, `src/`, `scripts/` and the installer
+must be there. A folder containing only the installer is not a source tree.
+
+### Windows
+
+Check the folder first:
+
+```powershell
+Test-Path .\Cargo.toml
+```
+
+Continue only if it prints `True`:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .
 ```
 
-ExecutionPolicy Bypass applies only to this invocation. Organizational policy
-may still prohibit execution; the script does not circumvent it.
+### Linux
 
-Both scripts ask for user or system installation. User installation never calls
-sudo or requests UAC. Linux system installation uses `/usr/local/bin` and
-`/usr/local/lib/leditor`, not distribution-owned `/usr/bin`; Windows uses Program
-Files. Run the Linux installer as a normal user even for system installation.
-The Linux user installation uses `$XDG_DATA_HOME/leditor-install` and
-`~/.local/bin/leditor`; Windows uses `%LOCALAPPDATA%\Programs\Leditor`.
-
-Omit `--source .` / `-Source .` to clone published main. A specific
-branch/tag can be selected with `--ref REF` / `-Ref REF`. Do not assume a release
-tag exists. Use local source mode to build the extracted ZIP. The 1.7.0-alpha
-update is based on main commit `ce69188` (1.6.0-alpha).
-Re-running against the same Git revision does not rebuild; a changed revision
-creates a new generation. Local source mode always rebuilds.
-
-After tests pass, the installer reports preparation of the application files.
-At the end (also after a failure), it reports removal of temporary build files
-and tools; large folders can take several minutes. Windows lists each temporary
-top-level item as it is removed. Linux also reports removal of the temporary
-Python bootstrap when one was needed. Wait for the shell prompt to return.
-The existing `.leditor-managed` marker is not rewritten during updates.
-
-Linux reuses GTK >= 4.10, GtkSourceView 5 and build tools when available.
-Otherwise micromamba 2.5.0 obtains a private GTK runtime from conda-forge; Rust
-and missing build tools are installed temporarily. This avoids apt/pacman and
-admin access in user mode. A working Python >= 3.9 is reused. Without Python,
-the shell bootstrap needs curl, tar and bzip2 to provision it; those basic OS
-utilities are prerequisites and are not bootstrapped from nothing.
-
-Windows reuses a complete UCRT64 environment at `LEDITOR_MSYS2` or `C:\msys64`
-without changing its packages. Otherwise a temporary MSYS2 environment provides
-Rust, GCC, Python, GTK and GtkSourceView. Windows tar.exe and PowerShell are
-bootstrap prerequisites. DLLs, GTK data and PDFium remain in the installed
-generation after the temporary MSYS2 environment is removed.
-
-The build uses `cargo build --locked --release`, followed by non-GUI document
-and filesystem tests. PDFium 7881 downloads are SHA-256 checked. Exact Rust
-licenses and native runtime notices are installed with the application.
-Previously installed tools are not removed. You are asked whether to delete the
-temporary source copy or retain it in a new `leditor-source-*` directory under
-your home. Your original `--source` directory is never deleted.
-
-Failed builds do not replace the active generation. Old successful generations
-are retained for recovery and are removed by uninstall. Close the application
-before uninstalling; Windows may refuse to remove files in use.
+Check the folder first:
 
 ```sh
-bash uninstall.sh --scope user
-# or: bash uninstall.sh --scope system
+ls Cargo.toml
 ```
+
+Then run:
+
+```sh
+bash install.sh --source .
+```
+
+Here, `.` means the project root containing `Cargo.toml`. On Linux, the bootstrap
+resolves relative paths from the directory containing `install.sh`; running it
+from the project root avoids ambiguity. Absolute source paths are also accepted:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1 -Scope user
-# or: -Scope system
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source "C:\path\to\Leditor"
 ```
 
-Uninstall requires typing REMOVE, then asks separately whether to discard the
-current account's settings and recovered/unsaved documents. Other accounts,
-original sources and shared system packages are never automatically removed.
-The installed copy of uninstall.sh is in `leditor-install/current/`; on Windows,
-uninstall.ps1 is in the Leditor installation root.
-
-## Manual compilation and dependencies (fallback)
-
-Use Rust 1.88+ and GTK **4.10 or later**. Keep Cargo.lock and use `--locked`. The source archive includes scripts, but not Windows DLLs or native runtime binaries.
-
-## Linux
-
-On Ubuntu 24.04 or later:
-
-```bash
-sudo apt install build-essential pkg-config libgtk-4-dev libgtksourceview-5-dev libglib2.0-dev-bin
-cargo build --locked --release
-cargo run --locked --release
+```sh
+bash install.sh --source "/path/to/Leditor"
 ```
+
+Local-source mode copies your project into temporary build space and always
+rebuilds. Your original source folder is retained. Use this option to install an
+unpublished ZIP; option 1 always fetches published code instead.
+
+## 3. Advanced — compile and install manually
+
+This option does not run `install.sh` or `install.ps1`. You manage dependencies,
+updates and removal yourself. Keep `Cargo.lock` and use `--locked`.
+
+Requirements: **Rust 1.88+**, Cargo, **GTK 4.10+**, **GtkSourceView 5**, a native C
+compiler, pkg-config and GLib's `glib-compile-resources`. Windows also requires
+MinGW's `windres`. The source archive does not include native runtime binaries.
+
+### Obtain the source
+
+Extract a complete source ZIP, or use Git:
+
+```sh
+git clone https://github.com/Bartzin55/Leditor.git
+cd Leditor
+```
+
+Run the following build commands in this directory, where `Cargo.toml` is located.
+
+### Linux: dependencies and compilation
+
+On Ubuntu 24.04, install the native development packages:
+
+```sh
+sudo apt install build-essential git pkg-config libgtk-4-dev libgtksourceview-5-dev libglib2.0-dev-bin
+```
+
+Install Rust 1.88+ and Cargo separately using the instructions at
+[rustup.rs](https://rustup.rs/). Older distribution Rust packages may not meet the
+minimum version.
 
 On Arch Linux:
 
-```bash
-sudo pacman -S --needed base-devel rust gtk4 gtksourceview5 glib2-devel pkgconf
+```sh
+sudo pacman -S --needed base-devel git rust gtk4 gtksourceview5 glib2-devel pkgconf
+```
+
+Check the toolchain and build:
+
+```sh
+rustc --version
 cargo build --locked --release
 ./target/release/leditor
 ```
 
-Run commands from the extracted project directory. Older distributions with GTK below 4.10 need newer GTK development packages. The app uses native GTK dialogs and works offline after dependencies have been downloaded.
+When run from a user-owned build folder, Leditor's existing startup integration
+creates a per-user executable copy, command and menu entry without an installer:
 
-## Windows x64
+- Executable: `${XDG_DATA_HOME:-$HOME/.local/share}/leditor/bin/leditor`.
+- Command: `~/.local/bin/leditor`.
+- Menu entry and icon: under `${XDG_DATA_HOME:-$HOME/.local/share}`.
 
-Install MSYS2, open its **UCRT64** terminal, update its packages, and install:
+GTK and GtkSourceView must remain installed. If necessary, add `~/.local/bin`
+to your shell's PATH. Existing conflicting installations are not overwritten;
+use the same installation method to update an existing installation.
 
-```bash
-pacman -Syu
-pacman -S --needed mingw-w64-ucrt-x86_64-rust mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-gtksourceview5 mingw-w64-ucrt-x86_64-pkgconf
-cargo build --locked --release
-./target/release/leditor.exe
-```
-
-Reopen UCRT64 if the MSYS2 update requests it. Build and run within UCRT64 so that GTK tools and DLLs are on PATH. A portable distribution must bundle GTK's runtime DLLs, schemas, icons, and relevant licenses; copying the EXE alone is insufficient. This release has not been compiled or executed on Windows in the current validation environment.
-
-## PDFium runtime (Linux and Windows)
-
-The Rust crate does not compile or download PDFium. The application dynamically loads it only when opening a PDF. Text editing and images work without it; PDF opening reports an error if it is absent. No PDFium binary is bundled in this source ZIP.
-
-The tested ABI is **PDFium Chromium 7881**, selected explicitly by the `pdfium_7881` Cargo feature. [PDFium binaries](https://github.com/bblanchon/pdfium-binaries/releases/tag/chromium%2F7881) provides builds for both platforms. This is a third-party build distribution, not a Leditor dependency installer. Keep its LICENSE and licenses/ directory when redistributing its binaries. For future runtime updates, select a matching ABI supported by pdfium-render and retest it; do not silently exchange unrelated versions.
-
-Linux x64 example (run from the project directory):
+For an administrator-managed installation, **instead of running the user build
+first**, copy the compiled executable and desktop assets:
 
 ```sh
-curl -fL https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/7881/pdfium-linux-x64.tgz -o pdfium-linux-x64.tgz
-mkdir -p pdfium-runtime
-tar -xzf pdfium-linux-x64.tgz -C pdfium-runtime
-mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/leditor/lib"
-cp pdfium-runtime/lib/libpdfium.so "${XDG_DATA_HOME:-$HOME/.local/share}/leditor/lib/"
-cargo run --locked --release
-```
-
-The per-user runtime location also works with the automatically installed launcher after the source folder is moved. The runtime and notices remain the user's responsibility; the app does not download or update libraries.
-
-Windows x64, in MSYS2 UCRT64 after the Cargo build:
-
-```sh
-curl -fL https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/7881/pdfium-win-x64.tgz -o pdfium-win-x64.tgz
-mkdir -p pdfium-runtime
-tar -xzf pdfium-win-x64.tgz -C pdfium-runtime
-cp pdfium-runtime/bin/pdfium.dll target/release/
-./target/release/leditor.exe
-```
-
-Alternatively set `LEDITOR_PDFIUM_LIBRARY` to the absolute `.so`/`.dll` path. Without that override, lookup tries beside the executable, the per-user data location `leditor/lib`, then the OS library loader. It deliberately does not add the current document's folder to the library search path. Restart Leditor after installing/changing the runtime.
-
-GtkSourceView's `language-specs` and `styles` data directories must accompany a portable GTK distribution (normally in `share/gtksourceview-5`); the native library alone is insufficient. PNG/JPEG need their GdkPixbuf loaders. Keep architecture and runtime ABI consistent across GTK, GtkSourceView, PDFium and the executable.
-
-## Linux integration (1.3.0-alpha)
-
-On startup, including `cargo run --locked` or `cargo run --locked --release`, Leditor installs/updates these **per-user** files, without sudo:
-
-- `$XDG_DATA_HOME/leditor/bin/leditor` (defaults to `~/.local/share/leditor/bin/leditor`): independent executable copy, updated atomically only if different.
-- `~/.local/bin/leditor`: symlink to that executable.
-- `$XDG_DATA_HOME/applications/io.github.leditor.Leditor.desktop`: launcher entry.
-- `$XDG_CONFIG_HOME/leditor/settings.ini` (defaults to `~/.config/leditor/settings.ini`): preferences. The pre-1.3 settings file is read when the new file does not exist, and is retained.
-- `$XDG_DATA_HOME/leditor/session.ini`: session recovery, unchanged.
-
-The launcher does not depend on keeping the source/build directory. GTK runtime libraries are still required. Installation failures are reported on stderr and do not prevent editing. Existing unrelated commands or unmanaged desktop entries are not replaced. No Windows installation runs.
-
-If your shell does not include `~/.local/bin` in PATH, add the following to your shell's profile and reopen the terminal (or run it in the current terminal):
-
-```sh
-export PATH="$HOME/.local/bin:$PATH"
-leditor
-```
-
-The application cannot change the PATH of its parent terminal. Desktops may refresh the application list only after logging out and back in.
-
-### Optional global Linux installation
-
-`/bin` and `/usr/bin` are administrator-managed locations (often the same directory through a symlink). The app never escalates privileges. For a conventional global installation use `/usr/local/bin`, after building:
-
-```sh
-sudo install -m755 target/release/leditor /usr/local/bin/leditor
+sudo install -Dm755 target/release/leditor /usr/local/bin/leditor
 sudo install -Dm644 assets/io.github.leditor.Leditor.desktop /usr/local/share/applications/io.github.leditor.Leditor.desktop
 sudo install -Dm644 assets/leditor.png /usr/local/share/icons/hicolor/512x512/apps/io.github.leditor.Leditor.png
 ```
 
-If `/usr/bin` is explicitly required, replace `/usr/local/bin/leditor` with `/usr/bin/leditor` in the first command; do not install twice into `/bin` and `/usr/bin`. Global installations skip per-user binary installation. Do not run Cargo or the GUI as root.
+Make sure `/usr/local/bin` is in PATH. Do not run Cargo or Leditor as root.
+To update a manual installation, rebuild the desired source and repeat its
+installation procedure with the old application closed.
 
-To remove per-user integration, delete only the installed symlink, the managed desktop entry and `leditor/bin/leditor` at the paths above. Keep `settings.ini` and `session.ini` unless you intentionally want to discard preferences and recovery data.
+### Windows: dependencies and compilation
 
-## Icon build tools and desktop integration
-
-`build.rs` embeds the PNG with `glib-compile-resources`, supplied by GLib development packages (Ubuntu `libglib2.0-dev-bin`, Arch `glib2-devel`; MSYS2 UCRT64 `mingw-w64-ucrt-x86_64-glib2`). Set `GLIB_COMPILE_RESOURCES` if it is not on PATH. Windows additionally uses `windres` from MinGW; set `WINDRES` for a cross compiler such as `x86_64-w64-mingw32-windres`.
-
-Linux startup installs the icon under `$XDG_DATA_HOME/icons/hicolor/512x512/apps/io.github.leditor.Leditor.png` alongside the existing managed desktop entry, without root access. Launchers may cache the old icon until a refresh or session restart.
-
-The Windows executable contains the icon and About uses the embedded PNG. No automatic Windows installer or Start menu registration is added. A normal shortcut pointing to `leditor.exe` uses its embedded icon; place it in your Start menu if desired. A portable executable still requires GTK DLLs/runtime assets.
-
-The dedicated GTK X11/Win32 bindings and x11rb are no longer required. windows-sys is retained only for reading the Windows application color-scheme preference. Leditor remains MIT; native GTK distribution obligations still apply.
-
-## Validation commands
+Install [MSYS2](https://www.msys2.org/). Open its **UCRT64** terminal and update it:
 
 ```sh
-cargo fmt --check
-cargo check --locked
-cargo clippy --locked --all-targets -- -D warnings
-cargo test --locked --lib --test document --test file_ops
-cargo test --locked --bin leditor -- --skip ui:: --test-threads=1
-cargo test --locked --bin leditor ui::tests::tabs_history_layout_dialogs_and_file_safety -- --exact
-cargo test --locked --bin leditor ui::search::tests::find_replace_focus_and_minimap -- --ignored --exact
+pacman -Syu
 ```
 
-Run GTK suites in separate processes with a graphical display: GTK must remain on one thread. Tests isolate settings/documents in temporary directories. See VALIDATION.md for checks actually performed.
-
-Run the new UI integration suite separately with a display and PDFium installed:
+If asked to close the terminal, reopen UCRT64 and run the update again before
+installing build packages:
 
 ```sh
-cargo test --locked --bin leditor ui::tests::version_150_syntax_media_and_save_all -- --ignored --exact
+pacman -S --needed git mingw-w64-ucrt-x86_64-rust mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-gtksourceview5 mingw-w64-ucrt-x86_64-pkgconf
 ```
 
-## Windows rendering in 1.5.2-alpha
+Obtain the source as described above, then compile and run from UCRT64:
 
-The 2026-11-01 revision uses native Windows title bars and resize borders,
-setting `GTK_CSD=0` for this process before GTK starts when it has not been
-explicitly configured. No global environment setting is changed. The previous
-Cairo-only workaround was insufficient; the current mitigation combines native
-decoration with `GSK_RENDERER=cairo` and `GDK_DEBUG=dcomp`. Explicit environment
-overrides are respected. Remove any manually set overrides for a default-path
-test. The title bar follows Windows' appearance; the editor keeps its own themes.
-Linux is unchanged. See [RESIZE.md](RESIZE.md) for research and the Windows
-manual test checklist.
+```sh
+rustc --version
+cargo build --locked --release
+./target/release/leditor.exe
+```
 
-To test this ZIP before publication, extract it, close the old Leditor, open
-PowerShell in that directory, and use the local source explicitly:
+For a manual installation that uses this permanent MSYS2 runtime:
+
+1. Create a dedicated folder, such as `%LOCALAPPDATA%\Leditor-manual`.
+2. Copy `target\release\leditor.exe` and the project's `LICENSE` and `LICENSES`
+   into it. Add `pdfium.dll` as described below if you need PDF viewing.
+3. Create `launch.cmd` in that folder with the following contents, adjusting
+   `C:\msys64` if MSYS2 is installed elsewhere:
+
+```bat
+@echo off
+set "PATH=C:\msys64\ucrt64\bin;%PATH%"
+set "XDG_DATA_DIRS=C:\msys64\ucrt64\share"
+set "GSETTINGS_SCHEMA_DIR=C:\msys64\ucrt64\share\glib-2.0\schemas"
+start "" "%~dp0leditor.exe" %*
+```
+
+Run `launch.cmd`. To add a Start menu entry, create a shortcut to it and place the
+shortcut in the folder opened by `shell:programs` in the Windows Run dialog.
+Keep MSYS2 installed at the configured path. To update, close Leditor and replace
+the executable with your new build.
+
+**The executable alone is not portable.** A self-contained distribution requires
+GTK/GtkSourceView DLLs, GLib schemas, icons, MIME data, GdkPixbuf loaders, and
+GtkSourceView `language-specs`/`styles`, plus the applicable license notices.
+The automatic installer handles packaging; this manual example uses the permanent
+MSYS2 runtime instead.
+
+### PDF support for manual builds
+
+PDFium is loaded only when opening a PDF. Text editing and image viewing work
+without it; opening a PDF reports an error if the runtime is missing. The automatic
+installers already download it and verify its SHA-256 checksum.
+
+For manual installation, download the matching **Chromium 7881** archive from
+[PDFium binaries](https://github.com/bblanchon/pdfium-binaries/releases/tag/chromium%2F7881):
+
+| Platform | Archive | Library inside archive |
+| --- | --- | --- |
+| Linux x64 | `pdfium-linux-x64.tgz` | `lib/libpdfium.so` |
+| Windows x64 | `pdfium-win-x64.tgz` | `bin/pdfium.dll` |
+
+Expected SHA-256 checksums used by the installers:
+
+```text
+pdfium-linux-x64.tgz  1470e21b8b4a3b4ad7f85684e2da11d94f3b69a86d81dee11b9b6709d927ac1d
+pdfium-win-x64.tgz    73cc0de638ac2095e7445bf56a38200a5b7c7ca0e9f4ba144598f2457377ac08
+```
+
+Verify with `sha256sum` on Linux or `Get-FileHash -Algorithm SHA256` in PowerShell
+before extraction. Use the matching ABI rather than an arbitrary newer PDFium.
+Place the library beside the installed executable, or set `LEDITOR_PDFIUM_LIBRARY`
+to its absolute path. Linux per-user integration also searches
+`${XDG_DATA_HOME:-$HOME/.local/share}/leditor/lib/libpdfium.so`. Retain PDFium's
+license notices with it and restart Leditor after changing the runtime.
+
+## Automatic installation locations and removal
+
+| Scope | Linux | Windows |
+| --- | --- | --- |
+| Current user | `${XDG_DATA_HOME:-$HOME/.local/share}/leditor-install` | `%LOCALAPPDATA%\Programs\Leditor` |
+| System | `/usr/local/lib/leditor` | `%ProgramFiles%\Leditor` |
+
+Linux commands are placed in `~/.local/bin` or `/usr/local/bin`. Windows shortcuts
+are created in the appropriate Start menu. Old installation generations are
+retained for recovery. The installer offers to retain or remove its temporary
+source copy; your original local source is not removed.
+
+Close Leditor before uninstalling. For a current-user automatic installation:
+
+```sh
+bash "${XDG_DATA_HOME:-$HOME/.local/share}/leditor-install/current/uninstall.sh" --scope user
+```
 
 ```powershell
-powershell.exe -NoProfile -NoExit -ExecutionPolicy Bypass -File .\install.ps1 -Source .
+powershell -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\Programs\Leditor\uninstall.ps1" -Scope user
 ```
 
-Without `-Source .`, the installer clones the published repository, which may
-still contain the earlier 1.5.2-alpha attempt. For a system installation, open the
-terminal as administrator first to keep the output in that window. The normal
-installer tests do not simulate interactive window resizing.
+For system installations use the uninstaller in the system installation directory
+with `--scope system` / `-Scope system`; Windows requires administrator privileges.
+The uninstallers require confirmation and separately ask whether to discard your
+settings and recovered documents. They do not manage manual installations.
 
-The separate GUI regression test requires a graphical display and window manager:
+## Troubleshooting
+
+- **`could not find Cargo.toml`:** if you downloaded only the installer, use
+  option 1 without `--source` / `-Source`. For option 2, point at the actual
+  extracted project root, not its parent folder or a folder containing only the
+  installer. Check this before retrying the downloads.
+- **`scripts/install_linux.py` missing:** use the updated standalone `install.sh`
+  supplied with this guide, or extract the complete project and use option 2.
+- **Mirror timeouts or HTTP errors:** MSYS2 can try another mirror. If package
+  installation completes successfully, earlier download warnings alone do not
+  mean the installation failed. If the transaction stops, keep its final error.
+- **Linux command not found:** use `~/.local/bin/leditor` or add `~/.local/bin` to PATH.
+- **Windows resizing artifacts:** the existing native-frame/Cairo/DirectComposition
+  mitigation is described in [RESIZE.md](RESIZE.md); it is not a complete fix.
+- **Accents fail under Wayland:** close Leditor completely and try
+  `GTK_IM_MODULE=simple leditor` as a diagnostic workaround for that execution.
+  This bypasses external input methods; it is not forced globally by this guide.
+
+## Developer checks and additional details
+
+To select a specific published branch or tag with the automatic installers,
+add `--ref NAME` on Linux or `-Ref NAME` on Windows. Confirm the ref exists first.
+`LEDITOR_MSYS2` can select an existing complete UCRT64 installation on Windows.
+`GLIB_COMPILE_RESOURCES` and `WINDRES` can override build-tool paths when needed.
 
 ```sh
-cargo test --locked --bin leditor ui::resize_tests::resize_maximize_and_focus_preserve_editor -- --ignored --exact
+cargo fmt --all -- --check
+cargo check --locked --all-targets
+cargo test --locked --lib --test document --test file_ops
 ```
 
-The icon remains the enlarged PNG/ICO delivered in 1.5.2-alpha. Existing pinned Windows
-shortcuts may need repinning if the shell keeps a cached icon.
+Graphical suites need a graphical session and must run separately with GTK on one
+thread. See [VALIDATION.md](VALIDATION.md) for actual results, platform limitations
+and the precise test commands. Documenting a build command does not mean that
+platform was tested in the current environment.
 
-Windows resize follow-up (1.5.2-alpha): default to native frame + Cairo +
-DirectComposition, the best of the user-tested configurations. Blank areas
-during live resize remain a known issue; this is a mitigation, not a complete
-fix. Existing environment overrides take precedence. See RESIZE.md.
-
-
-## 1.5.3-alpha dependency and behavior notes
-
-No new dependency or installer download is needed: GtkSourceMap, line numbers,
-indentation and case conversion are part of the existing GtkSourceView 5 runtime.
-Both installers already install GtkSourceView and its style/language data.
-The Leditor light/dark style overrides are embedded in the executable and loaded from a private temporary directory,
-so no extra runtime file copying is required. Cargo.lock retains dependency versions.
-Tab with spaces enabled advances to the native indentation stop; inside a line this
-can insert fewer than the configured width. New keyboard shortcuts are listed in
-Other > Keyboard Shortcuts. Native Windows testing is still required; see VALIDATION.md.
-
-## 1.6.0-alpha compatibility
-
-No dependency was added. Both installers already provision GTK >= 4.10 and
-GtkSourceView 5 with the required language/style data. Use `--source .` on Linux
-or `-Source .` on Windows to install this extracted ZIP. For a manual build, after
-installing the prerequisites above, run these commands in Linux or MSYS2 UCRT64:
-
-```sh
-cargo build --locked --release
-cargo run --locked --release
-```
-
-PDFium 7881 is still required for PDFs. VALIDATION.md records actual test results.
-
-## 1.7.0-alpha compatibility
-
-Autocomplete uses GtkSourceCompletionWords from the existing GtkSourceView 5
-runtime. Tab icons use the same GIO MIME icons as File Explorer. Bracket underline
-styles are embedded alongside the existing themes. No new package, Cargo dependency,
-license or runtime asset is required by this update; both installers were reviewed.
-The Linux and Windows commands above continue to apply. Ctrl+Space and completion
-acceptance/navigation shortcuts are listed in Other → Keyboard Shortcuts.
-
-Word indexing is asynchronous and may take a few seconds after loading/changing
-text. Suggestions are local to the active document. The native GTK icon theme and
-MIME database determine file icons, so exact artwork varies across systems.
-Refer to VALIDATION.md for tested native-library versions and platform limits.
+Architecture notes: [DEVELOPMENT.md](DEVELOPMENT.md). Dependency licenses:
+[THIRD_PARTY.md](THIRD_PARTY.md) and [LICENSES](LICENSES/README.md). Leditor remains MIT.

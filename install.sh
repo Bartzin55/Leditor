@@ -9,8 +9,12 @@ if [[ ${1:-} == --help ]]; then
 fi
 [[ $(uname -s) == Linux && $(uname -m) == x86_64 ]] || { echo 'Only Linux x86_64 is supported.' >&2; exit 1; }
 command -v getconf >/dev/null && getconf GNU_LIBC_VERSION >/dev/null || { echo 'A glibc Linux distribution is required.' >&2; exit 1; }
+has_python=false
 if command -v python3 >/dev/null && python3 -c 'import sys; assert sys.version_info >= (3,9)' 2>/dev/null; then
-    exec python3 scripts/install_linux.py "$@"
+    has_python=true
+    if [[ -f scripts/install_linux.py ]]; then
+        exec python3 scripts/install_linux.py "$@"
+    fi
 fi
 # Choose scope before downloading the Python bootstrap as well.
 has_scope=false
@@ -20,7 +24,7 @@ if ! $has_scope; then
     scope=user; [[ $answer != 2 ]] || scope=system
     set -- --scope "$scope" "$@"
 fi
-for tool in curl tar bzip2; do command -v "$tool" >/dev/null || { echo "Bootstrap requires $tool." >&2; exit 1; }; done
+command -v curl >/dev/null || { echo 'Bootstrap requires curl.' >&2; exit 1; }
 work=$(mktemp -d -t leditor-bootstrap.XXXXXXXX)
 cleanup_bootstrap() {
     echo 'Removing temporary Python/bootstrap tools. This may take several minutes.'
@@ -31,7 +35,19 @@ cleanup_bootstrap() {
     fi
 }
 trap cleanup_bootstrap EXIT
+installer=scripts/install_linux.py
+if [[ ! -f $installer ]]; then
+    # A standalone install.sh fetches its helper; the helper downloads the
+    # selected project revision. Keep the caller's local-source path unchanged.
+    installer="$work/install_linux.py"
+    curl -fL --retry 3 https://raw.githubusercontent.com/Bartzin55/Leditor/main/scripts/install_linux.py -o "$installer"
+fi
+if $has_python; then
+    python3 "$installer" "$@"
+    exit 0
+fi
+for tool in tar bzip2; do command -v "$tool" >/dev/null || { echo "Bootstrap requires $tool." >&2; exit 1; }; done
 curl -fL --retry 3 https://micro.mamba.pm/api/micromamba/linux-64/2.5.0 -o "$work/mamba.tar.bz2"
 tar -xjf "$work/mamba.tar.bz2" -C "$work" bin/micromamba
 MAMBA_ROOT_PREFIX="$work/cache" "$work/bin/micromamba" --no-rc create -y -p "$work/python" -c conda-forge --override-channels python=3.12
-"$work/python/bin/python" scripts/install_linux.py "$@"
+"$work/python/bin/python" "$installer" "$@"

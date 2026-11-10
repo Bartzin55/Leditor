@@ -1,4 +1,56 @@
-# Development Notes — Leditor 1.7.0-alpha
+# Development Notes — Leditor 1.8.0-alpha
+
+## 1.8.0-alpha integration
+
+- `markdown.rs`: Comrak 0.59.0 parses the AST with CLI/Syntect defaults disabled.
+  Only `shortcodes` and `attributes` crate features are enabled. GTK labels render
+  escaped inline markup; boxes/grids render blocks, and noneditable GtkSourceViews
+  highlight code using the already installed language catalog. Comrak's Anchorizer
+  supplies unique heading IDs; only explicit header IDs are used from attributes.
+  No user CSS or other attribute pairs are applied. Nesting is capped at 64 during
+  rendering. Raw HTML is literal text; remote/resource URLs cannot execute scripts.
+  Local images are PNG/JPEG only, canonicalized under the document's directory,
+  decoded to at most 900×600 pixels and shown below the paragraph. Remote images
+  and blocked paths have placeholders. Native widgets need no additional web runtime.
+- `ui/read_only.rs`: one global saved view-only preference controls all text tabs.
+  It switches the visible scroller for eligible `.md` paths without replacing
+  the source buffer or unparenting the source view. Keeping its scroll adjustments
+  stable also preserves GtkSourceMap signal connections. `Tab` owns preview state and the source scroll position. Returning to edit
+  mode restores the same view, undo history and caret. Theme/zoom also update previews.
+  Source navigation is disabled only when its surface is hidden. File operations
+  and saving pre-existing changes remain available; trim-on-save never modifies a
+  read-only buffer. Dirty Markdown uses current buffer contents, not stale disk text.
+- `input_method.rs`: app-local GTK settings plus explicit `im-module` overrides on
+  TextViews and GtkText delegates. The widget override uses the canonical
+  `gtk-im-context-simple` ID: `simple` is only an alias in GTK_IM_MODULE/settings. Mapping hooks apply the current mode to later
+  dialogs; tab creation and mode changes also handle source views hidden
+  by previews. `None` restores normal GTK input selection. No runtime environment
+  mutation, forced restart or automatic document save occurs. Preferences load
+  before session tabs are restored. Third-party input services are not installed
+  or configured by Leditor.
+- `file_ops::duplicate`: recursively copy to a temporary sibling directory, then
+  atomically publish to the first available translated numbered name. Regular
+  files retain their last extension; dotted folder names remain whole. Symlinks
+  and special files are refused, consistently with the existing copy policy.
+  A new concurrent-copy test exposed that GIO's preflight/no-overwrite move could
+  race. `move_entry` now uses `renameat2(RENAME_NOREPLACE)` through rustix on Linux
+  and `MoveFileExW` without replacement/copy flags on Windows. Cross-volume moves
+  and filesystems lacking the atomic operation fail safely without fallback.
+  Rustix/windows-sys were already in the lockfile and are reused directly.
+- `ui_180_tests.rs`: UI transitions, blocked native keyboard edits, buffer/history
+  preservation, actual dead-key input in simple mode, search/dialog delegates,
+  persistence/session recovery and Explorer duplication. `tests/file_ops.rs`
+  adds concurrency, collisions, Unicode names, extension/folder handling and cleanup.
+- Existing modules and visual layout are retained. The toolbar is hidden/revealed
+  along with the menus/tabs in focus mode. Ctrl+L toggles the existing only-view action through the shared shortcut table,
+  which also supplies the translated Keyboard Shortcuts dialog.
+
+Preview deliberately omits browser-only layout, arbitrary HTML/CSS, remote images,
+SVG, math/Mermaid engines and relative document navigation. Block selection is
+native GTK selection rather than a single continuous web document. Windows and
+Wayland validation limits are recorded in VALIDATION.md; property-based switching
+on Linux/X11 does not prove every system IME/compositor combination.
+
 
 ## 1.7.0-alpha integration
 
@@ -137,11 +189,11 @@ as an independent unsaved tab. Undo history is still not persisted across launch
 
 ## Build, installers and licensing
 
-Cargo.lock retains the same dependency versions; only Leditor becomes 1.7.0-alpha.
-Both install.sh (through scripts/install_linux.py) and install.ps1 already provide
-GtkSourceView 5 and its native data. No new packages or asset-copy steps are
-required. About reads Cargo's package version. The Linux installer User-Agent
-was updated to 1.7.0-alpha.
+Cargo.lock pins Comrak and the enabled dependency graph for 1.8.0-alpha; existing
+package versions are retained. Both install.sh (through scripts/install_linux.py)
+and install.ps1 require Rust 1.89+ and already provide GtkSourceView 5 and its
+native data. No new native package or asset-copy step is required. About reads
+Cargo's package version. The Linux installer User-Agent is 1.8.0-alpha.
 
 The application remains MIT. Native GTK/GtkSourceView are dynamically linked
 LGPL libraries; their notices and redistribution obligations remain applicable.

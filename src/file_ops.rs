@@ -1,6 +1,5 @@
 //! Conservative filesystem operations: never replace an existing destination,
 //! never follow directory symlinks, and stage recursive copies before publishing.
-use gtk::{gio, prelude::*};
 use std::{
     fs, io,
     path::{Path, PathBuf},
@@ -33,9 +32,6 @@ pub fn child(parent: &Path, name: &str) -> io::Result<PathBuf> {
     }
     Ok(fs::canonicalize(parent)?.join(name))
 }
-fn error(e: gtk::glib::Error) -> io::Error {
-    io::Error::other(e.to_string())
-}
 fn destination(source: &Path, target: &Path) -> io::Result<()> {
     if fs::symlink_metadata(target).is_ok() {
         return Err(io::Error::new(
@@ -59,16 +55,36 @@ fn destination(source: &Path, target: &Path) -> io::Result<()> {
 }
 pub fn move_entry(source: &Path, target: &Path) -> io::Result<()> {
     destination(source, target)?;
-    // NO_FALLBACK_FOR_MOVE rejects cross-volume moves instead of risking a
-    // partially completed recursive copy/delete. COPY_NONE never overwrites.
-    gio::File::for_path(source)
-        .move_(
-            &gio::File::for_path(target),
-            gio::FileCopyFlags::NOFOLLOW_SYMLINKS | gio::FileCopyFlags::NO_FALLBACK_FOR_MOVE,
-            gio::Cancellable::NONE,
-            None,
-        )
-        .map_err(error)
+    // A preflight existence check alone is insufficient: another process can
+    // create the destination between that check and rename. No copy fallback
+    // or replacement is permitted, including cross-volume moves.
+    #[cfg(target_os = "linux")]
+    {
+        use rustix::fs::{renameat_with, RenameFlags, CWD};
+        renameat_with(CWD, source, CWD, target, RenameFlags::NOREPLACE).map_err(Into::into)
+    }
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::ffi::OsStrExt;
+        use windows_sys::Win32::Storage::FileSystem::MoveFileExW;
+        let wide = |path: &Path| -> io::Result<Vec<u16>> {
+            let mut text: Vec<_> = path.as_os_str().encode_wide().collect();
+            if text.contains(&0) {
+                return Err(io::Error::new(io::ErrorKind::InvalidInput, "NUL in path"));
+            }
+            text.push(0);
+            Ok(text)
+        };
+        let source = wide(source)?;
+        let target = wide(target)?;
+        // SAFETY: both buffers are live, NUL-terminated UTF-16. Flags=0 refuses
+        // existing destinations and cross-volume copy/delete fallbacks.
+        if unsafe { MoveFileExW(source.as_ptr(), target.as_ptr(), 0) } == 0 {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(())
+        }
+    }
 }
 fn copy_tree(source: &Path, target: &Path) -> io::Result<()> {
     let meta = fs::symlink_metadata(source)?;
@@ -103,6 +119,48 @@ pub fn copy_entry(source: &Path, target: &Path) -> io::Result<()> {
     let staged = staging.path().join("entry");
     copy_tree(source, &staged)?;
     move_entry(&staged, target)
+}
+/// Copy beside the original, preserving the extension and never replacing data.
+/// Stage once, then retry publication if another process claims the same name.
+pub fn duplicate(source: &Path, copy_label: &str) -> io::Result<PathBuf> {
+    let parent = source
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let name = source
+        .file_name()
+        .ok_or_else(|| io::Error::other("Missing filename"))?;
+    let meta = fs::symlink_metadata(source)?;
+    let extension = if meta.is_file() {
+        source.extension()
+    } else {
+        None
+    };
+    let stem = if extension.is_some() {
+        source.file_stem().unwrap_or(name)
+    } else {
+        name
+    };
+    let staging = tempfile::Builder::new()
+        .prefix(".leditor-copy-")
+        .tempdir_in(parent)?;
+    let staged = staging.path().join("entry");
+    copy_tree(source, &staged)?;
+    for number in 1..=u32::MAX {
+        let mut name = stem.to_os_string();
+        name.push(format!(" ({copy_label} {number})"));
+        if let Some(extension) = extension {
+            name.push(".");
+            name.push(extension);
+        }
+        let target = parent.join(name);
+        match move_entry(&staged, &target) {
+            Ok(()) => return Ok(target),
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error),
+        }
+    }
+    Err(io::Error::other("No available copy name"))
 }
 pub fn create(parent: &Path, name: &str, folder: bool) -> io::Result<PathBuf> {
     let target = child(parent, name)?;

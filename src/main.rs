@@ -2,8 +2,10 @@
 mod app_icon;
 mod editor_view;
 mod file_icon;
+mod input_method;
 #[cfg(target_os = "linux")]
 mod linux_install;
+mod markdown;
 mod minimap;
 mod popups;
 mod session;

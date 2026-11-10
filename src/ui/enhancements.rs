@@ -121,7 +121,10 @@ impl Editor {
         dialog.present();
     }
     pub(super) fn edit_transform(&self, name: &str) {
-        let Some(tab) = self.current().filter(|t| t.is_text()) else {
+        let Some(tab) = self
+            .current()
+            .filter(|t| t.is_text() && t.view.is_editable())
+        else {
             return;
         };
         let buffer = tab.view.buffer();

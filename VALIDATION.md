@@ -1,85 +1,107 @@
-# Validation — Leditor 1.7.0-alpha
+# Validation — Leditor 1.8.0-alpha
 
-Validated on 2026-11-07 against published main commit
-`ce69188b3ab9165c38847a0cf38b71428f1e4242` (1.6.0-alpha).
-Validation was completed before publication; no tag or release was created.
+Validated on 2026-11-09/10 against published main commit
+`0484f9ee017e47f2d7899548b0976e3f98f63c47` (1.7.0-alpha and installer/documentation
+fixes). No push, tag or GitHub release was performed for this update.
 
 ## Environment and results
 
-Linux x86_64, Rust/Cargo 1.99.1, GTK 4.18.6, GtkSourceView 5.16.0,
-GLib 2.84.4, PDFium 7881, Xvfb/Openbox, X11 and the Cairo renderer.
-Native test dependencies came from the official Debian trixie archive.
+Linux x86_64, Rust/Cargo 1.99.1, GTK 4.24.1, GtkSourceView 5.18.0,
+GLib 2.90.1, PDFium 7881, Xvfb 21.1.16/Openbox 3.6.1, X11 and the Cairo renderer.
+The private build environment used conda-forge packages; X11 test utilities came
+from Debian trixie. Keyboard composition tests used a Brazilian keymap.
 
 - `cargo check --locked --all-targets`: passed.
 - `cargo build --locked`: passed, development profile with debug information disabled.
-- `cargo test --locked -- --test-threads=1`: 33 passed; 8 graphical tests
+- `cargo test --locked -- --test-threads=1`: **39 passed**; 9 graphical tests
   intentionally ignored in this invocation.
-- All 8 graphical suites passed in separate processes: **41 Rust tests total**.
-- `python3 -m unittest discover -s tests -p 'test_*.py'`: **16 passed**.
-  Network and build operations in the installer tests are mocked.
+- All 9 graphical suites passed in separate processes: **48 Rust tests total**.
+  The final 1.8 suite also passed with `G_DEBUG=fatal-criticals`.
+- `python3 -m unittest discover -s tests -p 'test_*.py'`: **20 passed**.
+  Installer download/build operations are mocked, not clean-machine installations.
 - `cargo fmt --all -- --check`, `bash -n install.sh` and `git diff --check`: passed.
-- en-US, pt-BR and es catalogs have 133 identical, unique message keys.
-- All 134 third-party Cargo.lock entries are unchanged. Their versions/checksums
-  match the bundled license inventory. No dependency was introduced or upgraded.
-- Native completion, long tab titles and light/dark bracket screenshots inspected.
+- en-US, pt-BR and es catalogs have **147 identical, unique message keys**.
+- All **152** third-party Cargo.lock entries match the bundled license inventory
+  and checksums. The 134 existing entries are unchanged; 18 versions were added.
+- Inspected screenshots of the Markdown preview in light/dark themes and the
+  restored editor/toolbar. Existing graphical regression suites also passed.
 
-## 1.7.0-alpha coverage
+## 1.8.0-alpha coverage
 
-- Automatic word suggestions and manual Ctrl+Space invocation through real X11
-  keyboard events, including reopening the popup after previous acceptance.
-- Up/Down selection, Enter and Tab acceptance, Esc dismissal, Undo/Redo, accented
-  words and independent vocabularies in two documents.
-- Ordinary Enter retains exact mixed whitespace indentation; ordinary Tab and
-  Ctrl+F/Ctrl+G/Esc retain their existing behavior outside completion.
-- Closing a tab removes it from the editor and releases its content container.
-- Icons match the Explorer for text, source, image, PDF, unknown and Unicode
-  filenames. Save As updates the icon and title for the new extension.
-- 38 simultaneous tabs: previously allocated title/control widths remain stable,
-  the window does not grow, and the strip scrolls horizontally. Normal and short
-  Unicode filenames are not ellipsized; long names use middle ellipsis.
-- Dirty-state changes preserve width. Full paths/names remain available in tooltips.
-- Both themes expose the native bold/single-underline/#86ee77 matching style;
-  native tags apply to both endpoints of (), [] and {}. The existing View toggle
-  disables matching. Native language-context behavior is retained.
+- Toolbar and menu toggle the same saved global view-only state. Both enabled and
+  disabled preferences survive recreation; restored dirty Markdown opens in preview.
+- Markdown replaces the editing area/minimap only for a final `.md` extension,
+  case-insensitively. The source text, caret, undo history and dirty state survive
+  toggling. Non-Markdown text remains visible and selectable in view-only mode.
+- Tables, code highlighting, explicit heading anchors, local images, remote-image
+  placeholders, light/dark themes and zoom. Internal links scroll to the target;
+  selected rendered text is copied through the application action.
+- Escaping of user markup and permitted URL schemes; local-image path boundaries,
+  including percent-encoded paths and attempts to escape the document directory.
+- Real keyboard typing, Backspace, Return, Tab, Cut/Paste and Undo/Redo cannot edit
+  read-only text. Sorting, case conversion and replacement are blocked. Saving
+  existing unsaved changes does not apply trailing-whitespace cleanup in this mode.
+- Accent compatibility applies to existing/new tabs, the search field and a later
+  dialog. Real X11 dead-key events produced **á**, **õ** and **é**. Default restores
+  the original GTK setting and removes widget overrides without modifying text.
+- Explorer duplication copies on-disk bytes without changing an unsaved source tab.
+  Filesystem tests cover numbered collisions, Unicode names, file extensions,
+  dotted folder names, recursive copies, symlink refusal and failed-copy cleanup.
+  Four concurrent copies obtain distinct names without replacing another copy.
 
 ## Existing regression coverage
 
 Document/filesystem errors, atomic saves, overwrite/conflict protection, autosave,
 recovery, unsaved prompts, tabs/reordering, native indentation/minimap/case
 conversion, Find/Replace, Focus, syntax highlighting, image/PDF viewing, Save All,
-resize/maximize/restore, 1.6 editing options, sorting and Go to Line all passed.
+resize/maximize/restore, 1.6 editing/sorting/navigation, 1.7 tab icons/title widths,
+bracket styling and native word completion passed.
 
-## Findings and limitations
+## Findings corrected during validation
 
-- Initial completion testing exposed missing `sourceview5::init()`: native popup
-  CSS was not loaded, and reopening could request zero width. Initialization is
-  now explicit. The final native keyboard test passes without that warning.
-- An additional diagnostic requiring immediate destruction of the native GTK view
-  after closing a tab did not pass: this X11 harness retained one reference to an
-  unparented view, including a blank tab where completion had not been opened.
-  Tab removal and content-container release passed. This observation does not
-  establish a completion-specific leak; long-running memory growth and the
-  lifetime of toolkit-held references remain unverified. No unsafe forced-disposal
-  workaround was added. The functional test checks tab/container removal rather
-  than assuming immediate finalization of every toolkit object.
-- Native Windows compilation/execution and a native Wayland session were not
-  available. Linux results do not establish behavior on those platforms.
-- No release/LTO build, clean-machine installer execution or PowerShell test run
-  was performed. Installers retain their existing dependency provisions.
-- Native word indexing is asynchronous; recently opened/changed text may take a
-  few seconds to appear. Very short prefixes can have no suggestions. There is
-  no cross-document, semantic or LSP completion.
-- File icon artwork depends on the platform MIME database and GTK icon theme,
-  exactly as in Leditor's Explorer.
-- Existing Windows live-resize artifacts remain under the native-frame + Cairo +
-  DirectComposition mitigation described in RESIZE.md.
-- Existing sorting/trim/IME limits documented in README.md and DEVELOPMENT.md
-  remain. Python installer tests emit the existing tarfile deprecation warning.
+- GIO's preflight/no-overwrite move was insufficient under concurrent publication.
+  Native no-replace rename operations now make the publication atomic; the
+  previously failing concurrent-copy test passes.
+- Unparenting the source view while entering preview invalidated GtkSourceMap
+  adjustment handlers. The source view now stays parented in a hidden editor area,
+  with a separate preview scroller. Final transitions pass with fatal criticals.
+- `simple` works as an environment/GtkSettings alias but not as the explicit GTK
+  widget context ID. Widgets now use `gtk-im-context-simple`; the previously
+  failing dead-key checks pass with actual keyboard events.
+
+## Known limitations and unverified platforms
+
+- No native Windows compile/run, native Wayland/COSMIC session or Japanese IME
+  (IBus/Fcitx/Windows IME) validation was available. Restoring default properties
+  is tested; that does not prove every OS, compositor or input-service combination.
+- Rust 1.89 is the declared minimum required by Comrak; this run used Rust 1.99.1.
+  No release/LTO build, clean-machine installer run or PowerShell execution was
+  performed. Both installers were updated for the minimum compiler requirement;
+  there is no new native runtime dependency.
+- GTK 4.24 warns that the existing dark-theme setting should use its newer
+  color-scheme property. The existing Find/Focus test also emits a GtkBox width
+  measurement warning. Neither caused an assertion failure; no toolkit-wide
+  warning-free claim is made.
+- Preview uses native GTK widgets, not a browser. Raw HTML is literal; arbitrary
+  HTML/CSS/JS, remote images, SVG, math/Mermaid and relative document navigation
+  are not rendered. Local PNG/JPEG images are restricted to the document's
+  directory tree and appear below their paragraph. Selection is per block.
+  Very large Markdown documents render synchronously and can pause the UI.
+- Duplication uses saved disk contents. Symbolic links and special files are
+  refused. Filesystems without native no-replace rename support fail safely;
+  existing cross-volume moves still have no copy/delete fallback.
+- The 1.7 diagnostic concerning immediate native-view finalization was not rerun.
+  Functional tab removal passes; long-running memory growth and toolkit-held
+  references remain unverified.
+- Existing Windows live-resize artifacts remain subject to the native-frame,
+  Cairo and DirectComposition mitigation described in RESIZE.md. Existing
+  completion indexing delays and sorting/trim limits remain documented in README.md.
 
 ## Repeating the checks
 
-Run graphical suites separately in a desktop session to keep GTK on one test
-thread. The keyboard tests require Linux/X11, xdotool and a window manager.
+Use a desktop session even for the default test set. Run ignored graphical suites
+separately to keep GTK on one test thread. Keyboard tests require Linux/X11,
+xdotool and a window manager; the 1.8 composition checks need `setxkbmap br`.
 Set `LEDITOR_PDFIUM_LIBRARY` to the full PDFium library path when needed.
 
 ```sh
@@ -94,5 +116,15 @@ cargo test --locked resize_maximize_and_focus_preserve_editor -- --ignored --tes
 cargo test --locked version_160_editing_and_navigation -- --ignored --test-threads=1
 cargo test --locked version_170_tabs_and_bracket_styles -- --ignored --test-threads=1
 cargo test --locked version_170_native_completion -- --ignored --test-threads=1
+cargo test --locked version_180_preview_read_only_input_and_duplicate -- --ignored --test-threads=1
 python3 -m unittest discover -s tests -p 'test_*.py'
+cargo fmt --all -- --check
+bash -n install.sh
 ```
+
+## Ctrl+L follow-up (same version)
+
+Added Ctrl+L through the shared shortcut table and updated the three translations.
+Basic validation: `cargo check --locked --all-targets`, `cargo test --locked --lib`,
+formatting and translation-key parity checks passed. The full graphical suites
+reported above were run before this shortcut-only follow-up, not repeated for it.

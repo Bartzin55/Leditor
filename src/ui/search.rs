@@ -169,7 +169,10 @@ impl Editor {
         }
     }
     pub(super) fn open_search(&self) {
-        if !self.current().is_some_and(|t| t.is_text()) {
+        if !self
+            .current()
+            .is_some_and(|t| t.is_text() && !t.is_preview())
+        {
             return;
         }
         if self.goto.bar.is_visible() {
@@ -225,7 +228,7 @@ impl Editor {
         self.clear_search_tags();
         let term = self.search.find.text();
         let mut matches = Vec::new();
-        if let Some(tab) = self.current().filter(|t| t.is_text()) {
+        if let Some(tab) = self.current().filter(|t| t.is_text() && !t.is_preview()) {
             let b = tab.view.buffer();
             for (name, color) in [("search-match", "#ffe066"), ("search-current", "#66dd77")] {
                 if b.tag_table().lookup(name).is_none() {

@@ -40,3 +40,13 @@ window.popup-surface { background-color: #111111; color: #eeeeee; }
 .search-error { color: #ff6666; }
 .search-replaced { color: #fff1a0; }
 .minimap { border-left: 1px solid #666; }
+
+.main-toolbar { background: #242424; border-bottom: 1px solid #484848; padding: 2px 8px; }
+.main-toolbar button { color: #65b5ec; padding: 4px 8px; min-width: 24px; }
+.markdown-preview { color: #eeeeee; }
+.markdown-preview label { color: inherit; }
+.markdown-preview link { color: #79bdff; }
+.markdown-quote { border-left: 3px solid #65b5ec; padding: 4px 12px; }
+.markdown-code { border: 1px solid #484848; border-radius: 4px; }
+.markdown-table { border-top: 1px solid #666; border-left: 1px solid #666; }
+.markdown-cell { border-bottom: 1px solid #666; border-right: 1px solid #666; padding: 8px 12px; }

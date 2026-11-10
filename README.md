@@ -1,6 +1,56 @@
 # Leditor
 
-## 1.7.0-alpha — Word completion and readable tabs
+## 1.8.0-alpha — Markdown preview, view-only mode and input methods
+
+- The new toolbar sits between the menus and the tabs, across the window as in
+  the mockups. Click the eye to enter **Only view mode**, or the pencil to resume
+  editing. **View → Only view mode** controls the same saved preference.
+- This is a global preference for existing and new tabs, remembered independently
+  of session restore. Text files remain selectable but cannot be edited. Files
+  whose final extension is `.md` (case-insensitive) replace the editing surface
+  completely with a **Comrak** preview. Other names are never parsed as Markdown.
+- The original buffer, unsaved text, cursor and undo history are retained. The
+  minimap and source line numbers disappear in the preview. Disable view-only
+  to edit again. Saving already pending edits remains possible; trailing-space
+  cleanup is suspended while view-only is active. Find/Go to line remain available
+  for plain read-only text; source search/navigation are disabled in the preview.
+- Preview includes headings, emphasis, lists, quotes, separators, links, tables,
+  task markers, footnotes, definition lists, emoji shortcodes, highlight,
+  superscript/subscript, inserted text and GitHub alerts. Code blocks use native
+  GtkSourceView highlighting when their language is recognized. It follows the
+  editor theme and text zoom. See limitations below.
+- **Explorer → right-click file/folder → Duplicate** copies the on-disk contents
+  beside the original. Names such as `notes (Copy 1).md` preserve the extension;
+  the suffix is translated. Nested folders are supported; existing names are
+  skipped and never overwritten. Symbolic links are refused, as with existing
+  recursive copy, and failed staging is cleaned up.
+- **Other → Input Method → Default / Accent compatibility** selects system input
+  or GTK `simple` for Leditor. The choice is saved and applies immediately to
+  existing/new editors and app text fields. No restart or automatic document
+  write is needed. Default restores GTK's normal selection (including an explicit
+  environment override), so configured IBus/Fcitx/CJK input remains available.
+- **Ctrl+L** toggles Only view mode and appears in the Keyboard Shortcuts dialog.
+  Existing shortcuts remain available; editing actions are unavailable in view-only.
+- Leditor remains MIT. Comrak is BSD-2-Clause; additional dependency notices and
+  Unicode data licenses are included. Requires **Rust 1.89+**; no new native
+  runtime or WebView is needed.
+
+### Preview boundaries
+
+This is a GTK rendering of Comrak's AST, not a browser: raw HTML is displayed as
+literal text, scripts and embedded HTML are never executed, and remote images
+are not downloaded. Local PNG/JPEG images inside the Markdown file's directory
+or its descendants are displayed below their paragraph; missing/blocked images
+have a translated placeholder. Images outside that tree, SVG, arbitrary HTML/CSS,
+Mermaid and rendered math are not supported in this release. Task markers are
+read-only. Links within the document scroll to headings or footnotes; only explicit
+HTTP/HTTPS/mailto clicks open an external application. Relative document links
+are shown as text. Text can be selected/copied within each rendered block.
+Definition lists follow Comrak's syntax, with a blank line before `: definition`.
+Very large Markdown documents are rendered synchronously and may pause the UI.
+
+
+## Retained from 1.7.0-alpha — Word completion and readable tabs
 
 - Native GtkSourceView word completion suggests words already present in the
   current document. Each tab has its own vocabulary; no online service is used.
@@ -54,7 +104,7 @@ commits/tags and third-party versions are unchanged.
 - Ctrl+Tab / Ctrl+Shift+Tab navigate tabs in display order, wrapping at the ends.
 - Ctrl+Shift+O opens a folder; Ctrl+Shift+W closes it; Ctrl+Shift+N creates one.
 
-Use `bash install.sh --source .` or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .` from this extracted ZIP. This source contains the 1.7.0-alpha update.
+Use `bash install.sh --source .` or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .` from this extracted ZIP. This source contains the 1.8.0-alpha update. Until it is published, use this ZIP with the source option; the standalone GitHub installer fetches the published branch.
 See BUILD.md, DEVELOPMENT.md and VALIDATION.md for setup, design and test results.
 
 
@@ -81,8 +131,8 @@ MIT. See [VALIDATION.md](VALIDATION.md) for the actual validation limits.
 
 ### A modern text editor for Linux and Windows.
 
-**Version:** 1.7.0-alpha
-**Release date:** November 7, 2026
+**Version:** 1.8.0-alpha
+**Release date:** November 10, 2026
 
 Leditor brings text editing and file organization together in a clean, minimalist workspace. Write, edit, and browse your files with independent tabs, an integrated file explorer, and a distraction-free interface.
 
@@ -180,12 +230,11 @@ Leditor's roadmap focuses on richer editing, broader file support, and a more cu
 
 - **Language Server Protocol (LSP) support** for language-aware editing tools.
 - **Advanced text-editing features** for more demanding workflows.
-- **An integrated Markdown viewer** for reading formatted documents.
 - **CSV viewer** within the editor.
 - **Additional interface languages** and localization.
 - **Support for more text encodings.**
 
-These features are planned for future releases and are not included in version 1.7.0-alpha.
+These features are planned for future releases and are not included in version 1.8.0-alpha.
 
 ## Get Started
 

@@ -1,4 +1,4 @@
-# Leditor 1.7.0-alpha: existing GTK 4 / GtkSourceView 5 dependencies cover this release.
+# Leditor 1.8.0-alpha: Comrak is built by Cargo; Rust 1.89+; no new native runtime.
 #Requires -Version 5.1
 [CmdletBinding()]
 param([ValidateSet('user','system')][string]$Scope, [string]$Source, [string]$Ref = 'main')
@@ -81,7 +81,7 @@ try {
         if ($candidate -and (Test-Path "$candidate\ucrt64\bin\cargo.exe") -and (Test-Path "$candidate\ucrt64\bin\libgtksourceview-5-0.dll") -and (Test-Path "$candidate\ucrt64\bin\python.exe") -and (Test-Path "$candidate\usr\bin\git.exe") -and (Test-Path "$candidate\ucrt64\bin\objdump.exe") -and (Test-Path "$candidate\ucrt64\bin\glib-compile-resources.exe")) {
             $rustVersion = & "$candidate\ucrt64\bin\rustc.exe" --version
             if ($LASTEXITCODE -eq 0 -and $rustVersion -match 'rustc (\d+\.\d+\.\d+)') {
-                if ([version]$Matches[1] -ge [version]'1.88.0') { $msys = $candidate; break }
+                if ([version]$Matches[1] -ge [version]'1.89.0') { $msys = $candidate; break }
             }
         }
     }

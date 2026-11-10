@@ -145,3 +145,19 @@ completion-show = Mostrar sugestões de palavras deste documento
 completion-select = Selecionar sugestão de palavra (lista aberta)
 completion-accept = Aceitar a sugestão selecionada (lista aberta)
 completion-dismiss = Fechar sugestões de palavras
+
+# 1.8.0-alpha
+only-view = Modo somente leitura
+resume-editing = Voltar à edição
+input-method = Método de entrada
+input-default = Padrão
+input-simple = Compatibilidade de acentos
+copy-suffix = Cópia
+markdown-image-unavailable = Imagem indisponível (somente PNG/JPG local)
+markdown-remote-image = Imagem remota (não baixada)
+markdown-note = Nota
+markdown-tip = Dica
+markdown-important = Importante
+markdown-warning = Aviso
+markdown-caution = Cuidado
+only-view-toggle-shortcut = Alternar modo somente leitura

@@ -1,4 +1,4 @@
-# Dependency licenses — Leditor 1.7.0-alpha
+# Dependency licenses — Leditor 1.8.0-alpha
 
 See LICENSES/ for collected texts and provenance. Native PDFium notices are
 included; installers also preserve exact GTK runtime package notices. The
@@ -9,6 +9,9 @@ Leditor's source remains MIT. Its license does not replace licenses on linked li
 
 | Component | License | Role |
 |---|---|---|
+| Comrak 0.59.0 | BSD-2-Clause | Markdown parsing; no CLI or Syntect features |
+| emojis / finl_unicode / unicode-normalization | MIT or Apache-2.0 plus Unicode data terms (see exact notices) | Emoji and Unicode processing |
+| rustix | Apache-2.0 OR Apache-2.0 WITH LLVM-exception OR MIT | Atomic no-replace filesystem operation on Linux |
 | sourceview5 Rust bindings | MIT | GtkSourceView interface |
 | GtkSourceView native library | LGPL-2.1-or-later | Editing, minimap, gutter, indentation, case conversion and syntax highlighting |
 | gtk-rs Rust bindings | MIT | GTK/GLib/GIO bindings |
@@ -18,7 +21,7 @@ Leditor's source remains MIT. Its license does not replace licenses on linked li
 | GdkPixbuf | LGPL-2.1-or-later; loaders have their own notices | PNG/JPEG decode |
 | fluent-bundle / unic-langid | MIT OR Apache-2.0 | Existing localization |
 | tempfile | MIT OR Apache-2.0 | Existing atomic file operations |
-| windows-sys | MIT OR Apache-2.0 | Existing Windows theme query |
+| windows-sys | MIT OR Apache-2.0 | Windows theme query and atomic no-replace moves |
 
 GtkSourceView does not require changing Leditor's own license to GPL. Distributors must still comply with LGPL requirements for the native libraries (including notices, applicable source availability and replacement/relinking rights). Do not describe LGPL libraries themselves as MIT. Prefer normal dynamic linking and retain the runtime's licenses. Modifying LGPL components brings obligations for those modifications.
 
@@ -32,3 +35,9 @@ Primary references:
 - https://github.com/bblanchon/pdfium-binaries
 
 Cargo.lock records exact Rust dependency versions. Before distributing a complete Windows/Linux binary bundle, review the actual native components and codecs included in that bundle; this source ZIP is not an audit of an unbuilt binary distribution.
+
+The added Comrak dependency graph uses permissive BSD/MIT/Apache/Zlib and Unicode
+licenses. Comrak's COPYING also describes CC-BY-SA licensing of its CommonMark
+specification test document; that document is not embedded into Leditor. Preserve
+all collected notices. Cargo.lock pins the exact versions; `LICENSES/rust/packages.json`
+records archive checksums. These additions do not require relicensing Leditor.

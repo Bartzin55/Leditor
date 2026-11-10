@@ -155,6 +155,9 @@ impl Editor {
         );
         for tab in self.tabs.borrow().iter() {
             self.apply_syntax(tab);
+            if let Some(preview) = tab.preview.borrow().as_ref() {
+                preview.set_theme(light);
+            }
         }
         self.applying_theme.set(false);
     }

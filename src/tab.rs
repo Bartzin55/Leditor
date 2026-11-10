@@ -9,6 +9,8 @@ use std::{
 
 /// IDs, rather than filenames or notebook positions, identify independent tabs.
 pub struct Tab {
+    pub preview: RefCell<Option<crate::markdown::MarkdownPreview>>,
+    pub edit_position: Cell<(f64, f64)>,
     pub id: u64,
     pub unsupported: Cell<bool>,
     pub media: Cell<bool>,
@@ -18,6 +20,8 @@ pub struct Tab {
     pub document: RefCell<Document>,
     pub view: EditorView,
     pub scroll: gtk::ScrolledWindow,
+    pub editor_area: gtk::Box,
+    pub preview_scroll: gtk::ScrolledWindow,
     pub content: gtk::Box,
     pub minimap: sourceview5::Map,
     pub header: gtk::Box,
@@ -40,8 +44,18 @@ impl Tab {
             .build();
         let minimap = crate::minimap::create(&view);
         let content = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        content.append(&scroll);
-        content.append(&minimap);
+        let editor_area = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        editor_area.set_hexpand(true);
+        editor_area.append(&scroll);
+        editor_area.append(&minimap);
+        let preview_scroll = gtk::ScrolledWindow::builder()
+            .hexpand(true)
+            .vexpand(true)
+            .overlay_scrolling(false)
+            .visible(false)
+            .build();
+        content.append(&editor_area);
+        content.append(&preview_scroll);
         let header = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         header.add_css_class("document-tab");
         let select = gtk::Button::new();
@@ -66,6 +80,8 @@ impl Tab {
         header.append(&select);
         header.append(&close);
         let tab = Rc::new(Self {
+            preview: RefCell::new(None),
+            edit_position: Cell::new((0.0, 0.0)),
             id,
             unsupported: Cell::new(false),
             media: Cell::new(false),
@@ -75,6 +91,8 @@ impl Tab {
             document: RefCell::new(document),
             view,
             scroll,
+            editor_area,
+            preview_scroll,
             content,
             minimap,
             header,
@@ -89,6 +107,9 @@ impl Tab {
     }
     pub fn is_text(&self) -> bool {
         !self.unsupported.get() && !self.media.get()
+    }
+    pub fn is_preview(&self) -> bool {
+        self.preview.borrow().is_some()
     }
     pub fn source_buffer(&self) -> sourceview5::Buffer {
         self.view.buffer().downcast().expect("source buffer")

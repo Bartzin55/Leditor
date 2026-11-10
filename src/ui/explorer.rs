@@ -20,6 +20,7 @@ pub(super) enum Operation {
     CopyPath(PathBuf),
     RenameTab(u64),
     Duplicate(u64),
+    DuplicateEntry(PathBuf),
     CloseAll,
     CloseTab(u64),
     SaveTab(u64, bool),
@@ -423,6 +424,7 @@ impl Editor {
                 ("rename", Operation::Rename(path.to_owned())),
                 ("cut", Operation::Clipboard(path.to_owned(), true)),
                 ("copy", Operation::Clipboard(path.to_owned(), false)),
+                ("duplicate", Operation::DuplicateEntry(path.to_owned())),
             ]);
         }
         items.push(("paste", Operation::Paste(parent.to_owned())));
@@ -730,6 +732,16 @@ impl Editor {
                         .unwrap()
                         .display_name
                         .replace(Some("Untitled.txt".into()));
+                }
+            }
+            Operation::DuplicateEntry(path) => {
+                let label = self.strings.text("copy-suffix");
+                match gio::spawn_blocking(move || file_ops::duplicate(&path, &label)).await {
+                    Ok(Ok(target)) => {
+                        self.explorer.selected.replace(Some(target));
+                    }
+                    Ok(Err(error)) => self.error(&error.to_string()).await,
+                    Err(_) => self.error("Filesystem worker failed").await,
                 }
             }
             Operation::Clipboard(path, cut) => {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Leditor 1.7.0-alpha: existing GTK 4 / GtkSourceView 5 dependencies cover this release.
+# Leditor 1.8.0-alpha: Comrak is built by Cargo; Rust 1.89+; no new native runtime.
 # Bootstrap only. All downloaded tools stay in a private temporary directory.
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"

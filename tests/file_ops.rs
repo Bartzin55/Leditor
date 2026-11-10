@@ -129,3 +129,68 @@ fn delete_symlink_does_not_delete_target() {
     delete(&link).unwrap();
     assert!(folder.join("file").exists());
 }
+
+#[test]
+fn duplicate_uses_available_number_and_preserves_extension_and_bytes() {
+    let root = tempfile::tempdir().unwrap();
+    let source = root.path().join("ação.md");
+    fs::write(&source, b"\xef\xbb\xbftext\r\n").unwrap();
+    fs::write(root.path().join("ação (Copy 1).md"), "keep").unwrap();
+    let copy = duplicate(&source, "Copy").unwrap();
+    assert_eq!(copy, root.path().join("ação (Copy 2).md"));
+    assert_eq!(fs::read(&copy).unwrap(), fs::read(&source).unwrap());
+    assert_eq!(
+        fs::read_to_string(root.path().join("ação (Copy 1).md")).unwrap(),
+        "keep"
+    );
+    fs::write(&copy, "independent").unwrap();
+    assert_ne!(fs::read(&copy).unwrap(), fs::read(&source).unwrap());
+    let dotfile = root.path().join(".env");
+    fs::write(&dotfile, "keep").unwrap();
+    assert_eq!(
+        duplicate(&dotfile, "Cópia").unwrap(),
+        root.path().join(".env (Cópia 1)")
+    );
+}
+#[test]
+fn duplicate_folder_keeps_dotted_name_and_copies_nested_files() {
+    let root = tempfile::tempdir().unwrap();
+    let source = root.path().join("folder.v1");
+    fs::create_dir_all(source.join("nested")).unwrap();
+    fs::write(source.join("nested/a"), b"\0\xff\n").unwrap();
+    let copy = duplicate(&source, "Copy").unwrap();
+    assert_eq!(copy, root.path().join("folder.v1 (Copy 1)"));
+    assert_eq!(fs::read(copy.join("nested/a")).unwrap(), b"\0\xff\n");
+    assert_eq!(fs::read_dir(root.path()).unwrap().count(), 2);
+}
+#[test]
+fn concurrent_duplicates_do_not_overwrite_each_other() {
+    let root = tempfile::tempdir().unwrap();
+    let source = root.path().join("a.txt");
+    fs::write(&source, "data").unwrap();
+    let threads: Vec<_> = (0..4)
+        .map(|_| {
+            let source = source.clone();
+            std::thread::spawn(move || duplicate(&source, "Copy").unwrap())
+        })
+        .collect();
+    let copies: std::collections::BTreeSet<_> =
+        threads.into_iter().map(|t| t.join().unwrap()).collect();
+    assert_eq!(copies.len(), 4);
+    assert_eq!(fs::read_dir(root.path()).unwrap().count(), 5);
+    for copy in copies {
+        assert_eq!(fs::read_to_string(copy).unwrap(), "data");
+    }
+}
+#[cfg(unix)]
+#[test]
+fn failed_duplicate_leaves_source_intact_and_no_partial_copy() {
+    let root = tempfile::tempdir().unwrap();
+    let source = root.path().join("folder");
+    fs::create_dir(&source).unwrap();
+    fs::write(source.join("file"), "original").unwrap();
+    std::os::unix::fs::symlink(&source, source.join("cycle")).unwrap();
+    assert!(duplicate(&source, "Copy").is_err());
+    assert_eq!(fs::read_to_string(source.join("file")).unwrap(), "original");
+    assert_eq!(fs::read_dir(root.path()).unwrap().count(), 1);
+}

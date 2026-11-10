@@ -42,7 +42,7 @@ def run(*args, **kwargs):
 
 def fetch(url, dest):
     print('Downloading:', url, flush=True)
-    req = urllib.request.Request(url, headers={'User-Agent': 'Leditor-installer/1.7.0-alpha'})
+    req = urllib.request.Request(url, headers={'User-Agent': 'Leditor-installer/1.8.0-alpha'})
     with urllib.request.urlopen(req, timeout=120) as response, open(dest, 'wb') as out:
         shutil.copyfileobj(response, out)
 
@@ -127,7 +127,7 @@ def install(args):
         cargo = shutil.which('cargo')
         if rust and cargo:
             version = run(rust, '--version', capture_output=True, text=True).stdout.split()[1]
-            rust_ok = tuple(map(int, version.split('.')[:2])) >= (1, 88)
+            rust_ok = tuple(map(int, version.split('.')[:2])) >= (1, 89)
         else:
             rust_ok = False
         if rust_ok:
@@ -137,7 +137,7 @@ def install(args):
                 cargo = run('rustup', 'which', 'cargo', capture_output=True, text=True).stdout.strip()
             env['RUSTC'] = rust
         else:
-            tools.append('rust>=1.88')
+            tools.append('rust>=1.89')
         if not native:
             tools += ['gcc_linux-64', 'pkg-config']
         if tools:

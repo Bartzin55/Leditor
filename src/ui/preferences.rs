@@ -12,6 +12,9 @@ impl Editor {
             if let Some(viewer) = tab.viewer.borrow().as_ref() {
                 viewer.set_zoom(self.zoom.get());
             }
+            if let Some(preview) = tab.preview.borrow().as_ref() {
+                preview.set_zoom(self.zoom.get());
+            }
             tab.view
                 .configure(self.spaces.get(), self.convert.get(), self.zoom.get());
             tab.view
@@ -79,6 +82,16 @@ impl Editor {
     }
     pub(super) fn save_settings(&self) {
         let key = glib::KeyFile::new();
+        key.set_boolean("settings", "only-view", self.only_view.get());
+        key.set_string(
+            "settings",
+            "input-method",
+            if self.input_method.is_simple() {
+                "simple"
+            } else {
+                "default"
+            },
+        );
         for (name, value) in [
             ("bracket-matching", self.bracket_matching.get()),
             ("whitespace", self.whitespace.get()),
@@ -132,6 +145,12 @@ impl Editor {
         self.explorer.panel.set_visible(false);
         self.explorer.reveal.set_visible(true);
         if let Some(key) = settings {
+            self.only_view
+                .set(key.boolean("settings", "only-view").unwrap_or(false));
+            self.input_method.set_simple(
+                key.string("settings", "input-method")
+                    .is_ok_and(|value| value == "simple"),
+            );
             for (name, setting, default) in [
                 ("bracket-matching", &self.bracket_matching, true),
                 ("whitespace", &self.whitespace, false),
@@ -197,6 +216,15 @@ impl Editor {
                 .set(self.autosave.get() && key.boolean("settings", "restore").unwrap_or(false));
         }
         self.actions["enable-autosave"].set_state(&self.autosave.get().to_variant());
+        self.actions["only-view"].set_state(&self.only_view.get().to_variant());
+        self.actions["input-method"].set_state(
+            &if self.input_method.is_simple() {
+                "simple"
+            } else {
+                "default"
+            }
+            .to_variant(),
+        );
         self.actions["restore-session"].set_state(&self.restore.get().to_variant());
         for (name, value) in [
             ("bracket-matching", self.bracket_matching.get()),

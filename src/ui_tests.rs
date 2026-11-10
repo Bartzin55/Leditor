@@ -1515,3 +1515,6 @@ fn version_160_editing_and_navigation() {
     assert!(restored.bracket_matching.get());
     restored.window.destroy();
 }
+
+#[path = "ui_180_tests.rs"]
+mod version180;

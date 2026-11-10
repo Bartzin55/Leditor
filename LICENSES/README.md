@@ -29,3 +29,8 @@ local use. Preserve matching source/build recipes when publishing binary release
 Tool licenses (Rust, GCC, MSYS2, micromamba) do not change the license of Leditor's
 source. Temporary tools are not included in the installed application. Compiler
 runtime libraries keep their own licenses and applicable runtime exceptions.
+
+1.8.0-alpha includes Comrak 0.59.0 (BSD-2-Clause) and its enabled-feature dependency
+notices. Unicode data has its own permissive terms. Comrak CLI/Syntect are disabled;
+GtkSourceView supplies code highlighting. Rustix is used directly for atomic Linux
+filesystem moves; its license was already included through tempfile.

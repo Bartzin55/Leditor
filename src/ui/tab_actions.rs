@@ -161,13 +161,22 @@ impl Editor {
             return;
         }
         if let Some(tab) = self.current().filter(|t| t.is_text()) {
+            if tab.is_preview() {
+                if action == "copy" {
+                    if let Some(focus) = gtk::prelude::GtkWindowExt::focus(&self.window) {
+                        let _ = focus.activate_action("clipboard.copy", None);
+                    }
+                }
+                return;
+            }
             match action {
                 "cut" => tab.view.copy_or_cut(true),
                 "copy" => tab.view.copy_or_cut(false),
-                "paste" => tab
-                    .view
-                    .buffer()
-                    .paste_clipboard(&tab.view.clipboard(), None, true),
+                "paste" => tab.view.buffer().paste_clipboard(
+                    &tab.view.clipboard(),
+                    None,
+                    tab.view.is_editable(),
+                ),
                 _ => (),
             }
         }

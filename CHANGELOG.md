@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.8.0-alpha] — 2026-11-10
+
+- Add the toolbar eye/pencil control and saved View → Only view mode preference.
+- Replace `.md` editing surfaces with a safe Comrak/GTK preview while read-only;
+  retain buffers, dirty state, cursor and undo history across transitions.
+- Render CommonMark and selected extensions, native source-highlighted code,
+  tables, footnotes, local images, theme/zoom and internal anchors without a WebView.
+- Guard editing actions, clipboard mutations and trim-on-save in view-only mode.
+- Add Explorer duplication of files/folders with translated numbered suffixes,
+  extension preservation and staged copies. Use native atomic no-replace moves
+  on Linux/Windows to handle concurrent destination creation safely.
+- Add saved Default/Accent compatibility input methods, applied live through GTK
+  properties to source views and app text fields, including later dialogs.
+- Update all three catalogs, About/version metadata, dependency notices and guides.
+  Comrak requires Rust 1.89; both installers now enforce that minimum. No new
+  native runtime dependency. Leditor remains MIT.
+- Ctrl+L toggles Only view mode; the shortcut dialog includes its translated label.
+
+
 ## [1.7.0-alpha] — 2026-11-07
 
 - Add native GtkSourceCompletionWords with one vocabulary per document,

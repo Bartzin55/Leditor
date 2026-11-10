@@ -54,6 +54,7 @@ impl Editor {
     }
     pub(super) fn refresh_sort_actions(&self) {
         let enabled = !self.busy.get()
+            && !self.only_view.get()
             && self
                 .current()
                 .is_some_and(|t| t.is_text() && t.view.buffer().has_selection());
@@ -63,7 +64,7 @@ impl Editor {
     }
     /// Trim the live buffer, keeping disk, recovery and the native undo stack consistent.
     pub(super) fn trim_for_save(&self, tab: &Tab, autosave: bool) {
-        if !self.trim_trailing.get() || !tab.is_text() {
+        if self.only_view.get() || !self.trim_trailing.get() || !tab.is_text() {
             return;
         }
         let b = tab.source_buffer();

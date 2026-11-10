@@ -7,6 +7,12 @@ pub struct Shortcut {
 }
 pub const SHORTCUTS: &[Shortcut] = &[
     Shortcut {
+        action: "only-view",
+        label: "only-view-toggle-shortcut",
+        accelerators: &["<Primary>l"],
+        display: "Ctrl+L",
+    },
+    Shortcut {
         action: "go-to-line",
         label: "go-to-line",
         accelerators: &["<Primary>g"],

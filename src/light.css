@@ -14,3 +14,8 @@ window.popup-surface { background: #ffffff; color: #202020; }
 .search-success { color: #176b24; }
 .search-error { color: #b00020; }
 .search-replaced { color: #745000; }
+.main-toolbar { background: #eeeeee; border-color: #cccccc; }
+.main-toolbar button { color: #1673ad; }
+.markdown-preview { color: #202020; }
+.markdown-preview link { color: #166ca8; }
+.markdown-code, .markdown-table, .markdown-cell { border-color: #cccccc; }

@@ -13,9 +13,13 @@ impl Editor {
             if let Some(e) = weak.upgrade().filter(|e| e.focus_mode.get()) {
                 if y <= 4.0 {
                     e.menubar.set_visible(true);
+                    e.toolbar.set_visible(true);
                     e.tab_bar.set_visible(true);
-                } else if y > (e.menubar.height() + e.tab_bar.height() + 16) as f64 {
+                } else if y
+                    > (e.menubar.height() + e.toolbar.height() + e.tab_bar.height() + 16) as f64
+                {
                     e.menubar.set_visible(false);
+                    e.toolbar.set_visible(false);
                     e.tab_bar.set_visible(false);
                 }
             }
@@ -64,6 +68,7 @@ impl Editor {
             self.explorer.panel.set_visible(false);
             self.explorer.reveal.set_visible(false);
             self.menubar.set_visible(false);
+            self.toolbar.set_visible(false);
             self.tab_bar.set_visible(false);
             self.footer.set_visible(false);
             for tab in self.tabs.borrow().iter() {
@@ -82,6 +87,7 @@ impl Editor {
                 }
             }
             self.menubar.set_visible(true);
+            self.toolbar.set_visible(true);
             self.tab_bar.set_visible(true);
             self.footer.set_visible(true);
             for tab in self.tabs.borrow().iter() {

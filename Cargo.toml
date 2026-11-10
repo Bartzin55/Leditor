@@ -1,12 +1,13 @@
 [package]
 name = "leditor"
-version = "1.7.0-alpha"
+version = "1.8.0-alpha"
 license = "MIT"
 edition = "2021"
-rust-version = "1.88"
+rust-version = "1.89"
 description = "A minimal, offline GTK text editor"
 
 [dependencies]
+comrak = { version = "=0.59.0", default-features = false, features = ["shortcodes", "attributes"] }
 sourceview5 = "0.10"
 pdfium-render = { version = "=0.9.4", default-features = false, features = ["pdfium_7881", "thread_safe"] }
 gtk = { package = "gtk4", version = "0.10", features = ["v4_10"] }
@@ -21,4 +22,7 @@ strip = true
 
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_System_Registry"] }
+windows-sys = { version = "0.61", features = ["Win32_System_Registry", "Win32_Storage_FileSystem"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+rustix = { version = "1", features = ["fs"] }

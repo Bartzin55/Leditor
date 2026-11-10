@@ -17,6 +17,7 @@ mod focus;
 mod goto;
 mod menu;
 mod preferences;
+mod read_only;
 #[cfg(test)]
 #[path = "ui_resize_tests.rs"]
 mod resize_tests;
@@ -43,6 +44,10 @@ enum Intent {
     Operation(Operation),
 }
 struct Editor {
+    only_view: Cell<bool>,
+    toolbar: gtk::Box,
+    view_button: gtk::Button,
+    input_method: Rc<crate::input_method::InputMethod>,
     search: search::SearchBar,
     goto: goto::GoToBar,
     bracket_matching: Cell<bool>,
@@ -148,6 +153,16 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         menubar.add_child(&row, name);
     }
     root.append(&menubar);
+    let toolbar = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    toolbar.add_css_class("main-toolbar");
+    let view_button = gtk::Button::from_icon_name("view-reveal-symbolic");
+    if let Some(icon) = view_button.child().and_downcast::<gtk::Image>() {
+        icon.set_pixel_size(24);
+    }
+    view_button.add_css_class("flat");
+    view_button.set_action_name(Some("win.only-view"));
+    toolbar.append(&view_button);
+    root.append(&toolbar);
     let explorer = Explorer::new();
     let editor_area = gtk::Box::new(gtk::Orientation::Vertical, 0);
     let tab_bar = gtk::Box::new(gtk::Orientation::Horizontal, 0);
@@ -202,6 +217,10 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
     root.append(&notice);
     window.set_child(Some(&root));
     let editor = Rc::new(Editor {
+        only_view: Cell::new(false),
+        toolbar,
+        view_button,
+        input_method: crate::input_method::InputMethod::new(),
         search,
         goto,
         bracket_matching: Cell::new(true),
@@ -261,6 +280,23 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
         let weak = Rc::downgrade(&editor);
         action.connect_activate(move |action, value| {
             if let Some(editor) = weak.upgrade() {
+                if editor.busy.get() {
+                    return;
+                }
+                if name == "input-method" {
+                    if let Some(value) = value
+                        .and_then(|v| v.str())
+                        .filter(|v| ["default", "simple"].contains(v))
+                    {
+                        editor.input_method.set_simple(value == "simple");
+                        for tab in editor.tabs.borrow().iter() {
+                            editor.input_method.apply_to(&tab.view);
+                        }
+                        action.set_state(&value.to_variant());
+                        editor.save_settings();
+                    }
+                    return;
+                }
                 if name == "syntax-language" {
                     if let Some(id) = value.and_then(|v| v.str()) {
                         editor.choose_syntax(id);
@@ -333,6 +369,7 @@ impl Editor {
             return;
         }
         match name {
+            "only-view" => self.toggle_only_view(),
             "next-tab" => self.cycle_tab(1),
             "previous-tab" => self.cycle_tab(-1),
             "find-replace" => {
@@ -371,7 +408,8 @@ impl Editor {
                 self.minimap.set(!self.minimap.get());
                 action.set_state(&self.minimap.get().to_variant());
                 for tab in self.tabs.borrow().iter() {
-                    tab.minimap.set_visible(self.minimap.get() && tab.is_text());
+                    tab.minimap
+                        .set_visible(self.minimap.get() && tab.is_text() && !tab.is_preview());
                 }
                 self.save_settings();
             }
@@ -456,7 +494,10 @@ impl Editor {
                 }
             }
             "undo" | "redo" => {
-                if let Some(tab) = self.current() {
+                if let Some(tab) = self
+                    .current()
+                    .filter(|t| t.is_text() && t.view.is_editable())
+                {
                     let buffer = tab.source_buffer();
                     if name == "undo" && buffer.can_undo() {
                         buffer.undo();
@@ -499,12 +540,16 @@ impl Editor {
             self.stack.set_visible_child_name(&id.to_string());
             self.refresh();
             self.refresh_search();
-            if tab.is_text() {
+            if tab.is_text() && !tab.is_preview() {
                 tab.view.grab_focus();
             } else {
                 self.close_search();
                 self.close_goto();
-                tab.scroll.grab_focus();
+                if tab.is_preview() {
+                    tab.preview_scroll.grab_focus();
+                } else {
+                    tab.scroll.grab_focus();
+                }
             }
         }
     }
@@ -518,6 +563,7 @@ impl Editor {
             .set_indentation_options(self.auto_indent.get(), self.indent_guides.get());
         tab.view
             .set_editing_options(self.auto_close.get(), self.whitespace.get());
+        self.input_method.apply_to(&tab.view);
         let scroll = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::VERTICAL);
         scroll.set_propagation_phase(gtk::PropagationPhase::Capture);
         let weak = Rc::downgrade(self);
@@ -614,6 +660,7 @@ impl Editor {
         self.refresh();
     }
     fn refresh(&self) {
+        self.refresh_read_only();
         self.refresh_goto();
         self.update_footer();
         self.sync_syntax_action();
@@ -648,15 +695,20 @@ impl Editor {
                 "syntax-detect" | "syntax-language" => {
                     self.syntax_enabled.get() && current.as_ref().is_some_and(|t| t.is_text())
                 }
-                "go-to-line" | "find-replace" | "insert-above" | "insert-below" | "case-first"
-                | "case-words" | "case-upper" | "case-lower" | "save" | "save-as" | "cut"
-                | "copy" | "paste" => current.as_ref().is_some_and(|t| t.is_text()),
-                "undo" => current
+                "go-to-line" | "find-replace" => current
                     .as_ref()
-                    .is_some_and(|tab| tab.view.buffer().can_undo()),
-                "redo" => current
-                    .as_ref()
-                    .is_some_and(|tab| tab.view.buffer().can_redo()),
+                    .is_some_and(|t| t.is_text() && !t.is_preview()),
+                "insert-above" | "insert-below" | "case-first" | "case-words" | "case-upper"
+                | "case-lower" | "cut" | "paste" => {
+                    !self.only_view.get() && current.as_ref().is_some_and(|t| t.is_text())
+                }
+                "save" | "save-as" | "copy" => current.as_ref().is_some_and(|t| t.is_text()),
+                "undo" => current.as_ref().is_some_and(|tab| {
+                    !self.only_view.get() && tab.is_text() && tab.view.buffer().can_undo()
+                }),
+                "redo" => current.as_ref().is_some_and(|tab| {
+                    !self.only_view.get() && tab.is_text() && tab.view.buffer().can_redo()
+                }),
                 _ => true,
             };
             action.set_enabled(!self.busy.get() && enabled);
@@ -664,18 +716,23 @@ impl Editor {
         self.refresh_sort_actions();
         self.goto.go.set_sensitive(!self.busy.get());
         self.tab_bar.set_sensitive(!self.busy.get());
-        self.search
-            .replace
-            .set_sensitive(!self.busy.get() && current.as_ref().is_some_and(|t| t.is_text()));
-        self.search
-            .replace_all
-            .set_sensitive(!self.busy.get() && current.as_ref().is_some_and(|t| t.is_text()));
+        self.search.replace.set_sensitive(
+            !self.busy.get()
+                && !self.only_view.get()
+                && current.as_ref().is_some_and(|t| t.is_text()),
+        );
+        self.search.replace_all.set_sensitive(
+            !self.busy.get()
+                && !self.only_view.get()
+                && current.as_ref().is_some_and(|t| t.is_text()),
+        );
         for button in self.explorer.creators.borrow().iter() {
             button.set_sensitive(!self.busy.get() && self.explorer.root.borrow().is_some());
         }
         for tab in self.tabs.borrow().iter() {
             tab.refresh(&self.strings);
-            tab.view.set_editable(!self.busy.get() && tab.is_text());
+            tab.view
+                .set_editable(!self.busy.get() && !self.only_view.get() && tab.is_text());
             if self.active.get() == Some(tab.id) {
                 tab.header.add_css_class("active");
             } else {
@@ -696,7 +753,11 @@ impl Editor {
             editor.refresh();
             if focus_editor {
                 if let Some(tab) = editor.current() {
-                    tab.view.grab_focus();
+                    if tab.is_preview() {
+                        tab.preview_scroll.grab_focus();
+                    } else {
+                        tab.view.grab_focus();
+                    }
                 }
             }
         });

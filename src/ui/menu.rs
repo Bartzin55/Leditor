@@ -48,6 +48,7 @@ pub(super) fn build(
         (
             "view",
             vec![
+                "only-view",
                 "bracket-matching",
                 "whitespace",
                 "go-to-line",
@@ -69,6 +70,7 @@ pub(super) fn build(
         (
             "other",
             vec![
+                "input-method",
                 "enable-autosave",
                 "restore-session",
                 "keyboard",
@@ -83,16 +85,20 @@ pub(super) fn build(
         let syntax = gio::Menu::new();
         for name in entries {
             let action = match name {
-                "theme" | "syntax-language" => gio::SimpleAction::new_stateful(
+                "theme" | "syntax-language" | "input-method" => gio::SimpleAction::new_stateful(
                     name,
                     Some(glib::VariantTy::STRING),
-                    &if name == "theme" { "system" } else { "plain" }.to_variant(),
+                    &match name {
+                        "theme" => "system",
+                        "input-method" => "default",
+                        _ => "plain",
+                    }
+                    .to_variant(),
                 ),
                 "minimap" | "focus" | "indent-guides" | "word-wrap" | "convert-tabs"
                 | "enable-autosave" | "restore-session" | "whitespace" | "go-to-line"
-                | "auto-close" | "trim-trailing" | "sort-lines" | "sort-characters" => {
-                    gio::SimpleAction::new_stateful(name, None, &false.to_variant())
-                }
+                | "auto-close" | "trim-trailing" | "sort-lines" | "sort-characters"
+                | "only-view" => gio::SimpleAction::new_stateful(name, None, &false.to_variant()),
                 "auto-indent" | "line-numbers" | "show-explorer" | "syntax-enable"
                 | "bracket-matching" => {
                     gio::SimpleAction::new_stateful(name, None, &true.to_variant())
@@ -115,7 +121,16 @@ pub(super) fn build(
                 "syntax-enable" | "syntax-detect" | "syntax-language" => &syntax,
                 _ => &submenu,
             };
-            if name == "theme" {
+            if name == "input-method" {
+                let methods = gio::Menu::new();
+                for (value, label) in [("default", "input-default"), ("simple", "input-simple")] {
+                    methods.append(
+                        Some(&strings.text(label)),
+                        Some(&format!("win.input-method::{value}")),
+                    );
+                }
+                submenu.append_submenu(Some(&strings.text("input-method")), &methods);
+            } else if name == "theme" {
                 let themes = gio::Menu::new();
                 for (value, label) in [
                     ("system", "system-theme"),

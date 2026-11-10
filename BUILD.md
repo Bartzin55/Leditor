@@ -10,6 +10,14 @@ source tree or manage the build yourself.
 3. **Advanced: compile and install manually.** Manage the toolchain, native
    libraries and installation yourself, without running the installers.
 
+For the **1.8.0-alpha source ZIP**, use option 2 while that version is unpublished.
+Option 1 always installs the code currently published on GitHub.
+
+Comrak 0.59.0 is compiled by Cargo from `Cargo.lock`; it needs Rust 1.89 or newer.
+Markdown rendering uses the existing GTK4/GtkSourceView libraries. No WebKit,
+WebView2, Node.js, browser installation or additional system package is needed.
+The installers obtain a suitable Rust toolchain when necessary.
+
 ## 1. Recommended — download only the installer
 
 You do **not** need to download the complete project or install Rust first.
@@ -133,7 +141,7 @@ unpublished ZIP; option 1 always fetches published code instead.
 This option does not run `install.sh` or `install.ps1`. You manage dependencies,
 updates and removal yourself. Keep `Cargo.lock` and use `--locked`.
 
-Requirements: **Rust 1.88+**, Cargo, **GTK 4.10+**, **GtkSourceView 5**, a native C
+Requirements: **Rust 1.89+**, Cargo, **GTK 4.10+**, **GtkSourceView 5**, a native C
 compiler, pkg-config and GLib's `glib-compile-resources`. Windows also requires
 MinGW's `windres`. The source archive does not include native runtime binaries.
 
@@ -156,7 +164,7 @@ On Ubuntu 24.04, install the native development packages:
 sudo apt install build-essential git pkg-config libgtk-4-dev libgtksourceview-5-dev libglib2.0-dev-bin
 ```
 
-Install Rust 1.88+ and Cargo separately using the instructions at
+Install Rust 1.89+ and Cargo separately using the instructions at
 [rustup.rs](https://rustup.rs/). Older distribution Rust packages may not meet the
 minimum version.
 
@@ -320,6 +328,9 @@ settings and recovered documents. They do not manage manual installations.
 - **Accents fail under Wayland:** close Leditor completely and try
   `GTK_IM_MODULE=simple leditor` as a diagnostic workaround for that execution.
   This bypasses external input methods; it is not forced globally by this guide.
+  In 1.8.0-alpha, use **Other → Input Method → Accent compatibility** to save
+  the same choice inside Leditor, including menu launches. **Default** restores
+  the normal system method. The switch applies immediately without restarting.
 
 ## Developer checks and additional details
 

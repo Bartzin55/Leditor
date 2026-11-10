@@ -148,3 +148,19 @@ completion-show = Show word suggestions from this document
 completion-select = Select a word suggestion (completion open)
 completion-accept = Accept the selected suggestion (completion open)
 completion-dismiss = Dismiss word suggestions
+
+# 1.8.0-alpha
+only-view = Only view mode
+resume-editing = Resume editing
+input-method = Input Method
+input-default = Default
+input-simple = Accent compatibility
+copy-suffix = Copy
+markdown-image-unavailable = Image unavailable (local PNG/JPG only)
+markdown-remote-image = Remote image (not downloaded)
+markdown-note = Note
+markdown-tip = Tip
+markdown-important = Important
+markdown-warning = Warning
+markdown-caution = Caution
+only-view-toggle-shortcut = Toggle Only View Mode

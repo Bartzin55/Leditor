@@ -66,7 +66,7 @@ impl Editor {
         });
     }
     pub(super) fn open_goto(&self) {
-        let Some(tab) = self.current().filter(|t| t.is_text()) else {
+        let Some(tab) = self.current().filter(|t| t.is_text() && !t.is_preview()) else {
             return;
         };
         if self.search.bar.is_visible() {
@@ -85,7 +85,7 @@ impl Editor {
     pub(super) fn close_goto(&self) {
         self.goto.bar.set_visible(false);
         self.actions["go-to-line"].set_state(&false.to_variant());
-        if let Some(tab) = self.current().filter(|t| t.is_text()) {
+        if let Some(tab) = self.current().filter(|t| t.is_text() && !t.is_preview()) {
             tab.view.grab_focus();
         }
     }
@@ -93,7 +93,7 @@ impl Editor {
         if !self.goto.bar.is_visible() {
             return;
         }
-        let Some(tab) = self.current().filter(|t| t.is_text()) else {
+        let Some(tab) = self.current().filter(|t| t.is_text() && !t.is_preview()) else {
             self.close_goto();
             return;
         };
@@ -109,7 +109,7 @@ impl Editor {
         if self.busy.get() {
             return;
         }
-        let Some(tab) = self.current().filter(|t| t.is_text()) else {
+        let Some(tab) = self.current().filter(|t| t.is_text() && !t.is_preview()) else {
             return;
         };
         let b = tab.view.buffer();

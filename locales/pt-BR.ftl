@@ -161,3 +161,16 @@ markdown-important = Importante
 markdown-warning = Aviso
 markdown-caution = Cuidado
 only-view-toggle-shortcut = Alternar modo somente leitura
+
+# 1.9.0-alpha
+disable-internet = Desabilitar acesso interno à internet
+open-with = Abrir com…
+markdown-loading = Carregando imagem…
+markdown-download-failed = Sem internet ou imagem indisponível
+markdown-internet-disabled = Renderização de imagens da internet desabilitada. Abra a imagem no navegador ou habilite a renderização em Outros.
+markdown-open-browser = Abrir no navegador
+rename-active = Renomear arquivo da aba ativa / Salvar Untitled como
+pinch-zoom = Pinça no touchpad para ajustar o zoom
+paste-save-markdown = Salve o documento com a extensão .md antes de colar uma imagem.
+pasted-image = Imagem colada
+paste-image-failed = Não foi possível colar a imagem

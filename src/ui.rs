@@ -15,6 +15,7 @@ mod editing;
 mod enhancements;
 mod focus;
 mod goto;
+mod markdown_actions;
 mod menu;
 mod preferences;
 mod read_only;
@@ -45,6 +46,7 @@ enum Intent {
 }
 struct Editor {
     only_view: Cell<bool>,
+    internet_disabled: Cell<bool>,
     toolbar: gtk::Box,
     view_button: gtk::Button,
     input_method: Rc<crate::input_method::InputMethod>,
@@ -116,7 +118,7 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
     sourceview5::init();
     crate::app_icon::register();
     let css = gtk::CssProvider::new();
-    css.load_from_data(include_str!("style.css"));
+    css.load_from_string(include_str!("style.css"));
     if let Some(display) = gtk::gdk::Display::default() {
         gtk::style_context_add_provider_for_display(
             &display,
@@ -218,6 +220,7 @@ fn create(application: &gtk::Application) -> Rc<Editor> {
     window.set_child(Some(&root));
     let editor = Rc::new(Editor {
         only_view: Cell::new(false),
+        internet_disabled: Cell::new(false),
         toolbar,
         view_button,
         input_method: crate::input_method::InputMethod::new(),
@@ -370,6 +373,18 @@ impl Editor {
         }
         match name {
             "only-view" => self.toggle_only_view(),
+            "disable-internet" => {
+                self.internet_disabled.set(!self.internet_disabled.get());
+                self.actions["disable-internet"]
+                    .set_state(&self.internet_disabled.get().to_variant());
+                self.refresh();
+                self.save_settings();
+            }
+            "rename-active" => {
+                if let Some(tab) = self.current() {
+                    self.operation(Operation::RenameTab(tab.id));
+                }
+            }
             "next-tab" => self.cycle_tab(1),
             "previous-tab" => self.cycle_tab(-1),
             "find-replace" => {
@@ -580,6 +595,7 @@ impl Editor {
             glib::Propagation::Proceed
         });
         tab.content.add_controller(scroll);
+        self.setup_markdown_input(&tab);
         tab.set_wrap(self.wrap.get());
         tab.view
             .set_line_numbers(self.line_numbers.get() && !self.focus_mode.get());

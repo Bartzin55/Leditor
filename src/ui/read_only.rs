@@ -41,11 +41,11 @@ impl Editor {
             let path = tab.document.borrow().path.clone();
             let markdown = active && tab.is_text() && crate::markdown::is_markdown(path.as_deref());
             if markdown {
-                let rebuild = tab
-                    .preview
-                    .borrow()
-                    .as_ref()
-                    .is_none_or(|preview| preview.source_path != path);
+                let rebuild = tab.preview.borrow().as_ref().is_none_or(|preview| {
+                    preview.source_path != path
+                        || preview.project_path != *self.explorer.root.borrow()
+                        || preview.internet_disabled != self.internet_disabled.get()
+                });
                 if rebuild {
                     if !tab.is_preview() {
                         tab.edit_position.set((
@@ -58,9 +58,18 @@ impl Editor {
                         path,
                         &tab.preview_scroll,
                         &self.strings,
+                        self.explorer.root.borrow().clone(),
+                        self.internet_disabled.get(),
                     );
                     preview.set_zoom(self.zoom.get());
                     preview.set_theme(self.preview_light());
+                    // Keep focus on a retained widget while replacing labels.
+                    // Otherwise GTK may traverse the removed focused link.
+                    if gtk::prelude::GtkWindowExt::focus(&self.window)
+                        .is_some_and(|focus| focus.is_ancestor(&tab.preview_scroll))
+                    {
+                        tab.preview_scroll.grab_focus();
+                    }
                     tab.preview_scroll.set_child(Some(&preview.content));
                     tab.preview.replace(Some(preview));
                 }

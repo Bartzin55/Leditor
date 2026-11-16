@@ -83,6 +83,7 @@ impl Editor {
     pub(super) fn save_settings(&self) {
         let key = glib::KeyFile::new();
         key.set_boolean("settings", "only-view", self.only_view.get());
+        key.set_boolean("settings", "disable-internet", self.internet_disabled.get());
         key.set_string(
             "settings",
             "input-method",
@@ -145,6 +146,8 @@ impl Editor {
         self.explorer.panel.set_visible(false);
         self.explorer.reveal.set_visible(true);
         if let Some(key) = settings {
+            self.internet_disabled
+                .set(key.boolean("settings", "disable-internet").unwrap_or(false));
             self.only_view
                 .set(key.boolean("settings", "only-view").unwrap_or(false));
             self.input_method.set_simple(
@@ -217,6 +220,7 @@ impl Editor {
         }
         self.actions["enable-autosave"].set_state(&self.autosave.get().to_variant());
         self.actions["only-view"].set_state(&self.only_view.get().to_variant());
+        self.actions["disable-internet"].set_state(&self.internet_disabled.get().to_variant());
         self.actions["input-method"].set_state(
             &if self.input_method.is_simple() {
                 "simple"

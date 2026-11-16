@@ -172,11 +172,7 @@ impl Editor {
             match action {
                 "cut" => tab.view.copy_or_cut(true),
                 "copy" => tab.view.copy_or_cut(false),
-                "paste" => tab.view.buffer().paste_clipboard(
-                    &tab.view.clipboard(),
-                    None,
-                    tab.view.is_editable(),
-                ),
+                "paste" => tab.view.paste(),
                 _ => (),
             }
         }

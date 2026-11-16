@@ -265,5 +265,27 @@ class WindowsBundleTests(unittest.TestCase):
                     module.bundle(prefix, output)
 
 
+class TlsBundleTests(unittest.TestCase):
+    def test_tls_module_dependencies_and_ca_bundle_are_retained(self):
+        spec = importlib.util.spec_from_file_location('bundle_tls', ROOT / 'scripts/bundle_windows.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as tmp:
+            prefix, output = Path(tmp) / 'ucrt', Path(tmp) / 'app'
+            for directory in (prefix / 'bin', prefix / 'lib/gio/modules', prefix / 'etc/ssl/certs', output):
+                directory.mkdir(parents=True)
+            (output / 'leditor.exe').write_text('exe')
+            (prefix / 'lib/gio/modules/libgiognutls.dll').write_text('plugin')
+            (prefix / 'bin/libgnutls.dll').write_text('tls')
+            (prefix / 'etc/ssl/certs/ca-bundle.crt').write_text('certificates')
+            def dependencies(args, **kwargs):
+                return 'DLL Name: libgnutls.dll' if Path(args[-1]).name == 'libgiognutls.dll' else ''
+            with patch.object(module.subprocess, 'check_output', side_effect=dependencies):
+                module.bundle(prefix, output)
+            self.assertTrue((output / 'gio/modules/libgiognutls.dll').is_file())
+            self.assertTrue((output / 'libgnutls.dll').is_file())
+            self.assertEqual((output / 'ssl/certs/ca-bundle.crt').read_text(), 'certificates')
+
+
 if __name__ == '__main__':
     unittest.main()

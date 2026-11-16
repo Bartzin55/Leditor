@@ -346,8 +346,13 @@ fn tabs_history_layout_dialogs_and_file_safety() {
     version_one_features(&editor, test_home.path());
     editor.select(e.id);
     append(&e, "quit save");
-    let quit_path = test_home.path().join("quit.txt");
-    queue(&editor, true, Some(&quit_path));
+    let current_path = editor.current().unwrap().document.borrow().path.clone();
+    let quit_path = current_path
+        .clone()
+        .unwrap_or_else(|| test_home.path().join("quit.txt"));
+    if current_path.is_none() {
+        queue(&editor, true, Some(&quit_path));
+    }
     editor.request(Intent::Quit);
     click("Save");
     pump_until(|| !editor.busy.get());
@@ -392,11 +397,14 @@ fn version_one_features(editor: &Rc<Editor>, root: &std::path::Path) {
     assert_eq!(created.name(&editor.strings), "renamed.txt");
     assert_eq!(editor.active.get(), Some(original.id));
     run(editor, Intent::Close(created.id));
+    queue(editor, true, Some(&root.join("Draft.txt")));
     editor.operation(Operation::RenameTab(original.id));
-    answer_name("Draft.txt");
     pump_until(|| !editor.busy.get());
     assert_eq!(original.name(&editor.strings), "Draft.txt");
-    assert!(original.document.borrow().path.is_none());
+    assert_eq!(
+        original.document.borrow().path.as_deref(),
+        Some(root.join("Draft.txt").as_path())
+    );
     let folder = root.join("tree");
     std::fs::create_dir(&folder).unwrap();
     let nested = folder.join("nested");
@@ -1518,3 +1526,6 @@ fn version_160_editing_and_navigation() {
 
 #[path = "ui_180_tests.rs"]
 mod version180;
+
+#[path = "ui_190_tests.rs"]
+mod version190;

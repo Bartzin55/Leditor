@@ -5,6 +5,7 @@ use comrak::{
 };
 use gtk::{gio, glib, prelude::*};
 use leditor::i18n::I18n;
+use soup::prelude::SessionExt;
 use sourceview5::prelude::BufferExt;
 use std::{
     cell::RefCell,
@@ -70,15 +71,31 @@ fn safe_link(url: &str) -> bool {
             .any(|allowed| scheme.eq_ignore_ascii_case(allowed))
     })
 }
+#[cfg(test)]
 fn inline_children<'a>(node: &'a AstNode<'a>, depth: usize) -> String {
+    inline_children_at(node, depth, None, None)
+}
+fn inline_children_at<'a>(
+    node: &'a AstNode<'a>,
+    depth: usize,
+    source: Option<&Path>,
+    project: Option<&Path>,
+) -> String {
     if depth >= MAX_DEPTH {
         return escape(&plain(node));
     }
-    node.children().map(|n| inline(n, depth + 1)).collect()
+    node.children()
+        .map(|n| inline(n, depth + 1, source, project))
+        .collect()
 }
-fn inline<'a>(node: &'a AstNode<'a>, depth: usize) -> String {
+fn inline<'a>(
+    node: &'a AstNode<'a>,
+    depth: usize,
+    source: Option<&Path>,
+    project: Option<&Path>,
+) -> String {
     let data = node.data.borrow();
-    let children = || inline_children(node, depth);
+    let children = || inline_children_at(node, depth, source, project);
     match &data.value {
         NodeValue::Text(text) => escape(text),
         NodeValue::Code(code) => format!("<tt>{}</tt>", escape(&code.literal)),
@@ -103,6 +120,18 @@ fn inline<'a>(node: &'a AstNode<'a>, depth: usize) -> String {
                 children()
             )
         }
+        NodeValue::Link(link) => {
+            if let Some(path) = crate::markdown_paths::resolve(&link.url, source, project) {
+                format!(
+                    "<a href=\"{}\" title=\"{}\">{}</a>",
+                    escape(&gio::File::for_path(path).uri()),
+                    escape(&link.title),
+                    children()
+                )
+            } else {
+                children()
+            }
+        }
         NodeValue::Image(_) => escape(&plain(node)),
         NodeValue::FootnoteReference(reference) => format!(
             "<a href=\"#fn-{}\"><sup>{}</sup></a>",
@@ -118,6 +147,9 @@ fn inline<'a>(node: &'a AstNode<'a>, depth: usize) -> String {
 pub struct MarkdownPreview {
     pub content: gtk::Box,
     pub source_path: Option<PathBuf>,
+    pub project_path: Option<PathBuf>,
+    pub internet_disabled: bool,
+    requests: soup::Session,
     css: gtk::CssProvider,
     css_class: String,
     code_buffers: Vec<sourceview5::Buffer>,
@@ -128,6 +160,8 @@ impl MarkdownPreview {
         source_path: Option<PathBuf>,
         scroll: &gtk::ScrolledWindow,
         strings: &I18n,
+        project_path: Option<PathBuf>,
+        internet_disabled: bool,
     ) -> Self {
         let content = gtk::Box::new(gtk::Orientation::Vertical, 14);
         content.add_css_class("markdown-preview");
@@ -138,6 +172,7 @@ impl MarkdownPreview {
         content.set_margin_start(24);
         content.set_margin_end(24);
         let anchors = Rc::new(RefCell::new(HashMap::new()));
+        let requests = crate::markdown_network::session();
         let mut renderer = Renderer {
             scroll: scroll.downgrade(),
             root: content.clone(),
@@ -145,6 +180,9 @@ impl MarkdownPreview {
             anchorizer: comrak::Anchorizer::new(),
             strings,
             source_path: source_path.as_deref(),
+            project_path: project_path.as_deref(),
+            internet_disabled,
+            requests: &requests,
             code_buffers: Vec::new(),
             footnotes: HashMap::new(),
         };
@@ -176,13 +214,16 @@ impl MarkdownPreview {
         Self {
             content,
             source_path,
+            project_path,
+            internet_disabled,
+            requests,
             css,
             css_class,
             code_buffers,
         }
     }
     pub fn set_zoom(&self, zoom: f64) {
-        self.css.load_from_data(&format!(
+        self.css.load_from_string(&format!(
             ".{} {{ font-size: {}px; }} .{} textview {{ font-size: {}px; }}",
             self.css_class,
             16.0 * zoom / 100.0,
@@ -200,6 +241,7 @@ impl MarkdownPreview {
 }
 impl Drop for MarkdownPreview {
     fn drop(&mut self) {
+        self.requests.abort();
         gtk::style_context_remove_provider_for_display(&self.content.display(), &self.css);
     }
 }
@@ -210,6 +252,9 @@ struct Renderer<'s> {
     anchorizer: comrak::Anchorizer,
     strings: &'s I18n,
     source_path: Option<&'s Path>,
+    project_path: Option<&'s Path>,
+    internet_disabled: bool,
+    requests: &'s soup::Session,
     code_buffers: Vec<sourceview5::Buffer>,
     footnotes: HashMap<String, u32>,
 }
@@ -227,6 +272,8 @@ impl Renderer<'_> {
         let anchors = self.anchors.clone();
         let root = self.root.downgrade();
         let scroll = self.scroll.clone();
+        let project_root = crate::markdown_paths::project_root(self.source_path, self.project_path);
+        let launch_root = project_root.clone();
         label.connect_activate_link(move |label, url| {
             if let Some(fragment) = url.strip_prefix('#') {
                 let fragment = glib::uri_unescape_string(fragment, None::<&str>)
@@ -245,13 +292,61 @@ impl Renderer<'_> {
                             .set_value(f64::from(bounds.y()) + f64::from(root.margin_top()));
                     }
                 }
+            } else if url.starts_with("file:") {
+                launch_file(label, url, false, launch_root.as_deref());
             } else if safe_link(url) {
-                // Explicit clicks only; no automatic network requests.
+                // Links are opened externally only after an explicit click.
                 let parent = label.root().and_downcast::<gtk::Window>();
                 gtk::UriLauncher::new(url).launch(parent.as_ref(), gio::Cancellable::NONE, |_| {});
             }
             glib::Propagation::Stop
         });
+        let click = gtk::GestureClick::new();
+        click.set_button(3);
+        click.set_propagation_phase(gtk::PropagationPhase::Capture);
+        let weak = label.downgrade();
+        let text = self.strings.text("open-with");
+        click.connect_pressed(move |gesture, _, x, y| {
+            let Some(label) = weak.upgrade() else {
+                return;
+            };
+            let Some(uri) = label.current_uri().filter(|u| u.starts_with("file:")) else {
+                return;
+            };
+            gesture.set_state(gtk::EventSequenceState::Claimed);
+            let popover = gtk::Popover::new();
+            popover.set_parent(&label);
+            popover.set_pointing_to(Some(&gtk::gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+            let button = gtk::Button::with_label(&text);
+            button.add_css_class("flat");
+            popover.set_child(Some(&button));
+            let weak_label = label.downgrade();
+            let weak_popover = popover.downgrade();
+            let root = project_root.clone();
+            button.connect_clicked(move |_| {
+                if let Some(label) = weak_label.upgrade() {
+                    launch_file(&label, &uri, true, root.as_deref());
+                }
+                if let Some(popover) = weak_popover.upgrade() {
+                    popover.popdown();
+                }
+            });
+            popover.connect_closed(|popover| {
+                // Restore focus before releasing the popup; GTK may still be
+                // dispatching its close event when this signal is emitted.
+                if let Some(parent) = popover.parent() {
+                    parent.grab_focus();
+                }
+                let popover = popover.clone();
+                glib::idle_add_local_once(move || {
+                    if popover.parent().is_some() {
+                        popover.unparent();
+                    }
+                });
+            });
+            popover.popup();
+        });
+        label.add_controller(click);
         label
     }
     fn anchor(&self, name: String, widget: &impl IsA<gtk::Widget>) {
@@ -261,7 +356,10 @@ impl Renderer<'_> {
             .or_insert_with(|| widget.as_ref().downgrade());
     }
     fn paragraph<'a>(&self, node: &'a AstNode<'a>, parent: &gtk::Box, prefix: &str, suffix: &str) {
-        parent.append(&self.label(&format!("{prefix}{}{suffix}", inline_children(node, 0))));
+        parent.append(&self.label(&format!(
+            "{prefix}{}{suffix}",
+            inline_children_at(node, 0, self.source_path, self.project_path)
+        )));
         // Images are laid out below their containing paragraph. Text remains
         // selectable; unsupported/remote images have a visible fallback.
         for image in node.descendants() {
@@ -271,10 +369,60 @@ impl Renderer<'_> {
         }
     }
     fn image(&self, url: &str, alt: &str, parent: &gtk::Box) {
-        let path = local_image_path(url, self.source_path);
+        if crate::markdown_network::is_remote(url) {
+            let box_ = gtk::Box::new(gtk::Orientation::Vertical, 4);
+            let message = self.strings.text(if self.internet_disabled {
+                "markdown-internet-disabled"
+            } else {
+                "markdown-loading"
+            });
+            let link = format!(
+                "<a href=\"{}\">{}</a>",
+                escape(url),
+                escape(&self.strings.text("markdown-open-browser"))
+            );
+            let label = self.label(&format!("{} — {link}", escape(&message)));
+            box_.append(&label);
+            parent.append(&box_);
+            if self.internet_disabled {
+                return;
+            }
+            let weak_box = box_.downgrade();
+            let session = self.requests.clone();
+            let url = url.to_owned();
+            let alt = alt.to_owned();
+            let failed = self.strings.text("markdown-download-failed");
+            glib::spawn_future_local(async move {
+                let result = match crate::markdown_network::download(&session, &url).await {
+                    Ok(bytes) => crate::markdown_network::decode(&bytes),
+                    Err(error) => Err(error),
+                };
+                let Some(box_) = weak_box.upgrade() else {
+                    return;
+                };
+                match result {
+                    Ok(pixbuf) => {
+                        box_.remove(&label);
+                        let picture =
+                            gtk::Picture::for_paintable(&gtk::gdk::Texture::for_pixbuf(&pixbuf));
+                        picture.set_can_shrink(true);
+                        picture.set_content_fit(gtk::ContentFit::Contain);
+                        picture.set_alternative_text(Some(&alt));
+                        picture.set_halign(gtk::Align::Start);
+                        box_.append(&picture);
+                    }
+                    Err(error) => {
+                        label.set_markup(&format!("{} — {link}", escape(&failed)));
+                        label.set_tooltip_text(Some(&error));
+                    }
+                }
+            });
+            return;
+        }
+        let path = local_image_path(url, self.source_path, self.project_path);
         if let Some(path) = path {
             if let Ok(pixbuf) = gtk::gdk_pixbuf::Pixbuf::from_file_at_scale(&path, 900, 600, true) {
-                let picture = gtk::Picture::for_pixbuf(&pixbuf);
+                let picture = gtk::Picture::for_paintable(&gtk::gdk::Texture::for_pixbuf(&pixbuf));
                 picture.set_can_shrink(true);
                 picture.set_content_fit(gtk::ContentFit::Contain);
                 picture.set_alternative_text(Some(alt));
@@ -319,7 +467,7 @@ impl Renderer<'_> {
                 };
                 let label = self.label(&format!(
                     "<span size=\"{size}\" weight=\"bold\">{}</span>",
-                    inline_children(node, 0)
+                    inline_children_at(node, 0, self.source_path, self.project_path)
                 ));
                 label.set_margin_top(8);
                 let id = data
@@ -414,7 +562,8 @@ impl Renderer<'_> {
                 for (row_index, row) in node.children().enumerate() {
                     let header = matches!(row.data.borrow().value, NodeValue::TableRow(true));
                     for (column, cell) in row.children().enumerate() {
-                        let markup = inline_children(cell, 0);
+                        let markup =
+                            inline_children_at(cell, 0, self.source_path, self.project_path);
                         let label = self.label(&if header {
                             format!("<b>{markup}</b>")
                         } else {
@@ -457,24 +606,34 @@ impl Renderer<'_> {
         }
     }
 }
-fn local_image_path(url: &str, source: Option<&Path>) -> Option<PathBuf> {
-    // No remote fetch, UNC share, data URI, or SVG/HTML scripting surface.
-    if url.starts_with(['/', '\\']) || glib::uri_parse_scheme(url).is_some() {
-        return None;
-    }
-    let decoded = glib::uri_unescape_string(url, None::<&str>)?;
-    if decoded.starts_with(['/', '\\']) {
-        return None;
-    }
-    let base = source?.parent()?.canonicalize().ok()?;
-    let path = base.join(decoded.as_str()).canonicalize().ok()?;
-    if !path.starts_with(&base) || !path.is_file() {
-        return None;
-    }
+fn local_image_path(url: &str, source: Option<&Path>, project: Option<&Path>) -> Option<PathBuf> {
+    let path = crate::markdown_paths::resolve(url, source, project)?;
     let extension = path.extension()?.to_str()?.to_ascii_lowercase();
     ["png", "jpg", "jpeg"]
         .contains(&extension.as_str())
         .then_some(path)
+}
+
+fn launch_file(label: &gtk::Label, uri: &str, ask: bool, root: Option<&Path>) {
+    // Revalidate on click as a link or symlink may have changed since rendering.
+    let Some(path) = crate::markdown_paths::resolve(uri, None, root) else {
+        return;
+    };
+    let parent = label.root().and_downcast::<gtk::Window>();
+    let launcher = gtk::FileLauncher::new(Some(&gio::File::for_path(path)));
+    launcher.set_always_ask(ask);
+    glib::spawn_future_local(async move {
+        if let Err(error) = launcher.launch_future(parent.as_ref()).await {
+            if !error.matches(gtk::DialogError::Dismissed)
+                && !error.matches(gtk::DialogError::Cancelled)
+            {
+                gtk::AlertDialog::builder()
+                    .message(error.to_string())
+                    .build()
+                    .show(parent.as_ref());
+            }
+        }
+    });
 }
 
 #[cfg(test)]
@@ -521,7 +680,7 @@ mod tests {
         std::fs::write(temp.path().join("secret.png"), []).unwrap();
         let source = root.join("readme.md");
         assert_eq!(
-            local_image_path("my%20image.png", Some(&source)),
+            local_image_path("my%20image.png", Some(&source), None),
             Some(root.join("my image.png"))
         );
         for url in [
@@ -532,7 +691,10 @@ mod tests {
             "image.svg",
             "%2Ftmp%2Fimage.png",
         ] {
-            assert!(local_image_path(url, Some(&source)).is_none(), "{url}");
+            assert!(
+                local_image_path(url, Some(&source), None).is_none(),
+                "{url}"
+            );
         }
     }
 }

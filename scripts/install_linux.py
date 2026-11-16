@@ -42,7 +42,7 @@ def run(*args, **kwargs):
 
 def fetch(url, dest):
     print('Downloading:', url, flush=True)
-    req = urllib.request.Request(url, headers={'User-Agent': 'Leditor-installer/1.8.0-alpha'})
+    req = urllib.request.Request(url, headers={'User-Agent': 'Leditor-installer/1.9.0-alpha'})
     with urllib.request.urlopen(req, timeout=120) as response, open(dest, 'wb') as out:
         shutil.copyfileobj(response, out)
 
@@ -66,8 +66,9 @@ def yes(prompt):
 def native_available():
     if not all(shutil.which(x) for x in ('pkg-config', 'gcc', 'glib-compile-resources')):
         return False
-    return subprocess.call(['pkg-config', '--atleast-version=4.10', 'gtk4']) == 0 and subprocess.call(
-        ['pkg-config', '--atleast-version=5.0', 'gtksourceview-5']) == 0
+    return subprocess.call(['pkg-config', '--atleast-version=4.12', 'gtk4']) == 0 and subprocess.call(
+        ['pkg-config', '--atleast-version=5.0', 'gtksourceview-5']) == 0 and subprocess.call(
+        ['pkg-config', '--atleast-version=3.0', 'libsoup-3.0']) == 0
 
 
 def install(args):
@@ -175,7 +176,7 @@ def install(args):
             runtime = generation / 'runtime'
             if not native:
                 print('Preparing private GTK/GtkSourceView runtime (no system packages).', flush=True)
-                conda(runtime, ['gtk4>=4.10', 'gtksourceview>=5,<6', 'glib', 'zlib', 'libffi', 'expat', 'libxml2-devel'])
+                conda(runtime, ['gtk4>=4.12', 'gtksourceview>=5,<6', 'libsoup>=3,<4', 'glib-networking', 'ca-certificates', 'glib', 'zlib', 'libffi', 'expat', 'libxml2-devel'])
                 env['PKG_CONFIG_PATH'] = str(runtime / 'lib/pkgconfig') + ':' + str(runtime / 'share/pkgconfig')
                 env['LD_LIBRARY_PATH'] = str(runtime / 'lib')
                 env['PATH'] = str(runtime / 'bin') + ':' + env['PATH']
@@ -217,6 +218,8 @@ def install(args):
                         shutil.copy2(path, target)
             launcher = '#!/bin/sh\n# Leditor managed launcher\nexport LEDITOR_MANAGED_INSTALL=1\n'
             if not native:
+                launcher += 'export GIO_EXTRA_MODULES=' + shlex.quote(str(runtime / 'lib/gio/modules')) + '\n'
+                launcher += 'export SSL_CERT_FILE=' + shlex.quote(str(runtime / 'ssl/cacert.pem')) + '\n'
                 launcher += 'export LD_LIBRARY_PATH=' + shlex.quote(str(runtime / 'lib')) + '\n'
                 launcher += 'export XDG_DATA_DIRS=' + shlex.quote(str(runtime / 'share')) + ':"${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"\n'
                 launcher += 'export GSETTINGS_SCHEMA_DIR=' + shlex.quote(str(runtime / 'share/glib-2.0/schemas')) + '\n'

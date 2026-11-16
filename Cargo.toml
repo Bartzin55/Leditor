@@ -1,16 +1,17 @@
 [package]
 name = "leditor"
-version = "1.8.0-alpha"
+version = "1.9.0-alpha"
 license = "MIT"
 edition = "2021"
 rust-version = "1.89"
-description = "A minimal, offline GTK text editor"
+description = "A minimal GTK text editor with Markdown preview"
 
 [dependencies]
+soup = { package = "soup3", version = "0.8" }
 comrak = { version = "=0.59.0", default-features = false, features = ["shortcodes", "attributes"] }
 sourceview5 = "0.10"
 pdfium-render = { version = "=0.9.4", default-features = false, features = ["pdfium_7881", "thread_safe"] }
-gtk = { package = "gtk4", version = "0.10", features = ["v4_10"] }
+gtk = { package = "gtk4", version = "0.10", features = ["v4_12"] }
 fluent-bundle = "0.16"
 unic-langid = { version = "0.9", features = ["macros"] }
 tempfile = "3"

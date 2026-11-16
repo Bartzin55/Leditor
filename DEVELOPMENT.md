@@ -1,4 +1,38 @@
-# Development Notes — Leditor 1.8.0-alpha
+# Development Notes — Leditor 1.9.0-alpha
+
+## 1.9.0-alpha integration
+
+- `markdown_paths.rs` centralizes percent decoding, project-root semantics,
+  lexical parent bounds and canonical/symlink containment for images and files.
+  Link opening rechecks containment to handle a changed target. No arbitrary
+  filesystem root or network share is inferred from a Markdown path.
+- `markdown_network.rs` uses libsoup 3's asynchronous GLib/GIO APIs, platform TLS
+  verification, redirects, a 15-second timeout, at most four connections per preview
+  and a 16 MiB response cap. PNG/JPEG signatures select the image decoder explicitly;
+  decoded output is scaled to at most 900×600. There is no browser engine, scripting,
+  cookie jar or persistent cache. Dropping a preview aborts its session.
+- `markdown.rs` retains Comrak AST/GTK rendering. `GtkFileLauncher` handles file
+  associations and its GTK 4.12 `always-ask` property requests the OS chooser.
+  Internet state and project-folder changes invalidate previews. Focus moves to the retained scroller before replacing a focused link. Disabled internet
+  is checked before starting each download; the replacement link uses UriLauncher.
+- `ui/markdown_actions.rs` installs the image handler on the existing EditorView.
+  Menu, native paste signal and context action share it. Existing serialized editor
+  operations freeze edits while clipboard/file dialogs and PNG writes complete.
+  A named tempfile in the document directory provides atomic unique creation;
+  it is retained before insertion and automatically cleaned on write failure.
+  Selection replacement is one undo operation; PNGs are not deleted by Undo.
+- A capture-phase `GtkGestureZoom` on the tab content uses the gesture-start zoom
+  times its current scale. The same zoom preference applies to text/media/preview;
+  the native gesture is not approximated with a custom touchpad event parser.
+- `shortcuts.rs` remains the single accelerator/dialog table. F12 dispatches the
+  existing file rename operation; Untitled now dispatches the existing Save As.
+- `soup3` and `soup3-sys` are the only new Rust packages. GTK/sourceview and Comrak
+  remain in use. Native libraries are dynamically linked; Leditor stays MIT.
+- Installers include libsoup/TLS dependencies and locate GIO modules/certificates
+  in private runtimes. Windows bundling walks the TLS DLL dependency closure.
+
+The following sections describe retained implementation from earlier versions.
+
 
 ## 1.8.0-alpha integration
 
@@ -9,9 +43,8 @@
   supplies unique heading IDs; only explicit header IDs are used from attributes.
   No user CSS or other attribute pairs are applied. Nesting is capped at 64 during
   rendering. Raw HTML is literal text; remote/resource URLs cannot execute scripts.
-  Local images are PNG/JPEG only, canonicalized under the document's directory,
-  decoded to at most 900×600 pixels and shown below the paragraph. Remote images
-  and blocked paths have placeholders. Native widgets need no additional web runtime.
+  Local images are PNG/JPEG only, canonicalized within the active project,
+  decoded to at most 900×600 pixels and shown below the paragraph. Remote images now load asynchronously; blocked paths have placeholders. Native widgets need no additional web runtime.
 - `ui/read_only.rs`: one global saved view-only preference controls all text tabs.
   It switches the visible scroller for eligible `.md` paths without replacing
   the source buffer or unparenting the source view. Keeping its scroll adjustments
@@ -45,8 +78,8 @@
   along with the menus/tabs in focus mode. Ctrl+L toggles the existing only-view action through the shared shortcut table,
   which also supplies the translated Keyboard Shortcuts dialog.
 
-Preview deliberately omits browser-only layout, arbitrary HTML/CSS, remote images,
-SVG, math/Mermaid engines and relative document navigation. Block selection is
+Preview deliberately omits browser-only layout, arbitrary HTML/CSS,
+SVG/GIF/WebP and math/Mermaid engines. Block selection is
 native GTK selection rather than a single continuous web document. Windows and
 Wayland validation limits are recorded in VALIDATION.md; property-based switching
 on Linux/X11 does not prove every system IME/compositor combination.
@@ -189,11 +222,11 @@ as an independent unsaved tab. Undo history is still not persisted across launch
 
 ## Build, installers and licensing
 
-Cargo.lock pins Comrak and the enabled dependency graph for 1.8.0-alpha; existing
+Cargo.lock pins Comrak and the enabled dependency graph for 1.9.0-alpha; existing
 package versions are retained. Both install.sh (through scripts/install_linux.py)
 and install.ps1 require Rust 1.89+ and already provide GtkSourceView 5 and its
-native data. No new native package or asset-copy step is required. About reads
-Cargo's package version. The Linux installer User-Agent is 1.8.0-alpha.
+native data. Version 1.9 adds GTK 4.12, libsoup 3, GLib TLS modules and CA certificates; private launchers set the corresponding runtime paths. About reads
+Cargo's package version. The Linux installer User-Agent is 1.9.0-alpha.
 
 The application remains MIT. Native GTK/GtkSourceView are dynamically linked
 LGPL libraries; their notices and redistribution obligations remain applicable.

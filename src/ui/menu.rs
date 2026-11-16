@@ -71,6 +71,7 @@ pub(super) fn build(
             "other",
             vec![
                 "input-method",
+                "disable-internet",
                 "enable-autosave",
                 "restore-session",
                 "keyboard",
@@ -98,7 +99,9 @@ pub(super) fn build(
                 "minimap" | "focus" | "indent-guides" | "word-wrap" | "convert-tabs"
                 | "enable-autosave" | "restore-session" | "whitespace" | "go-to-line"
                 | "auto-close" | "trim-trailing" | "sort-lines" | "sort-characters"
-                | "only-view" => gio::SimpleAction::new_stateful(name, None, &false.to_variant()),
+                | "only-view" | "disable-internet" => {
+                    gio::SimpleAction::new_stateful(name, None, &false.to_variant())
+                }
                 "auto-indent" | "line-numbers" | "show-explorer" | "syntax-enable"
                 | "bracket-matching" => {
                     gio::SimpleAction::new_stateful(name, None, &true.to_variant())
@@ -185,7 +188,7 @@ pub(super) fn build(
         model.append_submenu(Some(&strings.text(menu_name)), &submenu);
     }
     // Navigation actions have shortcuts without adding new menu entries.
-    for name in ["next-tab", "previous-tab"] {
+    for name in ["next-tab", "previous-tab", "rename-active"] {
         let action = gio::SimpleAction::new(name, None);
         window.add_action(&action);
         actions.insert(name, action);

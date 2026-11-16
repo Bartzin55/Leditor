@@ -6,6 +6,8 @@ mod input_method;
 #[cfg(target_os = "linux")]
 mod linux_install;
 mod markdown;
+mod markdown_network;
+mod markdown_paths;
 mod minimap;
 mod popups;
 mod session;

@@ -15,6 +15,13 @@ def bundle(prefix, output):
     if plugins.exists():
         shutil.copytree(plugins, output / 'gdk-pixbuf-2.0')
         pending += list((output / 'gdk-pixbuf-2.0').rglob('*.dll'))
+    tls_modules = prefix / 'lib/gio/modules'
+    if tls_modules.exists():
+        shutil.copytree(tls_modules, output / 'gio/modules')
+        pending += list((output / 'gio/modules').glob('*.dll'))
+    certificates = prefix / 'etc/ssl/certs'
+    if certificates.exists():
+        shutil.copytree(certificates, output / 'ssl/certs')
     query = prefix / 'bin/gdk-pixbuf-query-loaders.exe'
     if query.exists():
         shutil.copy2(query, output / query.name)

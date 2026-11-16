@@ -1,6 +1,36 @@
 # Leditor
 
-## 1.8.0-alpha — Markdown preview, view-only mode and input methods
+## 1.9.0-alpha — Markdown images, project links and navigation
+
+- Paste an image into a saved `.md` document with Ctrl+V, Edit → Paste or the
+  editor context menu. Leditor writes a unique `pasted-image-<random>.png` beside
+  the document and inserts `![Pasted Image](filename.png)` at the caret/selection.
+  Untitled tabs set to Markdown request Save As first. Canceling does not create
+  an image. The insertion is undoable; undo keeps the PNG to avoid deleting data.
+- Markdown image and file paths can reference the open Explorer project. `/assets/a.png`
+  and `\assets\a.png` start at that root. Relative paths start beside the `.md`;
+  `../` can move upward only as far as the project root. Symlinks cannot escape it.
+  Without an open folder, the document's directory is the root. Absolute filesystem
+  `file:` URLs are accepted only inside that boundary; drive/UNC paths are refused.
+- HTTP(S) PNG/JPEG images load asynchronously. Failed/offline requests show a
+  translated message and a browser link. Downloads have a 15-second timeout and
+  a 16 MiB limit per image; no persistent download cache is created.
+- **Other → Disable internal internet access** is a saved checkbox. It cancels
+  current image requests and replaces remote images with an explanatory browser
+  link. Explicit web links still open in your browser. The preference does not
+  control external applications or installer downloads.
+- Click a local file link to open it with the system's default application.
+  Right-click the link → **Open with…** requests the system app chooser. This
+  applies to text, images and PDFs too; clicking a link does not create another
+  Leditor tab. Invalid/out-of-project paths are displayed without an active link.
+- Native touchpad pinch changes zoom continuously, within the existing 5–800%
+  range. **Ctrl+M** toggles the minimap. **F12** renames the active tab's file;
+  an Untitled tab opens Save As. The shortcuts dialog includes these controls.
+- Native requirements now include **GTK 4.12+**, **libsoup 3**, GLib TLS support
+  and CA certificates. Both installers and the manual guide are updated.
+
+
+## Retained from 1.8.0-alpha — Markdown preview, view-only mode and input methods
 
 - The new toolbar sits between the menus and the tabs, across the window as in
   the mockups. Click the eye to enter **Only view mode**, or the pencil to resume
@@ -32,20 +62,18 @@
 - **Ctrl+L** toggles Only view mode and appears in the Keyboard Shortcuts dialog.
   Existing shortcuts remain available; editing actions are unavailable in view-only.
 - Leditor remains MIT. Comrak is BSD-2-Clause; additional dependency notices and
-  Unicode data licenses are included. Requires **Rust 1.89+**; no new native
-  runtime or WebView is needed.
+  Unicode data licenses are included. Requires **Rust 1.89+**. No WebView is used.
 
 ### Preview boundaries
 
 This is a GTK rendering of Comrak's AST, not a browser: raw HTML is displayed as
-literal text, scripts and embedded HTML are never executed, and remote images
-are not downloaded. Local PNG/JPEG images inside the Markdown file's directory
-or its descendants are displayed below their paragraph; missing/blocked images
-have a translated placeholder. Images outside that tree, SVG, arbitrary HTML/CSS,
+literal text; scripts and embedded HTML are never executed. Local and HTTP(S)
+PNG/JPEG images are displayed below their paragraph; missing/blocked images have
+a translated placeholder. Local images outside the project, SVG, GIF/WebP, arbitrary HTML/CSS,
 Mermaid and rendered math are not supported in this release. Task markers are
 read-only. Links within the document scroll to headings or footnotes; only explicit
-HTTP/HTTPS/mailto clicks open an external application. Relative document links
-are shown as text. Text can be selected/copied within each rendered block.
+HTTP/HTTPS/mailto clicks open an external application. Project file links use
+the default application or the native Open with chooser. Text can be selected/copied within each rendered block.
 Definition lists follow Comrak's syntax, with a blank line before `: definition`.
 Very large Markdown documents are rendered synchronously and may pause the UI.
 
@@ -104,7 +132,7 @@ commits/tags and third-party versions are unchanged.
 - Ctrl+Tab / Ctrl+Shift+Tab navigate tabs in display order, wrapping at the ends.
 - Ctrl+Shift+O opens a folder; Ctrl+Shift+W closes it; Ctrl+Shift+N creates one.
 
-Use `bash install.sh --source .` or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .` from this extracted ZIP. This source contains the 1.8.0-alpha update. Until it is published, use this ZIP with the source option; the standalone GitHub installer fetches the published branch.
+Use `bash install.sh --source .` or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .` from this extracted ZIP. This source contains the 1.9.0-alpha update. Until it is published, use this ZIP with the source option; the standalone GitHub installer fetches the published branch.
 See BUILD.md, DEVELOPMENT.md and VALIDATION.md for setup, design and test results.
 
 
@@ -131,12 +159,12 @@ MIT. See [VALIDATION.md](VALIDATION.md) for the actual validation limits.
 
 ### A modern text editor for Linux and Windows.
 
-**Version:** 1.8.0-alpha
+**Version:** 1.9.0-alpha
 **Release date:** November 10, 2026
 
 Leditor brings text editing and file organization together in a clean, minimalist workspace. Write, edit, and browse your files with independent tabs, an integrated file explorer, and a distraction-free interface.
 
-Built with **Rust and GTK4**, Leditor works entirely offline and is growing step by step into a versatile editor for everyday writing and development.
+Built with **Rust and GTK4**, Leditor supports offline editing and optional online Markdown images.
 
 ## New in 1.5.0-alpha
 
@@ -234,7 +262,7 @@ Leditor's roadmap focuses on richer editing, broader file support, and a more cu
 - **Additional interface languages** and localization.
 - **Support for more text encodings.**
 
-These features are planned for future releases and are not included in version 1.8.0-alpha.
+These features are planned for future releases and are not included in version 1.9.0-alpha.
 
 ## Get Started
 

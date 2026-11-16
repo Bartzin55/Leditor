@@ -34,3 +34,7 @@ runtime libraries keep their own licenses and applicable runtime exceptions.
 notices. Unicode data has its own permissive terms. Comrak CLI/Syntect are disabled;
 GtkSourceView supplies code highlighting. Rustix is used directly for atomic Linux
 filesystem moves; its license was already included through tempfile.
+
+1.9.0-alpha adds MIT-licensed soup3 and soup3-sys bindings. Native libsoup 3 is
+LGPL-2.1-or-later and remains dynamically linked. GLib networking/CA dependencies
+are installed with their upstream notices; see THIRD_PARTY.md.

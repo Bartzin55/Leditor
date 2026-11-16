@@ -19,6 +19,7 @@ pub(super) enum Operation {
     Move(PathBuf, PathBuf),
     CopyPath(PathBuf),
     RenameTab(u64),
+    PasteImage(u64),
     Duplicate(u64),
     DuplicateEntry(PathBuf),
     CloseAll,
@@ -153,6 +154,7 @@ impl Editor {
             self.toggle_explorer();
         }
         self.refresh_explorer();
+        self.refresh();
     }
     pub(super) fn refresh_explorer(self: &Rc<Self>) {
         let restore_focus = self.explorer.focused.get();
@@ -705,21 +707,14 @@ impl Editor {
                     }
                 }
             }
+            Operation::PasteImage(id) => self.paste_markdown_image(id).await,
             Operation::RenameTab(id) => {
                 if let Some(tab) = self.tab(id) {
                     let path = tab.document.borrow().path.clone();
                     if let Some(path) = path {
                         Box::pin(self.run_operation(Operation::Rename(path))).await;
-                    } else if let Some(name) = self
-                        .name_dialog(&self.strings.text("rename"), &tab.name(&self.strings))
-                        .await
-                    {
-                        match file_ops::child(Path::new("."), &name) {
-                            Ok(_) => {
-                                tab.display_name.replace(Some(name));
-                            }
-                            Err(error) => self.error(&error.to_string()).await,
-                        }
+                    } else {
+                        self.save(&tab, true).await;
                     }
                 }
             }

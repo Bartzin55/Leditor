@@ -53,6 +53,7 @@ fn version_180_preview_read_only_input_and_duplicate() {
         .build();
     app.register(gio::Cancellable::NONE).unwrap();
     let e = create(&app);
+    e.internet_disabled.set(true);
     let original_default = gtk::Settings::default().unwrap().gtk_im_module();
     let path = temp.path().join("Welcome.md");
     let content = "# Leditor 1.8.0\n\n**Markdown preview** with *Comrak* and ==highlighted text==.\n\n[Go to details](#details) · :smile: · H~2~O · x^2^\n\n| Feature | Status |\n| :--- | ---: |\n| Tables | Ready |\n| Native GTK | Ready |\n\n- [x] Read-only preview\n- [ ] Continue editing\n\n> [!NOTE]\n> Your source text stays unchanged.\n\n```rust\nfn main() {\n    println!(\"Olá, mundo!\");\n}\n```\n\n## Details {#details}\n\nA footnote[^one].\n\n[^one]: Preserved text.\n\nTerm\n\n: A definition.\n";
@@ -119,7 +120,7 @@ fn version_180_preview_read_only_input_and_duplicate() {
     );
     assert!(preview_labels
         .iter()
-        .any(|label| label.contains("Remote image")));
+        .any(|label| label.contains("Internet images disabled")));
     let heading = widgets::<gtk::Label>(preview.content.upcast_ref())
         .into_iter()
         .find(|label| label.text() == "Leditor 1.8.0")

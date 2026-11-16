@@ -1,0 +1,8 @@
+{
+  "name": "glib-networking",
+  "version": "2.80.0",
+  "build": "h2ef3c98_0",
+  "license": "LGPL-2.1-or-later",
+  "url": "https://conda.anaconda.org/conda-forge/linux-64/glib-networking-2.80.0-h2ef3c98_0.conda",
+  "sha256": "9aecd58fe3f3f8179fe7fe8b08c6494d5ea35ccf44ec42b58d5a0d25d782708c"
+}

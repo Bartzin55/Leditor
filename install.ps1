@@ -1,4 +1,4 @@
-# Leditor 1.8.0-alpha: Comrak is built by Cargo; Rust 1.89+; no new native runtime.
+# Leditor 1.9.0-alpha: GTK 4.12+, GtkSourceView 5, libsoup 3 and GLib TLS support.
 #Requires -Version 5.1
 [CmdletBinding()]
 param([ValidateSet('user','system')][string]$Scope, [string]$Source, [string]$Ref = 'main')
@@ -78,10 +78,13 @@ try {
     # Reuse a complete UCRT64 installation without changing its packages.
     $msys = $null
     foreach ($candidate in @($env:LEDITOR_MSYS2, 'C:\msys64')) {
-        if ($candidate -and (Test-Path "$candidate\ucrt64\bin\cargo.exe") -and (Test-Path "$candidate\ucrt64\bin\libgtksourceview-5-0.dll") -and (Test-Path "$candidate\ucrt64\bin\python.exe") -and (Test-Path "$candidate\usr\bin\git.exe") -and (Test-Path "$candidate\ucrt64\bin\objdump.exe") -and (Test-Path "$candidate\ucrt64\bin\glib-compile-resources.exe")) {
+        if ($candidate -and (Test-Path "$candidate\ucrt64\bin\cargo.exe") -and (Test-Path "$candidate\ucrt64\bin\libsoup-3.0-0.dll") -and (Test-Path "$candidate\ucrt64\lib\gio\modules") -and (Test-Path "$candidate\ucrt64\bin\pkg-config.exe") -and (Test-Path "$candidate\ucrt64\bin\libgtksourceview-5-0.dll") -and (Test-Path "$candidate\ucrt64\bin\python.exe") -and (Test-Path "$candidate\usr\bin\git.exe") -and (Test-Path "$candidate\ucrt64\bin\objdump.exe") -and (Test-Path "$candidate\ucrt64\bin\glib-compile-resources.exe")) {
             $rustVersion = & "$candidate\ucrt64\bin\rustc.exe" --version
             if ($LASTEXITCODE -eq 0 -and $rustVersion -match 'rustc (\d+\.\d+\.\d+)') {
-                if ([version]$Matches[1] -ge [version]'1.89.0') { $msys = $candidate; break }
+                if ([version]$Matches[1] -ge [version]'1.89.0') {
+                    & "$candidate\ucrt64\bin\pkg-config.exe" --atleast-version=4.12 gtk4
+                    if ($LASTEXITCODE -eq 0) { $msys = $candidate; break }
+                }
             }
         }
     }
@@ -95,7 +98,7 @@ try {
         # Complete system upgrades before installing packages; never leave a partial upgrade.
         Invoke-Checked "$msys\usr\bin\bash.exe" @('-lc', 'pacman -Syu --noconfirm')
         Invoke-Checked "$msys\usr\bin\bash.exe" @('-lc', 'pacman -Syu --noconfirm')
-        Invoke-Checked "$msys\usr\bin\bash.exe" @('-lc', 'pacman -S --needed --noconfirm git mingw-w64-ucrt-x86_64-rust mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-gtksourceview5 mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-python')
+        Invoke-Checked "$msys\usr\bin\bash.exe" @('-lc', 'pacman -S --needed --noconfirm git mingw-w64-ucrt-x86_64-rust mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-gtksourceview5 mingw-w64-ucrt-x86_64-libsoup3 mingw-w64-ucrt-x86_64-glib-networking mingw-w64-ucrt-x86_64-ca-certificates mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-python')
     }
     $ucrt = Join-Path $msys 'ucrt64'
     $env:PATH = "$ucrt\bin;$msys\usr\bin;$oldPath"
@@ -145,6 +148,8 @@ try {
         Copy-PdfiumLicenses $pdf "$generation\LICENSES\pdfium"
         # Launcher paths are relative, so moving the installation does not break GTK data lookup.
         $launch = "@echo off`r`nset `"XDG_DATA_DIRS=%~dp0share`"`r`nset `"GSETTINGS_SCHEMA_DIR=%~dp0share\glib-2.0\schemas`"`r`n"
+        $launch += "set `"GIO_EXTRA_MODULES=%~dp0gio\modules`"`r`n"
+        if (Test-Path "$generation\ssl\certs\ca-bundle.crt") { $launch += "set `"SSL_CERT_FILE=%~dp0ssl\certs\ca-bundle.crt`"`r`n" }
         if (Test-Path "$generation\loaders.cache") { $launch += "set `"GDK_PIXBUF_MODULE_FILE=%~dp0loaders.cache`"`r`n" }
         $launch += "start `"`" `"%~dp0leditor.exe`" %*`r`n"
         [IO.File]::WriteAllText("$generation\launch.cmd", $launch, [Text.Encoding]::ASCII)

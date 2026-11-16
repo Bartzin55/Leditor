@@ -1,0 +1,8 @@
+{
+  "name": "libsoup",
+  "version": "3.8.1",
+  "build": "h39492af_0",
+  "license": "LGPL-2.1-or-later",
+  "url": "https://conda.anaconda.org/conda-forge/linux-64/libsoup-3.8.1-h39492af_0.conda",
+  "sha256": "d9e35a1fd4511502915bcdd61fc8052d64b515fdd20a851c5e4c65b6ce5bbdb5"
+}

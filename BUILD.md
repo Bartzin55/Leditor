@@ -10,7 +10,7 @@ source tree or manage the build yourself.
 3. **Advanced: compile and install manually.** Manage the toolchain, native
    libraries and installation yourself, without running the installers.
 
-For the **1.8.0-alpha source ZIP**, use option 2 while that version is unpublished.
+For the **1.9.0-alpha source ZIP**, use option 2 while that version is unpublished.
 Option 1 always installs the code currently published on GitHub.
 
 Comrak 0.59.0 is compiled by Cargo from `Cargo.lock`; it needs Rust 1.89 or newer.
@@ -141,7 +141,7 @@ unpublished ZIP; option 1 always fetches published code instead.
 This option does not run `install.sh` or `install.ps1`. You manage dependencies,
 updates and removal yourself. Keep `Cargo.lock` and use `--locked`.
 
-Requirements: **Rust 1.89+**, Cargo, **GTK 4.10+**, **GtkSourceView 5**, a native C
+Requirements: **Rust 1.89+**, Cargo, **GTK 4.12+**, **GtkSourceView 5**, **libsoup 3**, GLib TLS modules and CA certificates, a native C
 compiler, pkg-config and GLib's `glib-compile-resources`. Windows also requires
 MinGW's `windres`. The source archive does not include native runtime binaries.
 
@@ -161,7 +161,7 @@ Run the following build commands in this directory, where `Cargo.toml` is locate
 On Ubuntu 24.04, install the native development packages:
 
 ```sh
-sudo apt install build-essential git pkg-config libgtk-4-dev libgtksourceview-5-dev libglib2.0-dev-bin
+sudo apt install build-essential git pkg-config libgtk-4-dev libgtksourceview-5-dev libglib2.0-dev-bin libsoup-3.0-dev glib-networking ca-certificates
 ```
 
 Install Rust 1.89+ and Cargo separately using the instructions at
@@ -171,7 +171,7 @@ minimum version.
 On Arch Linux:
 
 ```sh
-sudo pacman -S --needed base-devel git rust gtk4 gtksourceview5 glib2-devel pkgconf
+sudo pacman -S --needed base-devel git rust gtk4 gtksourceview5 libsoup3 glib-networking ca-certificates glib2-devel pkgconf
 ```
 
 Check the toolchain and build:
@@ -189,7 +189,7 @@ creates a per-user executable copy, command and menu entry without an installer:
 - Command: `~/.local/bin/leditor`.
 - Menu entry and icon: under `${XDG_DATA_HOME:-$HOME/.local/share}`.
 
-GTK and GtkSourceView must remain installed. If necessary, add `~/.local/bin`
+GTK, GtkSourceView, libsoup and GLib networking must remain installed. If necessary, add `~/.local/bin`
 to your shell's PATH. Existing conflicting installations are not overwritten;
 use the same installation method to update an existing installation.
 
@@ -218,7 +218,7 @@ If asked to close the terminal, reopen UCRT64 and run the update again before
 installing build packages:
 
 ```sh
-pacman -S --needed git mingw-w64-ucrt-x86_64-rust mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-gtksourceview5 mingw-w64-ucrt-x86_64-pkgconf
+pacman -S --needed git mingw-w64-ucrt-x86_64-rust mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-gtksourceview5 mingw-w64-ucrt-x86_64-libsoup3 mingw-w64-ucrt-x86_64-glib-networking mingw-w64-ucrt-x86_64-ca-certificates mingw-w64-ucrt-x86_64-pkgconf
 ```
 
 Obtain the source as described above, then compile and run from UCRT64:
@@ -242,6 +242,8 @@ For a manual installation that uses this permanent MSYS2 runtime:
 set "PATH=C:\msys64\ucrt64\bin;%PATH%"
 set "XDG_DATA_DIRS=C:\msys64\ucrt64\share"
 set "GSETTINGS_SCHEMA_DIR=C:\msys64\ucrt64\share\glib-2.0\schemas"
+set "GIO_EXTRA_MODULES=C:\msys64\ucrt64\lib\gio\modules"
+set "SSL_CERT_FILE=C:\msys64\ucrt64\etc\ssl\certs\ca-bundle.crt"
 start "" "%~dp0leditor.exe" %*
 ```
 
@@ -251,7 +253,7 @@ Keep MSYS2 installed at the configured path. To update, close Leditor and replac
 the executable with your new build.
 
 **The executable alone is not portable.** A self-contained distribution requires
-GTK/GtkSourceView DLLs, GLib schemas, icons, MIME data, GdkPixbuf loaders, and
+GTK/GtkSourceView/libsoup DLLs, GLib TLS modules and CA certificates, GLib schemas, icons, MIME data, GdkPixbuf loaders, and
 GtkSourceView `language-specs`/`styles`, plus the applicable license notices.
 The automatic installer handles packaging; this manual example uses the permanent
 MSYS2 runtime instead.

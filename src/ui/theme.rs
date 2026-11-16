@@ -132,7 +132,7 @@ impl Editor {
         let light = theme == "light" || (theme == "system" && !self.system_dark.get());
         self.actions["theme"].set_state(&theme.to_variant());
         // Never replace the OS preference with the user's explicit application choice.
-        self.theme_css.load_from_data(if light {
+        self.theme_css.load_from_string(if light {
             include_str!("../light.css")
         } else {
             ""

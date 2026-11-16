@@ -1,130 +1,131 @@
-# Validation — Leditor 1.8.0-alpha
+# Validation — Leditor 1.9.0-alpha
 
-Validated on 2026-11-09/10 against published main commit
-`0484f9ee017e47f2d7899548b0976e3f98f63c47` (1.7.0-alpha and installer/documentation
-fixes). No push, tag or GitHub release was performed for this update.
+Validated on 2026-11-15, based on published main commit
+`afeff3d9e9f9fe8d62d5bbef9854afd092a5ca58` (1.8.0-alpha, including Ctrl+L).
+No push, tag or release was performed for this update.
 
-## Environment and results
+## Environment
 
-Linux x86_64, Rust/Cargo 1.99.1, GTK 4.24.1, GtkSourceView 5.18.0,
-GLib 2.90.1, PDFium 7881, Xvfb 21.1.16/Openbox 3.6.1, X11 and the Cairo renderer.
-The private build environment used conda-forge packages; X11 test utilities came
-from Debian trixie. Keyboard composition tests used a Brazilian keymap.
+Linux x86_64; Rust/Cargo 1.100.0; GTK 4.24.1; GtkSourceView 5.18.0;
+GLib 2.90.1; libsoup 3.8.1; GLib networking 2.80.0 with the OpenSSL TLS backend;
+PDFium 7881. GUI checks used Xvfb 21.1.7, Openbox 3.6.1, a Brazilian keymap,
+xdotool and GTK's Cairo renderer. Native dependencies were supplied by a private
+conda-forge environment, with X11 tools from Debian packages.
 
-- `cargo check --locked --all-targets`: passed.
-- `cargo build --locked`: passed, development profile with debug information disabled.
-- `cargo test --locked -- --test-threads=1`: **39 passed**; 9 graphical tests
-  intentionally ignored in this invocation.
-- All 9 graphical suites passed in separate processes: **48 Rust tests total**.
-  The final 1.8 suite also passed with `G_DEBUG=fatal-criticals`.
-- `python3 -m unittest discover -s tests -p 'test_*.py'`: **20 passed**.
-  Installer download/build operations are mocked, not clean-machine installations.
-- `cargo fmt --all -- --check`, `bash -n install.sh` and `git diff --check`: passed.
-- en-US, pt-BR and es catalogs have **147 identical, unique message keys**.
-- All **152** third-party Cargo.lock entries match the bundled license inventory
-  and checksums. The 134 existing entries are unchanged; 18 versions were added.
-- Inspected screenshots of the Markdown preview in light/dark themes and the
-  restored editor/toolbar. Existing graphical regression suites also passed.
+## Results
 
-## 1.8.0-alpha coverage
+| Check | Result |
+| --- | --- |
+| `cargo check --locked --all-targets` | Passed |
+| `cargo build --locked` | Passed, development profile |
+| `cargo test --locked -- --test-threads=1` under X11 | 41 passed; 11 deliberately ignored |
+| Ten GUI suites, each run in a separate process | 10 passed |
+| Total distinct passing Rust tests | 51 |
+| `python3 -m unittest discover -s tests -p 'test_*.py'` | 21 passed |
+| `cargo fmt --all -- --check` | Passed |
+| `bash -n install.sh` | Passed |
+| `git diff --check` | Passed |
+| Translation catalog consistency | 158 identical, unique keys in en-US, pt-BR and es |
+| Rust dependency license inventory | All 154 locked third-party packages match inventory/checksums |
+| Optional external `https_image_smoke` | Failed: environment DNS could not resolve raw.githubusercontent.com |
 
-- Toolbar and menu toggle the same saved global view-only state. Both enabled and
-  disabled preferences survive recreation; restored dirty Markdown opens in preview.
-- Markdown replaces the editing area/minimap only for a final `.md` extension,
-  case-insensitively. The source text, caret, undo history and dirty state survive
-  toggling. Non-Markdown text remains visible and selectable in view-only mode.
-- Tables, code highlighting, explicit heading anchors, local images, remote-image
-  placeholders, light/dark themes and zoom. Internal links scroll to the target;
-  selected rendered text is copied through the application action.
-- Escaping of user markup and permitted URL schemes; local-image path boundaries,
-  including percent-encoded paths and attempts to escape the document directory.
-- Real keyboard typing, Backspace, Return, Tab, Cut/Paste and Undo/Redo cannot edit
-  read-only text. Sorting, case conversion and replacement are blocked. Saving
-  existing unsaved changes does not apply trailing-whitespace cleanup in this mode.
-- Accent compatibility applies to existing/new tabs, the search field and a later
-  dialog. Real X11 dead-key events produced **á**, **õ** and **é**. Default restores
-  the original GTK setting and removes widget overrides without modifying text.
-- Explorer duplication copies on-disk bytes without changing an unsaved source tab.
-  Filesystem tests cover numbered collisions, Unicode names, file extensions,
-  dotted folder names, recursive copies, symlink refusal and failed-copy cleanup.
-  Four concurrent copies obtain distinct names without replacing another copy.
+The optional HTTPS test successfully detected the platform TLS backend, but did
+not download an external image: **no successful public HTTPS request is claimed**.
+It remains ignored by default and can be rerun in an environment with internet
+access. Local HTTP requests and real image decoding/rendering were exercised.
 
-## Existing regression coverage
+Installer tests use mocks for installation/network/administrator operations;
+these results do not mean clean-machine installations were performed. A release
+profile build, Windows compilation/runtime and physical touchpad input were not
+validated in this environment.
 
-Document/filesystem errors, atomic saves, overwrite/conflict protection, autosave,
-recovery, unsaved prompts, tabs/reordering, native indentation/minimap/case
-conversion, Find/Replace, Focus, syntax highlighting, image/PDF viewing, Save All,
-resize/maximize/restore, 1.6 editing/sorting/navigation, 1.7 tab icons/title widths,
-bracket styling and native word completion passed.
+## New-feature coverage
 
-## Findings corrected during validation
+- Actual X11 Ctrl+V and the native paste signal insert a Markdown reference and
+  create a PNG beside the document. Repeated pastes create distinct files.
+  Undo/redo restores the insertion; undo retains the PNG. View-only blocks paste.
+- Untitled Markdown requests Save As; cancellation preserves the unsaved buffer
+  without creating an image. A successful save permits image insertion.
+- Project-root `/` and Windows-style `\` paths, document-relative `../`, percent
+  decoding, out-of-project traversal refusal and symlink escape refusal.
+- Local image rendering and canonical local file links in the preview. An actual
+  right-click opens the translated Open with menu. The OS's external application
+  launch and app chooser completion were not exercised.
+- A local HTTP server supplies real PNG bytes. The preview displays downloaded
+  images; disabled internet starts zero requests and shows a browser link.
+  Disabling it again removes the downloaded preview and the preference survives
+  editor recreation. Unit tests cover redirects, HTTP 404, the download-size cap,
+  non-HTTP refusal and rejection of unsupported image bytes.
+- Actual X11 Ctrl+M toggles the minimap; F12 renames the active file. Untitled F12
+  uses Save As, including cancellation. Shared accelerators/dialog entries checked.
+- Synthetic native GtkGestureZoom begin/scale/end signals verify continuous zoom
+  (100% → 112.5%) and persistence. This does not prove delivery of physical gestures
+  by every Windows/Wayland driver or compositor.
+- Screenshots inspected for the updated preview; existing media, text, completion,
+  theme, focus, search, session, input-method and file-safety suites were retained.
+- Windows packaging test verifies that dynamically loaded GIO TLS modules, their
+  indirect DLL dependencies and the CA bundle are copied into the installation.
 
-- GIO's preflight/no-overwrite move was insufficient under concurrent publication.
-  Native no-replace rename operations now make the publication atomic; the
-  previously failing concurrent-copy test passes.
-- Unparenting the source view while entering preview invalidated GtkSourceMap
-  adjustment handlers. The source view now stays parented in a hidden editor area,
-  with a separate preview scroller. Final transitions pass with fatal criticals.
-- `simple` works as an environment/GtkSettings alias but not as the explicit GTK
-  widget context ID. Widgets now use `gtk-im-context-simple`; the previously
-  failing dead-key checks pass with actual keyboard events.
+## Failures investigated and remaining limits
 
-## Known limitations and unverified platforms
+- The first resize run failed because the test window manager had mismatched
+  libraries; a second setup lacked its theme path. With matching Openbox libraries
+  and data paths, resize/maximize/fullscreen tests passed. No application resize
+  behavior was changed to accommodate the environment.
+- Rebuilding a focused Markdown link initially caused a GTK focus warning. Focus
+  is now moved to the retained preview scroller before replacing its children;
+  the final new-feature test no longer emits that warning.
+- **Remaining native minimap warning:** GtkSourceView 5.18.0 can emit
+  `gtk_adjustment_set_value: assertion 'isfinite (value)' failed` when the minimap
+  is revealed for a short document. The captured stack reaches
+  `gtk_source_map_do_update`; this version's upstream implementation divides by
+  `upper - page_size` without guarding a zero range. It was not patched or
+  suppressed in Leditor. The test's text, history, zoom and shortcut assertions
+  passed, but a run with fatal GTK criticals would fail on this warning.
+  Upstream source: https://github.com/GNOME/gtksourceview/blob/5.18.0/gtksourceview/gtksourcemap.c
+- GTK 4.24 also printed its existing color-scheme deprecation warning; some
+  screenshot/input runs printed a frame-timing warning. No claim of warning-free
+  operation is made.
+- Markdown images remain PNG/JPEG. SVG, GIF/WebP, arbitrary HTML/CSS, math and
+  Mermaid rendering are not added. Remote images are limited to 16 MiB each and
+  decoded to at most 900×600; slow/offline/invalid resources display a fallback.
+- No persistent remote-image cache; reopening/rebuilding a preview may download
+  its images again. Large Markdown AST rendering remains synchronous.
+- Windows, Wayland/COSMIC, real touchpad gestures, system file associations and
+  native app-chooser behavior require platform testing. The pre-existing Windows
+  live-resize limitation remains documented in RESIZE.md.
 
-- No native Windows compile/run, native Wayland/COSMIC session or Japanese IME
-  (IBus/Fcitx/Windows IME) validation was available. Restoring default properties
-  is tested; that does not prove every OS, compositor or input-service combination.
-- Rust 1.89 is the declared minimum required by Comrak; this run used Rust 1.99.1.
-  No release/LTO build, clean-machine installer run or PowerShell execution was
-  performed. Both installers were updated for the minimum compiler requirement;
-  there is no new native runtime dependency.
-- GTK 4.24 warns that the existing dark-theme setting should use its newer
-  color-scheme property. The existing Find/Focus test also emits a GtkBox width
-  measurement warning. Neither caused an assertion failure; no toolkit-wide
-  warning-free claim is made.
-- Preview uses native GTK widgets, not a browser. Raw HTML is literal; arbitrary
-  HTML/CSS/JS, remote images, SVG, math/Mermaid and relative document navigation
-  are not rendered. Local PNG/JPEG images are restricted to the document's
-  directory tree and appear below their paragraph. Selection is per block.
-  Very large Markdown documents render synchronously and can pause the UI.
-- Duplication uses saved disk contents. Symbolic links and special files are
-  refused. Filesystems without native no-replace rename support fail safely;
-  existing cross-volume moves still have no copy/delete fallback.
-- The 1.7 diagnostic concerning immediate native-view finalization was not rerun.
-  Functional tab removal passes; long-running memory growth and toolkit-held
-  references remain unverified.
-- Existing Windows live-resize artifacts remain subject to the native-frame,
-  Cairo and DirectComposition mitigation described in RESIZE.md. Existing
-  completion indexing delays and sorting/trim limits remain documented in README.md.
+## Reproduction
 
-## Repeating the checks
-
-Use a desktop session even for the default test set. Run ignored graphical suites
-separately to keep GTK on one test thread. Keyboard tests require Linux/X11,
-xdotool and a window manager; the 1.8 composition checks need `setxkbmap br`.
-Set `LEDITOR_PDFIUM_LIBRARY` to the full PDFium library path when needed.
+Install the dependencies described in BUILD.md. Use an isolated configuration
+and a graphical desktop for UI tests; GTK tests must run on one thread and each
+ignored graphical suite in its own process. X11 keyboard tests need xdotool and
+an active window manager. The media test needs PDFium 7881 via
+`LEDITOR_PDFIUM_LIBRARY` or the normal runtime search path.
 
 ```sh
 cargo check --locked --all-targets
 cargo build --locked
 cargo test --locked -- --test-threads=1
-cargo test --locked source_engine_and_tab_navigation -- --ignored --test-threads=1
-cargo test --locked native_keyboard_and_map_input -- --ignored --test-threads=1
-cargo test --locked find_replace_focus_and_minimap -- --ignored --test-threads=1
-cargo test --locked version_150_syntax_media_and_save_all -- --ignored --test-threads=1
-cargo test --locked resize_maximize_and_focus_preserve_editor -- --ignored --test-threads=1
-cargo test --locked version_160_editing_and_navigation -- --ignored --test-threads=1
-cargo test --locked version_170_tabs_and_bracket_styles -- --ignored --test-threads=1
-cargo test --locked version_170_native_completion -- --ignored --test-threads=1
-cargo test --locked version_180_preview_read_only_input_and_duplicate -- --ignored --test-threads=1
 python3 -m unittest discover -s tests -p 'test_*.py'
 cargo fmt --all -- --check
 bash -n install.sh
+
+for test in \
+  version_150_syntax_media_and_save_all \
+  source_engine_and_tab_navigation \
+  native_keyboard_and_map_input \
+  version_160_editing_and_navigation \
+  resize_maximize_and_focus_preserve_editor \
+  find_replace_focus_and_minimap \
+  version_170_tabs_and_bracket_styles \
+  version_170_native_completion \
+  version_180_preview_read_only_input_and_duplicate \
+  version_190_clipboard_project_network_and_shortcuts
+do
+  cargo test --locked "$test" -- --ignored --test-threads=1
+done
+
+# Optional public HTTPS check; needs working DNS, internet, TLS modules and CAs.
+cargo test --locked https_image_smoke -- --ignored --test-threads=1
 ```
-
-## Ctrl+L follow-up (same version)
-
-Added Ctrl+L through the shared shortcut table and updated the three translations.
-Basic validation: `cargo check --locked --all-targets`, `cargo test --locked --lib`,
-formatting and translation-key parity checks passed. The full graphical suites
-reported above were run before this shortcut-only follow-up, not repeated for it.

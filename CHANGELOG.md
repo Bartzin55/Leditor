@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.0-alpha] — 2026-11-15
+
+- Paste clipboard images into Markdown as unique sibling PNGs with an undoable link insertion.
+- Resolve Markdown image/file links within the open project; rooted paths use the project root and parent traversal/symlinks cannot escape it.
+- Render HTTP(S) PNG/JPEG images asynchronously with bounded downloads and offline placeholders.
+- Persist Other → Disable internal internet access; browser links remain usable.
+- Open local links using the default application; right-click Open with requests the native app chooser.
+- Native touchpad pinch zoom, Ctrl+M minimap toggle and F12 rename/Save As.
+- Update en-US, pt-BR and es, shortcuts, installers and build guide. Native GTK minimum is 4.12; add libsoup 3 and GLib TLS/CA runtime support.
+
 ## [1.8.0-alpha] — 2026-11-10
 
 - Add the toolbar eye/pencil control and saved View → Only view mode preference.

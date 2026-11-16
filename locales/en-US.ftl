@@ -164,3 +164,16 @@ markdown-important = Important
 markdown-warning = Warning
 markdown-caution = Caution
 only-view-toggle-shortcut = Toggle Only View Mode
+
+# 1.9.0-alpha
+disable-internet = Disable internal internet access
+open-with = Open with…
+markdown-loading = Loading image…
+markdown-download-failed = No internet connection or image unavailable
+markdown-internet-disabled = Internet images disabled. Open the image in your browser or enable rendering in Other.
+markdown-open-browser = Open in browser
+rename-active = Rename active tab file / Save Untitled as
+pinch-zoom = Touchpad pinch to zoom
+paste-save-markdown = Save the document with a .md extension before pasting an image.
+pasted-image = Pasted Image
+paste-image-failed = Could not paste image

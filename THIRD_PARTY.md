@@ -1,4 +1,4 @@
-# Dependency licenses — Leditor 1.8.0-alpha
+# Dependency licenses — Leditor 1.9.0-alpha
 
 See LICENSES/ for collected texts and provenance. Native PDFium notices are
 included; installers also preserve exact GTK runtime package notices. The
@@ -41,3 +41,11 @@ licenses. Comrak's COPYING also describes CC-BY-SA licensing of its CommonMark
 specification test document; that document is not embedded into Leditor. Preserve
 all collected notices. Cargo.lock pins the exact versions; `LICENSES/rust/packages.json`
 records archive checksums. These additions do not require relicensing Leditor.
+
+## Added in 1.9.0-alpha
+
+`soup3`/`soup3-sys` use the MIT license. Native libsoup 3 uses LGPL-2.1-or-later;
+GLib networking and its TLS backend retain their own licenses. These dynamically
+linked libraries do not change the MIT license of Leditor source. Binary
+redistributors must preserve notices and satisfy the applicable library source
+and replacement obligations, as with GTK. Installers retain native package notices.

@@ -7,6 +7,7 @@ mod imp {
     #[derive(Default)]
     pub struct EditorView {
         pub spaces: std::cell::Cell<u32>,
+        pub paste_handler: std::cell::RefCell<Option<Box<dyn Fn() -> bool>>>,
         pub auto_indent: std::cell::Cell<bool>,
         pub auto_close: std::cell::Cell<bool>,
         pub composing: std::cell::Cell<bool>,
@@ -29,6 +30,9 @@ mod imp {
     impl WidgetImpl for EditorView {}
     impl sourceview5::subclass::prelude::ViewImpl for EditorView {}
     impl TextViewImpl for EditorView {
+        fn paste_clipboard(&self) {
+            self.obj().paste();
+        }
         fn snapshot_layer(&self, layer: gtk::TextViewLayer, snapshot: gtk::Snapshot) {
             self.parent_snapshot_layer(layer, snapshot.clone());
             if layer == gtk::TextViewLayer::BelowText {
@@ -66,6 +70,24 @@ glib::wrapper! {
         @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Scrollable;
 }
 impl EditorView {
+    pub fn set_paste_handler(&self, callback: impl Fn() -> bool + 'static) {
+        self.imp().paste_handler.replace(Some(Box::new(callback)));
+    }
+    pub fn paste(&self) {
+        if !self.is_editable() {
+            return;
+        }
+        if self
+            .imp()
+            .paste_handler
+            .borrow()
+            .as_ref()
+            .is_some_and(|handler| handler())
+        {
+            return;
+        }
+        self.buffer().paste_clipboard(&self.clipboard(), None, true);
+    }
     pub fn set_editing_options(&self, auto_close: bool, whitespace: bool) {
         self.imp().auto_close.set(auto_close);
         let drawer = self.space_drawer();
@@ -235,7 +257,7 @@ impl EditorView {
         self.set_indent_width(spaces as i32);
         self.set_insert_spaces_instead_of_tabs(convert);
         self.set_indent_on_tab(true);
-        self.imp().css.load_from_data(&format!(
+        self.imp().css.load_from_string(&format!(
             "textview.leditor-text-{} {{ font-size: {}px; }}",
             self.imp().css_id.get(),
             14.0 * zoom / 100.0
@@ -274,11 +296,7 @@ impl EditorView {
                     match name {
                         "cut" => view.copy_or_cut(true),
                         "copy" => view.copy_or_cut(false),
-                        _ => view.buffer().paste_clipboard(
-                            &view.clipboard(),
-                            None,
-                            view.is_editable(),
-                        ),
+                        _ => view.paste(),
                     }
                 }
             });

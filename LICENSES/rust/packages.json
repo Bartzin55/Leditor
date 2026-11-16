@@ -648,6 +648,18 @@
     "source": "https://static.crates.io/crates/smallvec/smallvec-1.16.3.crate"
   },
   {
+    "name": "soup3",
+    "version": "0.8.0",
+    "sha256": "d44d8fc55afd18491c0cce8a5c66e48f6d4b2db8a68c90a0e3c1b50665eaac74",
+    "source": "https://static.crates.io/crates/soup3/soup3-0.8.0.crate"
+  },
+  {
+    "name": "soup3-sys",
+    "version": "0.8.0",
+    "sha256": "5e018383cf56cc1e2f5f9a5b7b6c46531767aa58be8788dc5b3a338380a920f7",
+    "source": "https://static.crates.io/crates/soup3-sys/soup3-sys-0.8.0.crate"
+  },
+  {
     "name": "sourceview5",
     "version": "0.10.0",
     "sha256": "6e4acb02162917d7b689c84f4ed710c22302c67c7e61da28a4e8ac548c04442c",

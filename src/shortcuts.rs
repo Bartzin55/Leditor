@@ -7,6 +7,18 @@ pub struct Shortcut {
 }
 pub const SHORTCUTS: &[Shortcut] = &[
     Shortcut {
+        action: "minimap",
+        label: "minimap",
+        accelerators: &["<Primary>m"],
+        display: "Ctrl+M",
+    },
+    Shortcut {
+        action: "rename-active",
+        label: "rename-active",
+        accelerators: &["F12"],
+        display: "F12",
+    },
+    Shortcut {
         action: "only-view",
         label: "only-view-toggle-shortcut",
         accelerators: &["<Primary>l"],
@@ -134,6 +146,7 @@ pub const SHORTCUTS: &[Shortcut] = &[
     },
 ];
 pub const TEXT_SHORTCUTS: &[(&str, &str)] = &[
+    ("Pinch", "pinch-zoom"),
     ("Ctrl+Space", "completion-show"),
     ("↑ / ↓", "completion-select"),
     ("Tab / Enter", "completion-accept"),

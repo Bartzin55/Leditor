@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.9.1-alpha] — 2026-11-17
+
+- Fix Markdown image height changing or collapsing when text is added below; preserve aspect ratio, fit available width and apply zoom to local and downloaded images.
+- Isolate GTK tests in child processes and give network tests private GLib main contexts, allowing ordinary parallel `cargo test`.
+- Use current GTK 4.20+ color-scheme properties with a runtime fallback for GTK 4.12–4.18.
+- Rename Explorer Copy Path to Copy full path and add Copy relative path rooted at the open project.
+- Slightly reduce tab height, title font and icon size.
+- Update version metadata, translations, installer headers and development/build/validation documentation; no new dependencies or shortcuts.
+
 ## [1.9.0-alpha] — 2026-11-15
 
 - Paste clipboard images into Markdown as unique sibling PNGs with an undoable link insertion.

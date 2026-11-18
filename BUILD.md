@@ -10,7 +10,7 @@ source tree or manage the build yourself.
 3. **Advanced: compile and install manually.** Manage the toolchain, native
    libraries and installation yourself, without running the installers.
 
-For the **1.9.0-alpha source ZIP**, use option 2 while that version is unpublished.
+For the **1.9.1-alpha source ZIP**, use option 2 while that version is unpublished.
 Option 1 always installs the code currently published on GitHub.
 
 Comrak 0.59.0 is compiled by Cargo from `Cargo.lock`; it needs Rust 1.89 or newer.
@@ -344,12 +344,22 @@ add `--ref NAME` on Linux or `-Ref NAME` on Windows. Confirm the ref exists firs
 ```sh
 cargo fmt --all -- --check
 cargo check --locked --all-targets
+cargo test --locked
+```
+
+The default test run includes a real GTK UI test, so run it from a graphical
+session. GTK tests now start isolated child processes; `--test-threads=1` is no
+longer required. On headless Linux use `xvfb-run -a cargo test --locked` (install
+Xvfb/xauth first). Without a display you can run the non-UI subset:
+
+```sh
 cargo test --locked --lib --test document --test file_ops
 ```
 
-Graphical suites need a graphical session and must run separately with GTK on one
-thread. See [VALIDATION.md](VALIDATION.md) for actual results, platform limitations
-and the precise test commands. Documenting a build command does not mean that
+Optional suites remain ignored by default because they require a window manager,
+xdotool, PDFium or external internet. Run mouse/keyboard suites one at a time to
+avoid shared display focus conflicts. See [VALIDATION.md](VALIDATION.md) for actual
+results, platform limitations and precise test commands. Documenting a build command does not mean that
 platform was tested in the current environment.
 
 Architecture notes: [DEVELOPMENT.md](DEVELOPMENT.md). Dependency licenses:

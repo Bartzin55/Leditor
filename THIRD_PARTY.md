@@ -1,4 +1,4 @@
-# Dependency licenses — Leditor 1.9.0-alpha
+# Dependency licenses — Leditor 1.9.1-alpha
 
 See LICENSES/ for collected texts and provenance. Native PDFium notices are
 included; installers also preserve exact GTK runtime package notices. The

@@ -18,6 +18,7 @@ pub(super) enum Operation {
     Paste(PathBuf),
     Move(PathBuf, PathBuf),
     CopyPath(PathBuf),
+    CopyRelativePath(PathBuf),
     RenameTab(u64),
     PasteImage(u64),
     Duplicate(u64),
@@ -434,6 +435,10 @@ impl Editor {
             items.extend([
                 ("delete", Operation::Delete(path.to_owned())),
                 ("copy-path", Operation::CopyPath(path.to_owned())),
+                (
+                    "copy-relative-path",
+                    Operation::CopyRelativePath(path.to_owned()),
+                ),
             ]);
         }
         self.operation_menu(widget, items, x, y);
@@ -746,6 +751,17 @@ impl Editor {
                 self.window
                     .clipboard()
                     .set_text(&path.display().to_string());
+            }
+            Operation::CopyRelativePath(path) => {
+                if let Some(relative) = self
+                    .explorer
+                    .root
+                    .borrow()
+                    .as_ref()
+                    .and_then(|root| file_ops::project_relative_path(root, &path))
+                {
+                    self.window.clipboard().set_text(&relative);
+                }
             }
             Operation::Paste(parent) => {
                 let clipboard = self.explorer.clipboard.borrow().clone();

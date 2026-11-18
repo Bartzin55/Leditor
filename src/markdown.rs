@@ -8,11 +8,13 @@ use leditor::i18n::I18n;
 use soup::prelude::SessionExt;
 use sourceview5::prelude::BufferExt;
 use std::{
-    cell::RefCell,
+    cell::{Cell, RefCell},
     collections::HashMap,
     path::{Path, PathBuf},
     rc::Rc,
 };
+
+use crate::markdown_image::MarkdownImage;
 
 type Anchors = Rc<RefCell<HashMap<String, glib::WeakRef<gtk::Widget>>>>;
 const MAX_DEPTH: usize = 64;
@@ -153,6 +155,8 @@ pub struct MarkdownPreview {
     css: gtk::CssProvider,
     css_class: String,
     code_buffers: Vec<sourceview5::Buffer>,
+    images: Rc<RefCell<Vec<MarkdownImage>>>,
+    zoom: Rc<Cell<f64>>,
 }
 impl MarkdownPreview {
     pub fn new(
@@ -173,6 +177,8 @@ impl MarkdownPreview {
         content.set_margin_end(24);
         let anchors = Rc::new(RefCell::new(HashMap::new()));
         let requests = crate::markdown_network::session();
+        let images = Rc::new(RefCell::new(Vec::new()));
+        let zoom = Rc::new(Cell::new(100.0));
         let mut renderer = Renderer {
             scroll: scroll.downgrade(),
             root: content.clone(),
@@ -184,6 +190,8 @@ impl MarkdownPreview {
             internet_disabled,
             requests: &requests,
             code_buffers: Vec::new(),
+            images: images.clone(),
+            zoom: zoom.clone(),
             footnotes: HashMap::new(),
         };
         let arena = Arena::new();
@@ -220,9 +228,16 @@ impl MarkdownPreview {
             css,
             css_class,
             code_buffers,
+            images,
+            zoom,
         }
     }
     pub fn set_zoom(&self, zoom: f64) {
+        let zoom = zoom.clamp(5.0, 800.0);
+        self.zoom.set(zoom);
+        for image in self.images.borrow().iter() {
+            image.set_zoom(zoom);
+        }
         self.css.load_from_string(&format!(
             ".{} {{ font-size: {}px; }} .{} textview {{ font-size: {}px; }}",
             self.css_class,
@@ -256,6 +271,8 @@ struct Renderer<'s> {
     internet_disabled: bool,
     requests: &'s soup::Session,
     code_buffers: Vec<sourceview5::Buffer>,
+    images: Rc<RefCell<Vec<MarkdownImage>>>,
+    zoom: Rc<Cell<f64>>,
     footnotes: HashMap<String, u32>,
 }
 impl Renderer<'_> {
@@ -392,6 +409,8 @@ impl Renderer<'_> {
             let url = url.to_owned();
             let alt = alt.to_owned();
             let failed = self.strings.text("markdown-download-failed");
+            let images = self.images.clone();
+            let zoom = self.zoom.clone();
             glib::spawn_future_local(async move {
                 let result = match crate::markdown_network::download(&session, &url).await {
                     Ok(bytes) => crate::markdown_network::decode(&bytes),
@@ -403,13 +422,9 @@ impl Renderer<'_> {
                 match result {
                     Ok(pixbuf) => {
                         box_.remove(&label);
-                        let picture =
-                            gtk::Picture::for_paintable(&gtk::gdk::Texture::for_pixbuf(&pixbuf));
-                        picture.set_can_shrink(true);
-                        picture.set_content_fit(gtk::ContentFit::Contain);
-                        picture.set_alternative_text(Some(&alt));
-                        picture.set_halign(gtk::Align::Start);
+                        let picture = MarkdownImage::new(&pixbuf, &alt, zoom.get());
                         box_.append(&picture);
+                        images.borrow_mut().push(picture);
                     }
                     Err(error) => {
                         label.set_markup(&format!("{} — {link}", escape(&failed)));
@@ -422,13 +437,9 @@ impl Renderer<'_> {
         let path = local_image_path(url, self.source_path, self.project_path);
         if let Some(path) = path {
             if let Ok(pixbuf) = gtk::gdk_pixbuf::Pixbuf::from_file_at_scale(&path, 900, 600, true) {
-                let picture = gtk::Picture::for_paintable(&gtk::gdk::Texture::for_pixbuf(&pixbuf));
-                picture.set_can_shrink(true);
-                picture.set_content_fit(gtk::ContentFit::Contain);
-                picture.set_alternative_text(Some(alt));
-                picture.set_halign(gtk::Align::Start);
-                picture.set_tooltip_text(Some(alt));
+                let picture = MarkdownImage::new(&pixbuf, alt, self.zoom.get());
                 parent.append(&picture);
+                self.images.borrow_mut().push(picture);
                 return;
             }
         }
@@ -696,5 +707,104 @@ mod tests {
                 "{url}"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod layout_tests {
+    use super::*;
+    fn drain() {
+        let until = std::time::Instant::now() + std::time::Duration::from_millis(150);
+        let context = glib::MainContext::default();
+        while std::time::Instant::now() < until {
+            while context.pending() {
+                context.iteration(false);
+            }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+    }
+    // Also recognizes the old Picture-only layout so this regression can be
+    // run against the previous renderer without changing its assertions.
+    fn image(widget: &gtk::Widget) -> Option<gtk::Widget> {
+        if widget.type_().name() == "LeditorMarkdownImage" || widget.is::<gtk::Picture>() {
+            return Some(widget.clone());
+        }
+        let mut child = widget.first_child();
+        while let Some(widget) = child {
+            if let Some(image) = image(&widget) {
+                return Some(image);
+            }
+            child = widget.next_sibling();
+        }
+        None
+    }
+    #[test]
+    #[ignore = "Requires a graphical display; isolated automatically"]
+    fn images_keep_height_with_text_zoom_and_narrow_windows() {
+        if crate::test_support::in_child_process(
+            module_path!(),
+            "images_keep_height_with_text_zoom_and_narrow_windows",
+        ) {
+            return;
+        }
+        gtk::init().unwrap();
+        let temp = tempfile::tempdir().unwrap();
+        let pixbuf =
+            gtk::gdk_pixbuf::Pixbuf::new(gtk::gdk_pixbuf::Colorspace::Rgb, false, 8, 600, 240)
+                .unwrap();
+        pixbuf.fill(0x336699ff);
+        pixbuf
+            .savev(temp.path().join("image.png"), "png", &[])
+            .unwrap();
+        let scroll = gtk::ScrolledWindow::builder()
+            .hscrollbar_policy(gtk::PolicyType::Never)
+            .vscrollbar_policy(gtk::PolicyType::Automatic)
+            .build();
+        let window = gtk::Window::builder()
+            .default_width(1100)
+            .default_height(500)
+            .child(&scroll)
+            .build();
+        let preview = MarkdownPreview::new(
+            "![image](image.png)",
+            Some(temp.path().join("readme.md")),
+            &scroll,
+            &I18n::new("en-US"),
+            Some(temp.path().to_owned()),
+            true,
+        );
+        scroll.set_child(Some(&preview.content));
+        window.present();
+        drain();
+        let picture = image(preview.content.upcast_ref()).unwrap();
+        let initial = (picture.width(), picture.height());
+        assert!(initial.1 > 0);
+        let text = gtk::Label::new(Some(&"More text below the image\n".repeat(100)));
+        preview.content.append(&text);
+        drain();
+        assert_eq!(
+            (picture.width(), picture.height()),
+            initial,
+            "Text below must not squeeze the image"
+        );
+        preview.set_zoom(50.0);
+        drain();
+        assert!((picture.height() * 2 - initial.1).abs() <= 2);
+        preview.set_zoom(100.0);
+        drain();
+        assert_eq!(picture.height(), initial.1);
+        window.set_default_size(350, 500);
+        drain();
+        let narrow = (picture.width(), picture.height());
+        assert!(narrow.0 < initial.0 && narrow.1 > 0);
+        assert!((f64::from(narrow.1) / f64::from(narrow.0) - 0.4).abs() < 0.02);
+        preview.content.remove(&text);
+        drain();
+        assert_eq!((picture.width(), picture.height()), narrow);
+        preview.content.append(&text);
+        drain();
+        assert_eq!((picture.width(), picture.height()), narrow);
+        window.destroy();
+        drain();
     }
 }

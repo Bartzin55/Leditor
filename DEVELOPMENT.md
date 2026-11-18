@@ -1,4 +1,37 @@
-# Development Notes — Leditor 1.9.0-alpha
+# Development Notes — Leditor 1.9.1-alpha
+
+
+## 1.9.1-alpha integration
+
+- `markdown_image.rs` is a small GTK widget around `GtkPicture`. It requests
+  height for width from the decoded image ratio and zoom, with equal minimum
+  and natural heights. Long documents can no longer compress an image to zero.
+  Horizontal minimum stays small, so narrow windows remain usable. Images never
+  exceed the available width. Both local and asynchronous network paths share
+  this widget; late downloads use the current zoom. Existing PNG/JPEG and
+  900×600 decode bounds are unchanged.
+- `test_support.rs` runs each GTK test in a child of the test executable with
+  `--exact` and a recursion guard. This isolates GTK initialization, callbacks
+  and process-wide test configuration. Network tests create their own
+  thread-default GLib main context. The original default UI test is retained,
+  and optional graphical tests still document their display/tool requirements.
+  Tests driving the mouse/keyboard should run separately to avoid competing for
+  focus even though their GTK contexts are now isolated.
+- `ui/theme.rs` detects properties at runtime: GTK 4.20+ receives
+  `GtkCssProvider:prefers-color-scheme` and the modern process-local
+  `GtkSettings:gtk-interface-color-scheme` override, keeping native controls and
+  custom surfaces consistent. The OS preference is recorded separately and
+  updates from the Linux portal/Windows registry remain supported. Older GTK
+  retains the existing setting; the native minimum stays GTK 4.12.
+- `file_ops::project_relative_path` formats visible Explorer paths using `/`
+  separators and a leading project-root slash. It rejects outside-root paths
+  and parent traversal and preserves visible symlink names. Clipboard actions
+  do not read, write, rename or canonicalize the selected file.
+- Tab icons are 14 px instead of 16, title text is 0.92 em, button padding is
+  2×7 px and the bar minimum is 30 px instead of 34. Existing title reservation,
+  middle ellipsis, unsaved indicator and close control remain in place.
+- No new dependencies or shortcuts. The app remains MIT and keeps the existing
+  dependency notices and installer dependency lists.
 
 ## 1.9.0-alpha integration
 
@@ -226,7 +259,7 @@ Cargo.lock pins Comrak and the enabled dependency graph for 1.9.0-alpha; existin
 package versions are retained. Both install.sh (through scripts/install_linux.py)
 and install.ps1 require Rust 1.89+ and already provide GtkSourceView 5 and its
 native data. Version 1.9 adds GTK 4.12, libsoup 3, GLib TLS modules and CA certificates; private launchers set the corresponding runtime paths. About reads
-Cargo's package version. The Linux installer User-Agent is 1.9.0-alpha.
+Cargo's package version. The Linux installer User-Agent is 1.9.1-alpha.
 
 The application remains MIT. Native GTK/GtkSourceView are dynamically linked
 LGPL libraries; their notices and redistribution obligations remain applicable.

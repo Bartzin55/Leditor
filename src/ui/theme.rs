@@ -12,7 +12,10 @@ fn gtk_system_dark(settings: &gtk::Settings) -> bool {
             }
         }
     }
-    settings.is_gtk_application_prefer_dark_theme()
+    (settings
+        .find_property("gtk-interface-color-scheme")
+        .is_none()
+        && settings.is_gtk_application_prefer_dark_theme())
         || settings
             .gtk_theme_name()
             .is_some_and(|n| n.to_ascii_lowercase().contains("dark"))
@@ -25,6 +28,14 @@ impl Editor {
     }
     pub(super) fn setup_theme(self: &Rc<Self>) {
         if let Some(settings) = gtk::Settings::default() {
+            // Restore the platform value before recording its preference. An
+            // earlier editor instance may have set a process-local override.
+            if settings
+                .find_property("gtk-interface-color-scheme")
+                .is_some()
+            {
+                settings.reset_property("gtk-interface-color-scheme");
+            }
             self.system_dark.set(gtk_system_dark(&settings));
             for name in [
                 "gtk-interface-color-scheme",
@@ -146,7 +157,18 @@ impl Editor {
             }
         }
         if let Some(settings) = gtk::Settings::default() {
-            settings.set_gtk_application_prefer_dark_theme(!light);
+            if let Some(property) = settings.find_property("gtk-interface-color-scheme") {
+                // Native GTK controls must follow the same scheme as our CSS.
+                // This changes only this process, not the desktop preference.
+                if let Some(value) = glib::EnumClass::with_type(property.value_type())
+                    .and_then(|class| class.to_value_by_nick(if light { "light" } else { "dark" }))
+                {
+                    settings.set_property_from_value(property.name(), &value);
+                }
+            } else {
+                // Keep compatibility with the existing GTK 4.12 minimum.
+                settings.set_gtk_application_prefer_dark_theme(!light);
+            }
         }
         gtk::style_context_add_provider_for_display(
             &gtk::prelude::WidgetExt::display(&self.window),

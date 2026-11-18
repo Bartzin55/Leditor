@@ -99,6 +99,12 @@ fn toggle(editor: &Rc<Editor>, name: &str) {
 /// are scripted, so this test does not depend on a portal or translated controls.
 #[test]
 fn tabs_history_layout_dialogs_and_file_safety() {
+    if crate::test_support::in_child_process(
+        module_path!(),
+        "tabs_history_layout_dialogs_and_file_safety",
+    ) {
+        return;
+    }
     let test_home = tempfile::tempdir().unwrap();
     std::env::set_var("XDG_DATA_HOME", test_home.path());
     std::env::set_var("XDG_CONFIG_HOME", test_home.path());
@@ -420,6 +426,18 @@ fn version_one_features(editor: &Rc<Editor>, root: &std::path::Path) {
         .extend([folder.clone(), nested.clone()]);
     editor.refresh_explorer();
     capture(editor, "explorer.png");
+    editor.operation(Operation::CopyPath(path.clone()));
+    let copied = glib::MainContext::default()
+        .block_on(editor.window.clipboard().read_text_future())
+        .unwrap()
+        .unwrap();
+    assert_eq!(copied.as_str(), path.to_string_lossy());
+    editor.operation(Operation::CopyRelativePath(path.clone()));
+    let copied = glib::MainContext::default()
+        .block_on(editor.window.clipboard().read_text_future())
+        .unwrap()
+        .unwrap();
+    assert_eq!(copied.as_str(), "/tree/nested/file.txt");
     let buffer = text.view.buffer();
     buffer.place_cursor(&buffer.start_iter());
     // Native context action, keyboard signal and Edit menu share line semantics.
@@ -730,6 +748,28 @@ fn version_one_two_features(application: &gtk::Application) {
     editor.spaces_input.set_value(3.0);
     editor.theme.replace("light".into());
     editor.apply_theme();
+    let settings = gtk::Settings::default().unwrap();
+    if settings
+        .find_property("gtk-interface-color-scheme")
+        .is_some()
+    {
+        let value = settings.property_value("gtk-interface-color-scheme");
+        assert_eq!(
+            glib::EnumValue::from_value(&value).unwrap().1.nick(),
+            "light"
+        );
+    }
+    if editor
+        .theme_css
+        .find_property("prefers-color-scheme")
+        .is_some()
+    {
+        let value = editor.theme_css.property_value("prefers-color-scheme");
+        assert_eq!(
+            glib::EnumValue::from_value(&value).unwrap().1.nick(),
+            "light"
+        );
+    }
     editor.save_settings();
     editor.window.destroy();
     let restored = create(application);
@@ -743,6 +783,12 @@ fn version_one_two_features(application: &gtk::Application) {
 #[test]
 #[ignore = "Run separately with a graphical display and PDFium runtime"]
 fn version_150_syntax_media_and_save_all() {
+    if crate::test_support::in_child_process(
+        module_path!(),
+        "version_150_syntax_media_and_save_all",
+    ) {
+        return;
+    }
     let temp = tempfile::tempdir().unwrap();
     std::env::set_var("XDG_CONFIG_HOME", temp.path());
     std::env::set_var("XDG_DATA_HOME", temp.path());
@@ -1043,6 +1089,9 @@ fn test_pdf() -> Vec<u8> {
 #[test]
 #[ignore = "Run separately with a graphical display"]
 fn source_engine_and_tab_navigation() {
+    if crate::test_support::in_child_process(module_path!(), "source_engine_and_tab_navigation") {
+        return;
+    }
     use sourceview5::prelude::MapExt;
     let temp = tempfile::tempdir().unwrap();
     std::env::set_var("XDG_CONFIG_HOME", temp.path());
@@ -1156,6 +1205,9 @@ fn source_engine_and_tab_navigation() {
 #[test]
 #[ignore = "Run separately under X11 with xdotool and a window manager"]
 fn native_keyboard_and_map_input() {
+    if crate::test_support::in_child_process(module_path!(), "native_keyboard_and_map_input") {
+        return;
+    }
     fn key(value: &str) {
         assert!(std::process::Command::new("xdotool")
             .args(["key", "--clearmodifiers", value])
@@ -1298,6 +1350,9 @@ fn native_keyboard_and_map_input() {
 #[test]
 #[ignore = "Run separately with a graphical display to keep GTK on one test thread"]
 fn version_160_editing_and_navigation() {
+    if crate::test_support::in_child_process(module_path!(), "version_160_editing_and_navigation") {
+        return;
+    }
     let temp = tempfile::tempdir().unwrap();
     std::env::set_var("XDG_CONFIG_HOME", temp.path());
     std::env::set_var("XDG_DATA_HOME", temp.path());

@@ -31,6 +31,10 @@ fn widgets<T: IsA<gtk::Widget> + glib::types::StaticType>(widget: &gtk::Widget) 
 #[test]
 #[ignore = "Run separately with a graphical display"]
 fn version_170_tabs_and_bracket_styles() {
+    if crate::test_support::in_child_process(module_path!(), "version_170_tabs_and_bracket_styles")
+    {
+        return;
+    }
     let (temp, e) = editor();
     let first = e.current().unwrap();
     assert!(first.icon.gicon().is_some());
@@ -59,7 +63,7 @@ fn version_170_tabs_and_bracket_styles() {
             .find_map(|image| image.gicon())
             .unwrap();
         assert!(tab.icon.gicon().unwrap().equal(Some(&explorer_icon)));
-        assert_eq!(tab.icon.pixel_size(), 16);
+        assert_eq!(tab.icon.pixel_size(), 14);
         assert!(tab.title.width() >= tab.title.width_request());
         assert!(tab.close.width() > 0 && tab.dirty.width() > 0);
         assert_eq!(tab.header.tooltip_text().as_deref(), path.to_str());
@@ -169,6 +173,9 @@ fn version_170_tabs_and_bracket_styles() {
 #[test]
 #[ignore = "Run separately under X11 with xdotool and a window manager"]
 fn version_170_native_completion() {
+    if crate::test_support::in_child_process(module_path!(), "version_170_native_completion") {
+        return;
+    }
     fn key(value: &str) {
         assert!(std::process::Command::new("xdotool")
             .args(["key", "--clearmodifiers", value])

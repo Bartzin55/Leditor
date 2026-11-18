@@ -420,6 +420,9 @@ mod tests {
     #[test]
     #[ignore = "Run separately with a graphical display to keep GTK on one test thread"]
     fn find_replace_focus_and_minimap() {
+        if crate::test_support::in_child_process(module_path!(), "find_replace_focus_and_minimap") {
+            return;
+        }
         let temp = tempfile::tempdir().unwrap();
         std::env::set_var("XDG_CONFIG_HOME", temp.path());
         std::env::set_var("XDG_DATA_HOME", temp.path());

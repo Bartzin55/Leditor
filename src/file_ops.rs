@@ -5,6 +5,21 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// A project-rooted path, using Markdown-compatible separators on both OSes.
+/// Keep the visible path of symlinks instead of resolving their external target.
+pub fn project_relative_path(root: &Path, path: &Path) -> Option<String> {
+    let relative = path.strip_prefix(root).ok()?;
+    let mut parts = Vec::new();
+    for component in relative.components() {
+        match component {
+            std::path::Component::Normal(name) => parts.push(name.to_string_lossy()),
+            std::path::Component::CurDir => (),
+            _ => return None,
+        }
+    }
+    Some(format!("/{}", parts.join("/")))
+}
+
 pub fn child(parent: &Path, name: &str) -> io::Result<PathBuf> {
     if name.is_empty()
         || name == "."

@@ -1,5 +1,18 @@
 # Leditor
 
+## 1.9.1-alpha — Image layout, test isolation and Explorer paths
+
+- Markdown images keep their aspect ratio and height when text is added below.
+  Local and internet images respond to zoom and fit the available width.
+- Explorer now offers **Copy full path** and **Copy relative path**. Relative
+  paths begin at the open project, for example `/assets/file.txt`, on both OSes.
+- Tabs are slightly thinner, with 14 px icons and slightly smaller titles.
+- Plain `cargo test` uses isolated GTK test processes and separate network
+  main contexts. A graphical display is still needed by the default UI test.
+- GTK 4.20+ uses the current color-scheme properties; GTK 4.12 compatibility
+  remains. No additional native or Rust dependencies are required.
+
+
 ## 1.9.0-alpha — Markdown images, project links and navigation
 
 - Paste an image into a saved `.md` document with Ctrl+V, Edit → Paste or the
@@ -132,7 +145,7 @@ commits/tags and third-party versions are unchanged.
 - Ctrl+Tab / Ctrl+Shift+Tab navigate tabs in display order, wrapping at the ends.
 - Ctrl+Shift+O opens a folder; Ctrl+Shift+W closes it; Ctrl+Shift+N creates one.
 
-Use `bash install.sh --source .` or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .` from this extracted ZIP. This source contains the 1.9.0-alpha update. Until it is published, use this ZIP with the source option; the standalone GitHub installer fetches the published branch.
+Use `bash install.sh --source .` or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .` from this extracted ZIP. This source contains the 1.9.1-alpha update. Until it is published, use this ZIP with the source option; the standalone GitHub installer fetches the published branch.
 See BUILD.md, DEVELOPMENT.md and VALIDATION.md for setup, design and test results.
 
 
@@ -159,7 +172,7 @@ MIT. See [VALIDATION.md](VALIDATION.md) for the actual validation limits.
 
 ### A modern text editor for Linux and Windows.
 
-**Version:** 1.9.0-alpha
+**Version:** 1.9.1-alpha
 **Release date:** November 10, 2026
 
 Leditor brings text editing and file organization together in a clean, minimalist workspace. Write, edit, and browse your files with independent tabs, an integrated file explorer, and a distraction-free interface.
@@ -262,7 +275,7 @@ Leditor's roadmap focuses on richer editing, broader file support, and a more cu
 - **Additional interface languages** and localization.
 - **Support for more text encodings.**
 
-These features are planned for future releases and are not included in version 1.9.0-alpha.
+These features are planned for future releases and are not included in version 1.9.1-alpha.
 
 ## Get Started
 

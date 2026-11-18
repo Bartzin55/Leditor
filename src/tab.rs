@@ -60,10 +60,11 @@ impl Tab {
         header.add_css_class("document-tab");
         let select = gtk::Button::new();
         select.add_css_class("flat");
-        let header_content = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        let header_content = gtk::Box::new(gtk::Orientation::Horizontal, 6);
         let icon = gtk::Image::new();
-        icon.set_pixel_size(16);
+        icon.set_pixel_size(14);
         let title = gtk::Label::new(None);
+        title.add_css_class("tab-title");
         title.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
         title.set_max_width_chars(32);
         title.set_single_line_mode(true);
@@ -74,6 +75,9 @@ impl Tab {
         header_content.append(&dirty);
         select.set_child(Some(&header_content));
         let close = gtk::Button::from_icon_name("window-close-symbolic");
+        if let Some(icon) = close.child().and_downcast::<gtk::Image>() {
+            icon.set_pixel_size(14);
+        }
         close.add_css_class("tab-close");
         close.add_css_class("flat");
         close.set_tooltip_text(Some(&strings.text("close-file")));

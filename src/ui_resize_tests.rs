@@ -23,6 +23,12 @@ fn wait_until(mut condition: impl FnMut() -> bool) {
 #[test]
 #[ignore = "Run separately with a graphical display and window manager"]
 fn resize_maximize_and_focus_preserve_editor() {
+    if crate::test_support::in_child_process(
+        module_path!(),
+        "resize_maximize_and_focus_preserve_editor",
+    ) {
+        return;
+    }
     let temp = tempfile::tempdir().unwrap();
     std::env::set_var("XDG_CONFIG_HOME", temp.path());
     std::env::set_var("XDG_DATA_HOME", temp.path());

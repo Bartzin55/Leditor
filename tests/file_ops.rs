@@ -194,3 +194,24 @@ fn failed_duplicate_leaves_source_intact_and_no_partial_copy() {
     assert_eq!(fs::read_to_string(source.join("file")).unwrap(), "original");
     assert_eq!(fs::read_dir(root.path()).unwrap().count(), 1);
 }
+#[test]
+fn project_relative_paths_keep_names_and_respect_root() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("project");
+    fs::create_dir(&root).unwrap();
+    assert_eq!(project_relative_path(&root, &root).as_deref(), Some("/"));
+    assert_eq!(
+        project_relative_path(&root, &root.join("assets/ação image.png")).as_deref(),
+        Some("/assets/ação image.png")
+    );
+    assert!(project_relative_path(&root, &temp.path().join("project-other/file")).is_none());
+    assert!(project_relative_path(&root, &root.join("../outside")).is_none());
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(temp.path(), root.join("link")).unwrap();
+        assert_eq!(
+            project_relative_path(&root, &root.join("link/file")).as_deref(),
+            Some("/link/file")
+        );
+    }
+}

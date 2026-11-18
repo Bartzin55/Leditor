@@ -41,6 +41,12 @@ fn key(key: &str) {
 #[test]
 #[ignore = "Run separately with a graphical X11 display and xdotool"]
 fn version_180_preview_read_only_input_and_duplicate() {
+    if crate::test_support::in_child_process(
+        module_path!(),
+        "version_180_preview_read_only_input_and_duplicate",
+    ) {
+        return;
+    }
     let temp = tempfile::tempdir().unwrap();
     std::env::set_var("XDG_CONFIG_HOME", temp.path());
     std::env::set_var("XDG_DATA_HOME", temp.path());

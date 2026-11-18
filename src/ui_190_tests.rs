@@ -24,6 +24,12 @@ fn widgets<T: IsA<gtk::Widget> + glib::types::StaticType>(widget: &gtk::Widget) 
 #[test]
 #[ignore = "Run separately under X11 with xdotool and a window manager"]
 fn version_190_clipboard_project_network_and_shortcuts() {
+    if crate::test_support::in_child_process(
+        module_path!(),
+        "version_190_clipboard_project_network_and_shortcuts",
+    ) {
+        return;
+    }
     let temp = tempfile::tempdir().unwrap();
     std::env::set_var("XDG_CONFIG_HOME", temp.path());
     std::env::set_var("XDG_DATA_HOME", temp.path());
@@ -140,6 +146,12 @@ fn version_190_clipboard_project_network_and_shortcuts() {
             .uri()
             .to_string()
     ));
+    // Images now retain their height, so the link may initially be offscreen.
+    let content_bounds = link.compute_bounds(&preview).unwrap();
+    tab.preview_scroll
+        .vadjustment()
+        .set_value(f64::from(content_bounds.y()));
+    drain();
     let bounds = link.compute_bounds(&e.window).unwrap();
     let window_id = std::process::Command::new("xdotool")
         .arg("getactivewindow")

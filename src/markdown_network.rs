@@ -122,33 +122,39 @@ mod tests {
                 socket.write_all(body).unwrap();
             }
         });
-        glib::MainContext::default().block_on(async {
-            let session = session();
-            session.set_proxy_resolver(Some(&gtk::gio::SimpleProxyResolver::new(
-                None,
-                [] as [&str; 0],
-            )));
-            for path in ["/image", "/redirect"] {
-                let bytes = download(&session, &format!("{url}{path}")).await.unwrap();
-                assert_eq!(decode(&bytes).unwrap().width(), 2);
-            }
-            for path in ["/missing", "/large"] {
-                assert!(download(&session, &format!("{url}{path}")).await.is_err());
-            }
-            assert!(download(&session, "file:///tmp/x.png").await.is_err());
-            assert!(decode(b"<svg/>").is_err());
-        });
+        let context = glib::MainContext::new();
+        context
+            .with_thread_default(|| {
+                context.block_on(async {
+                    let session = session();
+                    session.set_proxy_resolver(Some(&gtk::gio::SimpleProxyResolver::new(
+                        None,
+                        [] as [&str; 0],
+                    )));
+                    for path in ["/image", "/redirect"] {
+                        let bytes = download(&session, &format!("{url}{path}")).await.unwrap();
+                        assert_eq!(decode(&bytes).unwrap().width(), 2);
+                    }
+                    for path in ["/missing", "/large"] {
+                        assert!(download(&session, &format!("{url}{path}")).await.is_err());
+                    }
+                    assert!(download(&session, "file:///tmp/x.png").await.is_err());
+                    assert!(decode(b"<svg/>").is_err());
+                })
+            })
+            .unwrap();
         server.join().unwrap();
     }
     #[test]
     #[ignore = "Requires internet access and a working platform TLS backend"]
     fn https_image_smoke() {
         assert!(gtk::gio::TlsBackend::default().supports_tls());
-        glib::MainContext::default().block_on(async {
+        let context = glib::MainContext::new();
+        context.with_thread_default(|| context.block_on(async {
             let url = "https://raw.githubusercontent.com/Bartzin55/Leditor/afeff3d9e9f9fe8d62d5bbef9854afd092a5ca58/assets/leditor.png";
             let bytes = download(&session(), url).await.unwrap();
             let pixbuf = decode(&bytes).unwrap();
             assert!(pixbuf.width() > 0 && pixbuf.height() > 0);
-        });
+        })).unwrap();
     }
 }

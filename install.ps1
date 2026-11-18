@@ -1,4 +1,4 @@
-# Leditor 1.9.1-alpha: GTK 4.12+, GtkSourceView 5, libsoup 3 and GLib TLS support.
+# Leditor 1.9.2-alpha: GTK 4.12+, GtkSourceView 5, libsoup 3 and GLib TLS support.
 #Requires -Version 5.1
 [CmdletBinding()]
 param([ValidateSet('user','system')][string]$Scope, [string]$Source, [string]$Ref = 'main')

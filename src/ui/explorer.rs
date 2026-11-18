@@ -30,6 +30,7 @@ pub(super) enum Operation {
 pub(super) struct Explorer {
     pub panel: gtk::Box,
     pub focused: Cell<bool>,
+    pub pointer_inside: Cell<bool>,
     pub creators: RefCell<Vec<gtk::Button>>,
     pub rows: gtk::Box,
     pub root: RefCell<Option<PathBuf>>,
@@ -50,6 +51,7 @@ impl Explorer {
         Self {
             panel,
             focused: Cell::new(false),
+            pointer_inside: Cell::new(false),
             creators: RefCell::new(Vec::new()),
             rows,
             root: RefCell::new(None),
@@ -62,6 +64,21 @@ impl Explorer {
 }
 impl Editor {
     pub(super) fn setup_explorer(self: &Rc<Self>) {
+        let motion = gtk::EventControllerMotion::new();
+        motion.set_propagation_phase(gtk::PropagationPhase::Capture);
+        let weak = Rc::downgrade(self);
+        motion.connect_enter(move |_, _, _| {
+            if let Some(editor) = weak.upgrade() {
+                editor.explorer.pointer_inside.set(true);
+            }
+        });
+        let weak = Rc::downgrade(self);
+        motion.connect_leave(move |_| {
+            if let Some(editor) = weak.upgrade() {
+                editor.explorer.pointer_inside.set(false);
+            }
+        });
+        self.explorer.panel.add_controller(motion);
         let toolbar = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         let label = gtk::Label::new(Some(&self.strings.text("explorer")));
         label.set_hexpand(true);
@@ -170,16 +187,18 @@ impl Editor {
             label.set_margin_top(16);
             self.explorer.rows.append(&label);
         }
-        if restore_focus {
-            let mut child = self.explorer.rows.first_child();
-            while let Some(row) = child {
-                if row.has_css_class("selected") {
+        let mut child = self.explorer.rows.first_child();
+        while let Some(row) = child {
+            if row.has_css_class("selected") {
+                if restore_focus {
                     row.grab_focus();
-                    break;
                 }
-                child = row.next_sibling();
+                return;
             }
+            child = row.next_sibling();
         }
+        // A removed or hidden entry must not remain a keyboard target.
+        self.explorer.selected.replace(None);
     }
     fn append_row(self: &Rc<Self>, path: &Path, depth: i32) {
         let folder = path.is_dir();
@@ -233,64 +252,72 @@ impl Editor {
         }
         let weak = Rc::downgrade(self);
         let p = path.to_owned();
-        row.connect_clicked(move |_| {
+        row.connect_clicked(move |row| {
             if let Some(e) = weak.upgrade() {
                 if e.busy.get() {
                     return;
                 }
-                e.explorer.selected.replace(Some(p.clone()));
+                row.grab_focus();
                 if folder {
                     if !e.explorer.expanded.borrow_mut().remove(&p) {
                         e.explorer.expanded.borrow_mut().insert(p.clone());
                     }
                     e.refresh_explorer();
-                } else {
-                    e.operation(Operation::Open(p.clone()));
                 }
             }
         });
+        if !folder {
+            let double_click = gtk::GestureClick::new();
+            double_click.set_button(1);
+            double_click.set_propagation_phase(gtk::PropagationPhase::Capture);
+            let weak = Rc::downgrade(self);
+            let path = path.to_owned();
+            double_click.connect_pressed(move |gesture, count, _, _| {
+                if count == 2 {
+                    if let Some(editor) = weak.upgrade().filter(|e| !e.busy.get()) {
+                        gesture.set_state(gtk::EventSequenceState::Claimed);
+                        editor.operation(Operation::Open(path.clone()));
+                    }
+                }
+            });
+            row.add_controller(double_click);
+        }
         let focus = gtk::EventControllerFocus::new();
         let weak = Rc::downgrade(self);
         let p = path.to_owned();
-        focus.connect_enter(move |_| {
+        focus.connect_enter(move |focus| {
             if let Some(e) = weak.upgrade() {
+                let mut child = e.explorer.rows.first_child();
+                while let Some(row) = child {
+                    row.remove_css_class("selected");
+                    child = row.next_sibling();
+                }
+                if let Some(row) = focus.widget() {
+                    row.add_css_class("selected");
+                }
                 e.explorer.selected.replace(Some(p.clone()));
                 e.explorer.focused.set(true);
                 e.refresh();
             }
         });
         row.add_controller(focus);
-        let keys = gtk::EventControllerKey::new();
-        let weak = Rc::downgrade(self);
-        let p = path.to_owned();
-        keys.connect_key_pressed(move |_, key, _, modifiers| {
-            if let Some(e) = weak.upgrade() {
-                let op = if key == gtk::gdk::Key::F2 {
-                    Some(Operation::Rename(p.clone()))
-                } else if key == gtk::gdk::Key::Delete {
-                    Some(Operation::Delete(p.clone()))
-                } else if modifiers.contains(gtk::gdk::ModifierType::CONTROL_MASK) {
-                    match key {
-                        gtk::gdk::Key::c => Some(Operation::Clipboard(p.clone(), false)),
-                        gtk::gdk::Key::x => Some(Operation::Clipboard(p.clone(), true)),
-                        gtk::gdk::Key::v => Some(Operation::Paste(if folder {
-                            p.clone()
-                        } else {
-                            p.parent().unwrap().to_owned()
-                        })),
-                        _ => None,
+        if !folder {
+            let keys = gtk::EventControllerKey::new();
+            let weak = Rc::downgrade(self);
+            let path = path.to_owned();
+            keys.connect_key_pressed(move |_, key, _, state| {
+                if state.is_empty()
+                    && matches!(key, gtk::gdk::Key::Return | gtk::gdk::Key::KP_Enter)
+                {
+                    if let Some(editor) = weak.upgrade() {
+                        editor.operation(Operation::Open(path.clone()));
                     }
-                } else {
-                    None
-                };
-                if let Some(op) = op {
-                    e.operation(op);
                     return glib::Propagation::Stop;
                 }
-            }
-            glib::Propagation::Proceed
-        });
-        row.add_controller(keys);
+                glib::Propagation::Proceed
+            });
+            row.add_controller(keys);
+        }
         let gesture = gtk::GestureClick::new();
         gesture.set_button(3);
         let weak = Rc::downgrade(self);

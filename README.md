@@ -1,5 +1,12 @@
 # Leditor
 
+## 1.9.2-alpha — Explorer selection and shortcuts
+
+Click a file to select it, double-click to open it, and click a folder to select
+and expand or collapse it. With the pointer over the Explorer, F2, Delete and
+Ctrl+C/X/V act on the selection. Elsewhere F2 renames the active tab (Save As
+for Untitled) and clipboard shortcuts retain their editing behavior.
+
 ## 1.9.1-alpha — Image layout, test isolation and Explorer paths
 
 - Markdown images keep their aspect ratio and height when text is added below.
@@ -37,7 +44,7 @@
   applies to text, images and PDFs too; clicking a link does not create another
   Leditor tab. Invalid/out-of-project paths are displayed without an active link.
 - Native touchpad pinch changes zoom continuously, within the existing 5–800%
-  range. **Ctrl+M** toggles the minimap. **F12** renames the active tab's file;
+  range. **Ctrl+M** toggles the minimap. **F2** outside the Explorer renames the active tab's file;
   an Untitled tab opens Save As. The shortcuts dialog includes these controls.
 - Native requirements now include **GTK 4.12+**, **libsoup 3**, GLib TLS support
   and CA certificates. Both installers and the manual guide are updated.
@@ -145,7 +152,7 @@ commits/tags and third-party versions are unchanged.
 - Ctrl+Tab / Ctrl+Shift+Tab navigate tabs in display order, wrapping at the ends.
 - Ctrl+Shift+O opens a folder; Ctrl+Shift+W closes it; Ctrl+Shift+N creates one.
 
-Use `bash install.sh --source .` or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .` from this extracted ZIP. This source contains the 1.9.1-alpha update. Until it is published, use this ZIP with the source option; the standalone GitHub installer fetches the published branch.
+Use `bash install.sh --source .` or `powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Source .` from this extracted ZIP. This source contains the 1.9.2-alpha update. Until it is published, use this ZIP with the source option; the standalone GitHub installer fetches the published branch.
 See BUILD.md, DEVELOPMENT.md and VALIDATION.md for setup, design and test results.
 
 
@@ -172,7 +179,7 @@ MIT. See [VALIDATION.md](VALIDATION.md) for the actual validation limits.
 
 ### A modern text editor for Linux and Windows.
 
-**Version:** 1.9.1-alpha
+**Version:** 1.9.2-alpha
 **Release date:** November 10, 2026
 
 Leditor brings text editing and file organization together in a clean, minimalist workspace. Write, edit, and browse your files with independent tabs, an integrated file explorer, and a distraction-free interface.
@@ -275,7 +282,7 @@ Leditor's roadmap focuses on richer editing, broader file support, and a more cu
 - **Additional interface languages** and localization.
 - **Support for more text encodings.**
 
-These features are planned for future releases and are not included in version 1.9.1-alpha.
+These features are planned for future releases and are not included in version 1.9.2-alpha.
 
 ## Get Started
 

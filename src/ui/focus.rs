@@ -6,6 +6,9 @@ pub(super) struct FocusSnapshot {
     fullscreen: bool,
 }
 impl Editor {
+    pub(super) fn pointer_over_explorer(&self) -> bool {
+        self.explorer.panel.is_mapped() && self.explorer.pointer_inside.get()
+    }
     pub(super) fn setup_focus(self: &Rc<Self>, root: &gtk::Box) {
         let motion = gtk::EventControllerMotion::new();
         let weak = Rc::downgrade(self);
@@ -28,7 +31,45 @@ impl Editor {
         let keys = gtk::EventControllerKey::new();
         keys.set_propagation_phase(gtk::PropagationPhase::Capture);
         let weak = Rc::downgrade(self);
-        keys.connect_key_pressed(move |_, key, _, _| {
+        keys.connect_key_pressed(move |_, key, _, state| {
+            use gtk::gdk::{Key, ModifierType};
+            let Some(editor) = weak.upgrade() else {
+                return glib::Propagation::Proceed;
+            };
+            let modifiers = state & gtk::accelerator_get_default_mod_mask();
+            let explorer = editor.pointer_over_explorer();
+            let row_focused = gtk::prelude::GtkWindowExt::focus(&editor.window)
+                .is_some_and(|focus| focus.is_ancestor(&editor.explorer.panel));
+            if explorer || row_focused {
+                let clipboard = match (key, modifiers) {
+                    (Key::c, ModifierType::CONTROL_MASK) => Some("copy"),
+                    (Key::x, ModifierType::CONTROL_MASK) => Some("cut"),
+                    (Key::v, ModifierType::CONTROL_MASK) => Some("paste"),
+                    _ => None,
+                };
+                if let Some(action) = clipboard {
+                    if !editor.busy.get()
+                        && (explorer || action == "copy" || !editor.only_view.get())
+                    {
+                        editor.edit_clipboard(action, explorer);
+                    }
+                    return glib::Propagation::Stop;
+                }
+                if key == Key::Delete && modifiers.is_empty() {
+                    if explorer {
+                        let selected = editor.explorer.selected.borrow().clone();
+                        if let Some(path) = selected {
+                            editor.operation(Operation::Delete(path));
+                        }
+                    } else if let Some(tab) = editor
+                        .current()
+                        .filter(|t| t.is_text() && t.view.is_editable() && !editor.busy.get())
+                    {
+                        tab.view.emit_delete_from_cursor(gtk::DeleteType::Chars, 1);
+                    }
+                    return glib::Propagation::Stop;
+                }
+            }
             if key == gtk::gdk::Key::Escape {
                 if let Some(e) = weak.upgrade() {
                     if e.focus_mode.get() {

@@ -1,4 +1,13 @@
-# Validation — Leditor 1.9.1-alpha
+# Validation — Leditor 1.9.2-alpha
+
+Linux/X11 basic checks passed with GTK 4.24.1: Cargo compilation of all targets,
+formatting, the file safety/UI test, and the targeted native mouse/keyboard
+test `explorer_pointer_shortcuts_and_clicks`. The latter exercises folder
+expansion, single-click selection, double-click open, Ctrl+C with editor focus,
+and F2 on both sides of the Explorer boundary. Native Windows and Wayland were
+not tested for this patch. The full test suite was not rerun.
+
+## Previous validation — Leditor 1.9.1-alpha
 
 Date: 2026-11-17. Based on published 1.9.0-alpha commit
 `edfb47fc1d5c53fbc7e5fc07d6a31d1e14a1cd1f`. No push performed.

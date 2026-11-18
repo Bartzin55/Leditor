@@ -1,6 +1,6 @@
 [package]
 name = "leditor"
-version = "1.9.1-alpha"
+version = "1.9.2-alpha"
 license = "MIT"
 edition = "2021"
 rust-version = "1.89"

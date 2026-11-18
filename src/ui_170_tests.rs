@@ -320,3 +320,80 @@ fn version_170_native_completion() {
     assert_eq!(e.active.get(), Some(first.id));
     e.window.destroy();
 }
+
+#[test]
+#[ignore = "Requires X11, xdotool and a window manager"]
+fn explorer_pointer_shortcuts_and_clicks() {
+    if crate::test_support::in_child_process(
+        module_path!(),
+        "explorer_pointer_shortcuts_and_clicks",
+    ) {
+        return;
+    }
+    fn mouse(args: &[&str]) -> String {
+        let output = std::process::Command::new("xdotool")
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        String::from_utf8(output.stdout).unwrap().trim().to_owned()
+    }
+    let (temp, editor) = editor();
+    let folder = temp.path().join("docs");
+    std::fs::create_dir(&folder).unwrap();
+    let file = folder.join("selected.txt");
+    std::fs::write(&file, "file text").unwrap();
+    let active = temp.path().join("active.txt");
+    std::fs::write(&active, "active text").unwrap();
+    editor.load_folder(temp.path().to_owned());
+    run(&editor, Intent::Operation(Operation::Open(active.clone())));
+    let original = editor.current().unwrap();
+    drain();
+    let window = mouse(&["getactivewindow"]);
+    let point = |widget: &gtk::Widget| {
+        drain();
+        let bounds = widget.compute_bounds(&editor.window).unwrap();
+        mouse(&[
+            "mousemove",
+            "--window",
+            &window,
+            &(bounds.x() as i32 + 12).to_string(),
+            &(bounds.y() as i32 + 10).to_string(),
+        ]);
+        drain();
+    };
+    point(&explorer_row(&editor, &folder));
+    mouse(&["click", "1"]);
+    pump_until(|| editor.explorer.expanded.borrow().contains(&folder));
+    assert_eq!(editor.explorer.selected.borrow().as_ref(), Some(&folder));
+    point(&explorer_row(&editor, &file));
+    mouse(&["click", "1"]);
+    drain();
+    assert_eq!(editor.active.get(), Some(original.id));
+    assert_eq!(editor.explorer.selected.borrow().as_ref(), Some(&file));
+    original.view.grab_focus();
+    mouse(&["key", "ctrl+c"]);
+    pump_until(|| {
+        editor
+            .explorer
+            .clipboard
+            .borrow()
+            .as_ref()
+            .is_some_and(|(p, _)| p == &file)
+    });
+    mouse(&["key", "F2"]);
+    answer_name("renamed.txt");
+    let renamed = folder.join("renamed.txt");
+    pump_until(|| renamed.exists() && !editor.busy.get());
+    explorer_row(&editor, &renamed).grab_focus();
+    point(editor.footer.upcast_ref());
+    mouse(&["key", "F2"]);
+    answer_name("active-renamed.txt");
+    pump_until(|| temp.path().join("active-renamed.txt").exists() && !editor.busy.get());
+    point(&explorer_row(&editor, &renamed));
+    mouse(&["click", "1"]);
+    drain();
+    mouse(&["click", "1"]);
+    pump_until(|| editor.current().unwrap().document.borrow().path.as_ref() == Some(&renamed));
+    editor.window.destroy();
+}

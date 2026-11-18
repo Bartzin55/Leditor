@@ -228,11 +228,11 @@ fn version_190_clipboard_project_network_and_shortcuts() {
         app.accels_for_action("win.rename-active")
             .first()
             .map(|s| s.as_str()),
-        Some("F12")
+        Some("F2")
     );
     let target = root.join("docs/renamed.md");
     assert!(std::process::Command::new("xdotool")
-        .args(["key", "--clearmodifiers", "F12"])
+        .args(["key", "--clearmodifiers", "F2"])
         .status()
         .unwrap()
         .success());

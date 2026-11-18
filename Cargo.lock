@@ -698,7 +698,7 @@ dependencies = [
 
 [[package]]
 name = "leditor"
-version = "1.9.1-alpha"
+version = "1.9.2-alpha"
 dependencies = [
  "comrak",
  "fluent-bundle",

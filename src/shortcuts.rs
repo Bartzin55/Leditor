@@ -15,8 +15,8 @@ pub const SHORTCUTS: &[Shortcut] = &[
     Shortcut {
         action: "rename-active",
         label: "rename-active",
-        accelerators: &["F12"],
-        display: "F12",
+        accelerators: &["F2"],
+        display: "F2",
     },
     Shortcut {
         action: "only-view",
@@ -165,6 +165,5 @@ pub const TEXT_SHORTCUTS: &[(&str, &str)] = &[
     ("Ctrl+V", "paste"),
     ("Ctrl+X", "cut"),
     ("Ctrl+A", "select-all"),
-    ("F2", "rename-explorer"),
     ("Delete", "delete-explorer"),
 ];

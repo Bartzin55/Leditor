@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.2-alpha] — 2026-11-17
+
+- Select Explorer files on one click and open them on double-click. Folders select and toggle on one click.
+- Route Explorer clipboard and Delete shortcuts by pointer location. F2 renames the Explorer selection or the active tab, replacing F12.
+
 ## [1.9.1-alpha] — 2026-11-17
 
 - Fix Markdown image height changing or collapsing when text is added below; preserve aspect ratio, fit available width and apply zoom to local and downloaded images.

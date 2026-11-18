@@ -381,7 +381,12 @@ impl Editor {
                 self.save_settings();
             }
             "rename-active" => {
-                if let Some(tab) = self.current() {
+                if self.pointer_over_explorer() {
+                    let path = self.explorer.selected.borrow().clone();
+                    if let Some(path) = path {
+                        self.operation(Operation::Rename(path));
+                    }
+                } else if let Some(tab) = self.current() {
                     self.operation(Operation::RenameTab(tab.id));
                 }
             }
@@ -471,7 +476,7 @@ impl Editor {
             "close-folder" => self.operation(Operation::CloseFolder),
             "new-folder" => self.operation(Operation::NewRootFolder),
             "show-explorer" => self.toggle_explorer(),
-            "cut" | "copy" | "paste" => self.edit_clipboard(name),
+            "cut" | "copy" | "paste" => self.edit_clipboard(name, self.explorer.focused.get()),
             "new" => self.request(Intent::New),
             "open" => self.request(Intent::Open),
             "close" => {

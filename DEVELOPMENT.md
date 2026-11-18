@@ -1,5 +1,9 @@
-# Development Notes — Leditor 1.9.1-alpha
+# Development Notes — Leditor 1.9.2-alpha
 
+
+## 1.9.2-alpha integration
+
+Explorer rows retain keyboard focus and selection on click. Files use a GTK double-click gesture to open. The panel tracks pointer entry and exit so file shortcuts can target the selected row even when the text view has keyboard focus. F2 uses the existing rename and Save As dialogs.
 
 ## 1.9.1-alpha integration
 

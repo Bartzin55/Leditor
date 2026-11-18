@@ -10,7 +10,7 @@ source tree or manage the build yourself.
 3. **Advanced: compile and install manually.** Manage the toolchain, native
    libraries and installation yourself, without running the installers.
 
-For the **1.9.1-alpha source ZIP**, use option 2 while that version is unpublished.
+For the **1.9.2-alpha source ZIP**, use option 2 while that version is unpublished.
 Option 1 always installs the code currently published on GitHub.
 
 Comrak 0.59.0 is compiled by Cargo from `Cargo.lock`; it needs Rust 1.89 or newer.

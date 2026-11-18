@@ -391,12 +391,15 @@ fn version_one_features(editor: &Rc<Editor>, root: &std::path::Path) {
     assert!(root.join("created-folder/created.txt").exists());
     editor.select(original.id);
     let row = explorer_row(editor, &root.join("created-folder/created.txt"));
-    row.grab_focus();
-    let keys = controller::<gtk::EventControllerKey>(&row);
-    assert!(keys.emit_by_name::<bool>(
-        "key-pressed",
-        &[&gtk::gdk::Key::F2, &0u32, &gtk::gdk::ModifierType::empty()]
-    ));
+    row.clone()
+        .downcast::<gtk::Button>()
+        .unwrap()
+        .emit_clicked();
+    assert!(row.has_css_class("selected"));
+    assert_eq!(editor.active.get(), Some(original.id));
+    editor.explorer.pointer_inside.set(true);
+    toggle(editor, "rename-active");
+    editor.explorer.pointer_inside.set(false);
     answer_name("renamed.txt");
     pump_until(|| !editor.busy.get());
     assert!(root.join("created-folder/renamed.txt").exists());

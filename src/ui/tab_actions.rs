@@ -143,8 +143,8 @@ impl Editor {
             previous = Some(tab.header.clone());
         }
     }
-    pub(super) fn edit_clipboard(self: &Rc<Self>, action: &str) {
-        if self.explorer.focused.get() {
+    pub(super) fn edit_clipboard(self: &Rc<Self>, action: &str, explorer: bool) {
+        if explorer {
             let selected = self.explorer.selected.borrow().clone();
             if let Some(path) = selected {
                 let operation = match action {
